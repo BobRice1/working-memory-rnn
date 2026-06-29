@@ -1,3 +1,5 @@
+"""Configuration loading and default settings for baseline experiments."""
+
 from __future__ import annotations
 
 from copy import deepcopy
@@ -8,6 +10,7 @@ import yaml
 
 
 def default_config() -> dict[str, Any]:
+    """Return the default baseline delayed-response experiment config."""
     return {
         "task": {
             "n_classes": 4,
@@ -43,6 +46,14 @@ def default_config() -> dict[str, Any]:
 
 
 def load_config(path: str | Path | None = None) -> dict[str, Any]:
+    """Load a YAML config and merge it onto package defaults.
+
+    Args:
+        path: Optional YAML file path. If omitted, only defaults are returned.
+
+    Returns:
+        Nested configuration dictionary with default values filled in.
+    """
     config = default_config()
     if path is None:
         return config
@@ -53,6 +64,7 @@ def load_config(path: str | Path | None = None) -> dict[str, Any]:
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """Recursively merge ``override`` values into ``base`` without mutation."""
     merged = deepcopy(base)
     for key, value in override.items():
         if isinstance(value, dict) and isinstance(merged.get(key), dict):

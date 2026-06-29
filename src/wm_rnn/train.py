@@ -1,3 +1,5 @@
+"""Training entry point for the baseline delayed-response RNN."""
+
 from __future__ import annotations
 
 import argparse
@@ -22,6 +24,15 @@ from wm_rnn.training_utils import (
 
 @dataclass(frozen=True)
 class TrainResult:
+    """Paths and in-memory metrics produced by a training run.
+
+    Attributes:
+        checkpoint_path: Saved PyTorch checkpoint path.
+        metrics_path: JSON summary path for final training metrics.
+        history_path: CSV path for per-step training history.
+        history: Per-step loss and accuracy records.
+    """
+
     checkpoint_path: Path
     metrics_path: Path
     history_path: Path
@@ -29,6 +40,15 @@ class TrainResult:
 
 
 def train_model(config: dict[str, Any]) -> TrainResult:
+    """Train a baseline working-memory RNN from a nested config dictionary.
+
+    Args:
+        config: Experiment configuration with task, model, training, and path
+            sections.
+
+    Returns:
+        ``TrainResult`` containing output paths and training history.
+    """
     device_info = select_device(config["training"].get("device", "auto"))
     print(device_info.description)
 
@@ -79,6 +99,7 @@ def train_model(config: dict[str, Any]) -> TrainResult:
 
 
 def main() -> None:
+    """Parse command-line arguments and run baseline training."""
     parser = argparse.ArgumentParser(description="Train the baseline delayed-response working-memory RNN.")
     parser.add_argument("--config", default="configs/baseline_delay.yaml", help="Path to YAML config.")
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], help="Override training device.")

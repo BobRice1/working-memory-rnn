@@ -1,3 +1,5 @@
+"""Torch device selection helpers for CPU and CUDA execution."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,11 +9,24 @@ import torch
 
 @dataclass(frozen=True)
 class SelectedDevice:
+    """Selected torch device plus a human-readable runtime description."""
+
     device: torch.device
     description: str
 
 
 def select_device(requested: str = "auto") -> SelectedDevice:
+    """Resolve requested device string into a concrete torch device.
+
+    Args:
+        requested: ``"auto"``, ``"cpu"``, or ``"cuda"``.
+
+    Returns:
+        Selected device and text describing whether CUDA or CPU will be used.
+
+    Raises:
+        ValueError: If ``requested`` is not a supported device option.
+    """
     requested = requested.lower()
     cuda_available = torch.cuda.is_available()
 

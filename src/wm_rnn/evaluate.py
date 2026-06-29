@@ -1,3 +1,5 @@
+"""Evaluation entry point for trained working-memory RNN checkpoints."""
+
 from __future__ import annotations
 
 import argparse
@@ -23,12 +25,29 @@ from wm_rnn.training_utils import (
 
 @dataclass(frozen=True)
 class EvalResult:
+    """Paths and metrics produced by checkpoint evaluation.
+
+    Attributes:
+        metrics_path: JSON file containing aggregate evaluation metrics.
+        confusion_path: CSV file containing the class confusion matrix.
+        metrics: In-memory copy of aggregate evaluation metrics.
+    """
+
     metrics_path: Path
     confusion_path: Path
     metrics: dict[str, Any]
 
 
 def evaluate_model(config: dict[str, Any], checkpoint_path: str | Path) -> EvalResult:
+    """Evaluate a saved checkpoint on freshly generated delay-task batches.
+
+    Args:
+        config: Experiment configuration dictionary.
+        checkpoint_path: Path to a checkpoint produced by ``train_model``.
+
+    Returns:
+        ``EvalResult`` with aggregate accuracy and output paths.
+    """
     device_info = select_device(config["training"].get("device", "auto"))
     dirs = ensure_run_dirs(config["paths"]["output_dir"])
     model = fresh_model(config, device_info.device)
@@ -64,6 +83,7 @@ def evaluate_model(config: dict[str, Any], checkpoint_path: str | Path) -> EvalR
 
 
 def main() -> None:
+    """Parse command-line arguments and evaluate a trained checkpoint."""
     parser = argparse.ArgumentParser(description="Evaluate a trained working-memory RNN checkpoint.")
     parser.add_argument("--config", default="configs/baseline_delay.yaml", help="Path to YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to checkpoint produced by training.")

@@ -1,3 +1,5 @@
+"""File-system helpers for experiment outputs."""
+
 from __future__ import annotations
 
 import csv
@@ -7,6 +9,7 @@ from typing import Any
 
 
 def ensure_run_dirs(output_dir: str | Path) -> dict[str, Path]:
+    """Create and return the standard output directories for one run."""
     root = Path(output_dir)
     dirs = {
         "root": root,
@@ -21,6 +24,7 @@ def ensure_run_dirs(output_dir: str | Path) -> dict[str, Path]:
 
 
 def write_json(path: str | Path, payload: dict[str, Any]) -> Path:
+    """Write a dictionary as indented JSON and return the output path."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("w", encoding="utf-8") as handle:
@@ -29,6 +33,7 @@ def write_json(path: str | Path, payload: dict[str, Any]) -> Path:
 
 
 def write_history_csv(path: str | Path, history: list[dict[str, Any]]) -> Path:
+    """Write a list of metric rows to CSV and return the output path."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     if not history:

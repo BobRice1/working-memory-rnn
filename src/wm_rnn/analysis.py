@@ -1,3 +1,5 @@
+"""Hidden-state PCA analysis for trained working-memory RNN checkpoints."""
+
 from __future__ import annotations
 
 import argparse
@@ -23,12 +25,30 @@ from wm_rnn.training_utils import batch_to_tensors, fresh_model, task_config_fro
 
 @dataclass(frozen=True)
 class PCAResult:
+    """Output paths produced by hidden-state PCA analysis.
+
+    Attributes:
+        figure_path: PNG trajectory plot path.
+        hidden_states_path: Compressed NumPy archive of hidden states and PCA
+            projections.
+        summary_path: JSON file containing PCA variance and output paths.
+    """
+
     figure_path: Path
     hidden_states_path: Path
     summary_path: Path
 
 
 def run_pca_analysis(config: dict[str, Any], checkpoint_path: str | Path) -> PCAResult:
+    """Project hidden-state trajectories into PCA space and save outputs.
+
+    Args:
+        config: Experiment configuration dictionary.
+        checkpoint_path: Path to a checkpoint produced by ``train_model``.
+
+    Returns:
+        ``PCAResult`` containing paths to the saved figure, arrays, and summary.
+    """
     device_info = select_device(config["training"].get("device", "auto"))
     dirs = ensure_run_dirs(config["paths"]["output_dir"])
     model = fresh_model(config, device_info.device)
@@ -69,6 +89,7 @@ def run_pca_analysis(config: dict[str, Any], checkpoint_path: str | Path) -> PCA
 
 
 def _plot_trajectories(projected: np.ndarray, cues: np.ndarray, figure_path: Path) -> None:
+    """Save a 2D PCA trajectory plot colored by remembered cue class."""
     plt.figure(figsize=(6, 5))
     classes = np.unique(cues)
     cmap = plt.get_cmap("tab10")
@@ -87,6 +108,7 @@ def _plot_trajectories(projected: np.ndarray, cues: np.ndarray, figure_path: Pat
 
 
 def main() -> None:
+    """Parse command-line arguments and run hidden-state PCA analysis."""
     parser = argparse.ArgumentParser(description="Run PCA analysis for a trained working-memory RNN checkpoint.")
     parser.add_argument("--config", default="configs/baseline_delay.yaml", help="Path to YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to checkpoint produced by training.")
