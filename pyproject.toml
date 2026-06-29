@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "working-memory-rnn"
+version = "0.1.0"
+description = "Baseline continuous-time RNN for a delayed working-memory task."
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.2",
+  "numpy>=1.26",
+  "scikit-learn>=1.4",
+  "matplotlib>=3.8",
+  "pandas>=1.5",
+  "PyYAML>=6.0",
+  "tqdm>=4.66",
+  "wheel>=0.43",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+filterwarnings = [
+  "ignore:torch.utils._pytree._register_pytree_node is deprecated:UserWarning:transformers.utils.generic",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
