@@ -6,6 +6,21 @@ This changelog tracks two related histories:
 2. Run log: experiment actions performed with the baseline model, including
    training, delay sweeps, multi-seed runs, and plotting.
 
+## Note On Archived Baseline Artifacts (2026-07-01)
+
+As of 2026-07-01, the baseline hidden-state nonlinearity changed from `relu`
+to `tanh` (see the "Promoted `tanh` to the canonical baseline activation"
+entry below for the full reasoning and results). Every run-log entry below
+this note that references `outputs/baseline_delay/...` paths and was
+recorded **before** this change describes the original `relu`-based
+network. Those artifacts still exist and were not deleted; they were moved
+to `outputs/baseline_delay_relu/` (same internal file names, unchanged),
+and the exact config used to produce them is preserved as
+`configs/baseline_delay_relu.yaml`. `outputs/baseline_delay/` and
+`configs/baseline_delay.yaml` now refer to the current `tanh`-based
+baseline. Run-log entries recorded after this note that reference
+`outputs/baseline_delay/...` describe the new `tanh`-based artifacts.
+
 ## Git Commit History
 
 <details>
@@ -730,6 +745,224 @@ Next action under consideration:
 - Consider whether combining `tanh` with the whole-delay-loss/randomized-delay
   training changes gives any further benefit, now that each change has been
   tested in isolation.
+
+</details>
+
+<details>
+<summary>Uncommitted: promoted tanh to the canonical baseline activation</summary>
+
+Reasoning:
+
+- The isolated tanh test above showed perfect response accuracy at every
+  tested delay length (up to `80` steps, four times the trained length) and
+  a delay settling ratio of `0.06`, using the exact same simple training
+  setup as the original `relu` baseline. This was judged strong enough
+  evidence to make `tanh` the default baseline activation rather than a
+  separately tracked variant, since it is a strictly better-generalizing,
+  more settled network produced by the same architecture family and the
+  same training procedure, not a different modelling approach.
+- The original `relu`-based baseline was not discarded. Its config and
+  recorded outputs were archived under new, clearly named files/folders so
+  the full history remains reproducible and inspectable, consistent with
+  how `docs/changelog.md` otherwise preserves a complete run history.
+- The standalone `configs/baseline_delay_tanh.yaml` config and its
+  `outputs/baseline_delay_tanh/` outputs were removed, because after this
+  change they would be an exact duplicate of the new canonical
+  `configs/baseline_delay.yaml` / `outputs/baseline_delay/`.
+
+File changes:
+
+- `configs/baseline_delay_relu.yaml`: Added as an exact archival copy of the
+  pre-change `configs/baseline_delay.yaml` (fixed `20`-step delay,
+  response-only loss, `1000` steps, `model.activation: relu`), with
+  `paths.output_dir` set to `outputs/baseline_delay_relu` and
+  `paths.run_name` set to `baseline_delay_relu` so it can be re-run
+  independently without colliding with the new baseline.
+- `configs/baseline_delay.yaml`: Added `model.activation: tanh`. No other
+  fields changed; task timing, training steps, and output paths
+  (`outputs/baseline_delay/`, run name `baseline_delay`) are unchanged, so
+  this file now defines the new canonical baseline in place.
+- `configs/baseline_delay_tanh.yaml`: Removed (superseded by the change
+  above; would otherwise duplicate `configs/baseline_delay.yaml`).
+- `docs/model-architecture.md`: Updated the "Recurrent Core" section to
+  describe the hidden-state nonlinearity as configurable with `tanh` as the
+  baseline default, documented the `activation` config field, generalized
+  the per-step update formula from a hardcoded `relu` call to
+  `activation(...)`, and added a short explanation of why `tanh` replaced
+  `relu` as the default, pointing to this changelog for full detail.
+- `README.md`: Updated the top-line description, and rewrote "Model
+  Variants" to describe `configs/baseline_delay.yaml` as the current
+  (`tanh`) baseline, `configs/baseline_delay_relu.yaml` as the archived
+  original baseline, and `configs/baseline_delay_stable.yaml` as a
+  still-open comparison; removed the now-deleted `baseline_delay_tanh`
+  entry.
+
+Filesystem changes (outputs, not tracked by Git since `outputs/` is
+git-ignored):
+
+- Renamed `outputs/baseline_delay/` to `outputs/baseline_delay_relu/`,
+  archiving the original `relu` baseline's checkpoint, metrics, figures,
+  arrays, and multi-seed sweep results without modification. File names
+  inside this archived folder still carry the original `baseline_delay_*`
+  prefix rather than `baseline_delay_relu_*`, since they were generated
+  before this archiving step; the containing folder name is authoritative
+  for identifying these as the archived `relu` run.
+- Deleted `outputs/baseline_delay_tanh/` (superseded by the retrained
+  canonical baseline below).
+- Retrained a fresh checkpoint into `outputs/baseline_delay/` using the
+  updated `configs/baseline_delay.yaml`, and re-ran evaluation, the
+  delay-length sweep, PCA analysis, and stability analysis against it (see
+  run-log entry below). Because this config is otherwise identical to the
+  earlier isolated tanh test, results are the same; this run exists so the
+  checkpoint's embedded config and all output file names correctly reflect
+  the `baseline_delay` identity going forward.
+
+</details>
+
+<details>
+<summary>2026-07-01 - Retrained the canonical baseline_delay checkpoint under tanh and confirmed results</summary>
+
+Action:
+
+- Trained `outputs/baseline_delay/checkpoints/baseline_delay.pt` using the
+  updated `configs/baseline_delay.yaml` (`model.activation: tanh`, fixed
+  `20`-step delay, response-only loss, `1000` steps).
+- Re-ran evaluation, the same delay-length sweep (`20, 25, 30, 35, 40, 50,
+  60, 70, 80`), PCA trajectory analysis, and hidden-state stability
+  analysis against this checkpoint, all writing into `outputs/baseline_delay/`.
+
+Recorded result:
+
+- Final training loss: `0.0019`. Final training accuracy: `1.000`.
+- Held-out evaluation accuracy at the `20`-step reference delay: `1.000`.
+- Delay-length sweep: `1.000` accuracy at every tested delay length from
+  `20` through `80` steps.
+- Hidden-state stability: early-delay speed `0.56`, late-delay speed
+  `0.03`, delay settling ratio `0.06`.
+
+Interpretation:
+
+- These numbers are identical (within floating-point rounding) to the
+  isolated tanh test recorded earlier, as expected: the only configuration
+  difference is the output path and run name, not the model, data, or
+  training procedure. This run exists to make `outputs/baseline_delay/`
+  and its embedded checkpoint config correctly represent the current
+  canonical baseline, rather than to test a new hypothesis.
+- `outputs/baseline_delay/` now documents a settled, delay-length-robust
+  baseline. `outputs/baseline_delay_relu/` remains available as the
+  archived original baseline for any comparison that specifically needs
+  the earlier `relu`-based, ramping-dynamics network.
+
+Recorded outputs:
+
+- Training metrics: `outputs/baseline_delay/metrics/baseline_delay_train_metrics.json`.
+- Training history: `outputs/baseline_delay/metrics/baseline_delay_train_history.csv`.
+- Evaluation metrics: `outputs/baseline_delay/metrics/baseline_delay_eval_metrics.json`.
+- Delay-sweep metrics/CSV/figure: `outputs/baseline_delay/metrics/baseline_delay_delay_sweep_metrics.json`, `outputs/baseline_delay/metrics/baseline_delay_delay_sweep.csv`, `outputs/baseline_delay/figures/baseline_delay_delay_sweep.png`.
+- PCA figure/arrays: `outputs/baseline_delay/figures/baseline_delay_pca_trajectories.png`, `outputs/baseline_delay/arrays/baseline_delay_hidden_states.npz`.
+- Stability figure/summary/arrays: `outputs/baseline_delay/figures/baseline_delay_stability.png`, `outputs/baseline_delay/metrics/baseline_delay_stability_summary.json`, `outputs/baseline_delay/arrays/baseline_delay_stability.npz`.
+
+Next action under consideration:
+
+- Run a fixed-point or Jacobian-level analysis on this checkpoint to
+  directly confirm attractor structure, since this is now the checkpoint
+  that will anchor future baseline comparisons and psilocybin-informed
+  perturbations.
+- Decide whether to retrain `configs/baseline_delay_stable.yaml`-style
+  whole-delay-loss/randomized-delay training on top of `tanh` rather than
+  `relu`, now that `tanh` is the baseline activation.
+- Consider whether the existing multi-seed sweep tooling
+  (`src/wm_rnn/seed_sweep.py`) should be re-run under the new `tanh`
+  baseline to confirm the settled, delay-robust behavior holds across
+  seeds, since the original multi-seed results in
+  `outputs/baseline_delay_relu/seed_sweep/` were only ever measured for the
+  `relu` network.
+
+</details>
+
+<details>
+<summary>2026-07-01 - Re-ran the multi-seed delay sweep under the tanh baseline</summary>
+
+Action:
+
+- Trained independent `tanh`-based baseline models for seeds `101`, `102`,
+  `103`, and `104` using `configs/baseline_delay.yaml`, evaluated each, and
+  ran the same frozen-weight delay sweep (`20, 25, 30, 35, 40, 50, 60, 70,
+  80`) used for every other run in this project.
+- Plotted all four seed curves together with a mean and `+/- 1 SD` band,
+  same as the original `relu` multi-seed plot.
+- All outputs were written under `outputs/baseline_delay/seed_sweep/`,
+  replacing the prior `tanh`-baseline seed-sweep summary location (the
+  original `relu` four-seed results remain untouched and available at
+  `outputs/baseline_delay_relu/seed_sweep/`).
+
+Recorded result - training and evaluation:
+
+- All four seeds reached `1.000` final training accuracy and `1.000`
+  held-out evaluation accuracy at the `20`-step reference delay.
+
+Recorded result - delay-length sweep, `tanh` seeds compared with the archived `relu` seeds:
+
+| Delay steps | relu seed 101 | relu seed 102 | relu seed 103 | relu seed 104 | relu mean | tanh seed 101 | tanh seed 102 | tanh seed 103 | tanh seed 104 | tanh mean |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 20 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| 30 | 0.950 | 1.000 | 1.000 | 1.000 | 0.988 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| 40 | 0.747 | 0.723 | 0.517 | 0.910 | 0.724 | 0.781 | 1.000 | 0.899 | 1.000 | 0.920 |
+| 60 | 0.730 | 0.418 | 0.509 | 0.484 | 0.535 | 0.747 | 1.000 | 0.757 | 1.000 | 0.876 |
+| 80 | 0.754 | 0.245 | 0.455 | 0.504 | 0.489 | 0.745 | 1.000 | 0.711 | 1.000 | 0.864 |
+
+Interpretation:
+
+- This is a more complete and more honest picture than the single-seed
+  result recorded earlier. Under `relu`, all four seeds degrade toward or
+  below the neighborhood of chance (`0.25`) by `80` steps, with high
+  seed-to-seed variability (`0.245` to `0.754`) and no seed staying
+  reliable. Under `tanh`, two of four seeds (`102`, `104`) hold perfect
+  `1.000` accuracy through `80` steps, matching the single-seed result
+  reported earlier, while the other two (`101`, `103`) settle to roughly
+  `0.71`-`0.78` beyond `40` steps rather than continuing to degrade toward
+  chance.
+- The earlier claim that switching to `tanh` produces generalization "at
+  least four times longer than trained" was accurate for the one seed used
+  in the initial checkpoint analysis, but should not be read as a
+  guarantee for every randomly initialized network. `docs/model-architecture.md`
+  has been updated to state this more precisely: strong, well-above-chance
+  generalization is typical under `tanh`, and perfect generalization occurs
+  for some but not all seeds.
+- Even the weaker `tanh` seeds are still a clear improvement over every
+  `relu` seed at long delays: the worst `tanh` seed at `80` steps (`0.711`)
+  is comparable to or better than the best `relu` seed at `80` steps
+  (`0.754`), and the `tanh` mean (`0.864`) is far above the `relu` mean
+  (`0.489`) with a much tighter spread. The core conclusion, that bounding
+  the nonlinearity substantially improves delay-length generalization, is
+  unchanged; what changes is that it should be described as a strong,
+  typical improvement rather than a uniform guarantee.
+- This also means the `tanh` network's settling behavior may itself vary
+  by seed (some seeds may find a fully settled fixed-point-like solution,
+  others a partially settled or slower-drifting one). This is a natural
+  candidate follow-up: running the hidden-state stability analysis on the
+  `101`/`103` (partial) and `102`/`104` (perfect) checkpoints and comparing
+  their settling ratios would show whether degree of settling predicts
+  degree of long-delay accuracy, rather than assuming it from accuracy
+  alone.
+
+Recorded outputs:
+
+- Summary JSON: `outputs/baseline_delay/metrics/baseline_delay_seed_sweep_summary.json`.
+- Summary CSV: `outputs/baseline_delay/metrics/baseline_delay_seed_sweep.csv`.
+- Combined figure: `outputs/baseline_delay/figures/baseline_delay_seed_sweep_delay_curves.png`.
+- Per-seed checkpoints, metrics, and figures: `outputs/baseline_delay/seed_sweep/seed_101/` through `seed_104/`.
+
+Next action under consideration:
+
+- Run the hidden-state stability analysis on each of the four seed
+  checkpoints to test whether settling ratio predicts long-delay accuracy
+  within the `tanh` baseline, not just between `tanh` and `relu`.
+- Revisit whether the still-open `tanh` + whole-delay-loss/randomized-delay
+  combination (see the "superseded or worth testing" discussion) would
+  reduce this seed-to-seed variability, since that combination directly
+  rewards delay-period stability during training rather than relying on
+  the bounded nonlinearity alone.
 
 </details>
 

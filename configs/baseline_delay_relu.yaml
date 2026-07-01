@@ -10,7 +10,7 @@ model:
   hidden_size: 64
   dt: 20.0
   tau: 100.0
-  activation: tanh
+  activation: relu
 
 training:
   steps: 1000
@@ -26,5 +26,5 @@ analysis:
   n_trials: 64
 
 paths:
-  output_dir: outputs/baseline_delay_tanh
-  run_name: baseline_delay_tanh
+  output_dir: outputs/baseline_delay_relu
+  run_name: baseline_delay_relu
