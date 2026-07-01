@@ -7,6 +7,11 @@ from dataclasses import dataclass
 import torch
 from torch import nn
 
+_ACTIVATIONS = {
+    "relu": torch.relu,
+    "tanh": torch.tanh,
+}
+
 
 @dataclass(frozen=True)
 class RNNConfig:
@@ -18,6 +23,9 @@ class RNNConfig:
         output_size: Number of categorical readout classes.
         dt: Simulation time step used to compute the leak factor.
         tau: Recurrent time constant used to compute the leak factor.
+        activation: Hidden-state nonlinearity, either ``"relu"`` (unbounded,
+            non-negative) or ``"tanh"`` (bounded to ``(-1, 1)``). Defaults to
+            ``"relu"`` to preserve the original baseline behavior.
     """
 
     input_size: int
@@ -25,24 +33,29 @@ class RNNConfig:
     output_size: int
     dt: float = 20.0
     tau: float = 100.0
+    activation: str = "relu"
 
 
 class CTRNN(nn.Module):
-    """Continuous-time ReLU RNN using a ``dt / tau`` leak update.
+    """Continuous-time RNN using a ``dt / tau`` leak update.
 
     This is a simple rate-style recurrent layer. It is not spiking,
     E/I-constrained, or biologically detailed; the time constant is included so
-    later experiments can vary memory stability in an interpretable way.
+    later experiments can vary memory stability in an interpretable way. The
+    hidden-state nonlinearity is configurable (``relu`` or ``tanh``): ``relu``
+    keeps activity non-negative but allows unbounded growth, while ``tanh``
+    bounds activity to ``(-1, 1)`` and cannot grow without limit.
     """
 
     def __init__(self, config: RNNConfig):
         """Initialize recurrent input, recurrent, and leak parameters.
 
         Args:
-            config: Model sizes and time constants.
+            config: Model sizes, time constants, and activation choice.
 
         Raises:
-            ValueError: If ``dt`` or ``tau`` cannot produce a valid leak factor.
+            ValueError: If ``dt`` or ``tau`` cannot produce a valid leak
+                factor, or if ``activation`` is not a supported choice.
         """
         super().__init__()
         if config.tau <= 0:
@@ -52,11 +65,15 @@ class CTRNN(nn.Module):
         alpha = config.dt / config.tau
         if not 0 < alpha <= 1:
             raise ValueError("dt / tau must be in (0, 1]")
+        if config.activation not in _ACTIVATIONS:
+            raise ValueError(f"activation must be one of {sorted(_ACTIVATIONS)}")
 
         self.input_size = config.input_size
         self.hidden_size = config.hidden_size
         self.alpha = alpha
         self.oneminusalpha = 1.0 - alpha
+        self.activation_name = config.activation
+        self._activation = _ACTIVATIONS[config.activation]
         self.input2h = nn.Linear(config.input_size, config.hidden_size)
         self.h2h = nn.Linear(config.hidden_size, config.hidden_size)
 
@@ -81,10 +98,11 @@ class CTRNN(nn.Module):
             hidden: Previous hidden state shaped ``(batch, hidden_size)``.
 
         Returns:
-            Updated nonnegative hidden state.
+            Updated hidden state, nonnegative if ``activation`` is ``"relu"``
+            or bounded to ``(-1, 1)`` if ``activation`` is ``"tanh"``.
         """
         pre_activation = self.input2h(input_t) + self.h2h(hidden)
-        return torch.relu(hidden * self.oneminusalpha + pre_activation * self.alpha)
+        return self._activation(hidden * self.oneminusalpha + pre_activation * self.alpha)
 
     def forward(self, inputs: torch.Tensor, hidden: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor]:
         """Run the recurrent layer over a full sequence.

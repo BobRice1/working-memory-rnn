@@ -60,6 +60,45 @@ python -m wm_rnn.analysis --config configs/baseline_delay.yaml --checkpoint outp
 
 Analysis writes hidden-state arrays and a PCA trajectory figure under `outputs/baseline_delay/`.
 
+## Hidden-State Stability Analysis
+
+Check whether a trained checkpoint's hidden state settles (attractor-like)
+or keeps changing/growing (ramping or phasic) during the delay period:
+
+```powershell
+python -m wm_rnn.stability_analysis --config configs/baseline_delay.yaml --checkpoint outputs/baseline_delay/checkpoints/baseline_delay.pt
+```
+
+This writes a two-panel figure (hidden-state norm and step-to-step speed
+across trial time) and a JSON summary with phase-averaged values and a
+"delay settling ratio" under `outputs/baseline_delay/`. A ratio well below
+`1` indicates settling; a ratio near or above `1` indicates the hidden state
+is still changing at a similar or increasing rate through the delay.
+
+## Model Variants
+
+- `configs/baseline_delay.yaml`: the original baseline. Fixed `20`-step
+  training delay, loss scored only on the response period. Outputs live
+  under `outputs/baseline_delay/`.
+- `configs/baseline_delay_stable.yaml`: same architecture, but trains with a
+  randomized delay length (`15`-`45` steps) and scores the loss across the
+  delay period plus the response period, to test whether that produces more
+  settled hidden-state dynamics. Outputs live under
+  `outputs/baseline_delay_stable/`, in the same `checkpoints/metrics/figures/arrays`
+  layout, kept fully separate from the original baseline's outputs.
+- `configs/baseline_delay_tanh.yaml`: identical training setup to the
+  original baseline (fixed `20`-step delay, response-period-only loss,
+  `1000` steps), but with `model.activation: tanh` instead of the default
+  `relu`, to test whether bounding the hidden-state nonlinearity alone
+  produces settled dynamics. Outputs live under `outputs/baseline_delay_tanh/`.
+  The hidden-state activation is a configurable field
+  (`model.activation: relu` or `tanh`) rather than a hardcoded choice, so
+  either setting can be reproduced from its config file.
+
+Run any of the commands above against `configs/baseline_delay_stable.yaml`
+and its checkpoint to reproduce or extend that comparison. See
+`docs/changelog.md` for the recorded reasoning and before/after results.
+
 ## Reproducible Baseline Run
 
 From a fresh environment:

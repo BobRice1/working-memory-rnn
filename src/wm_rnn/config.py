@@ -24,6 +24,7 @@ def default_config() -> dict[str, Any]:
             "hidden_size": 64,
             "dt": 20.0,
             "tau": 100.0,
+            "activation": "relu",
         },
         "training": {
             "steps": 1000,

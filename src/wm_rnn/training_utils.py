@@ -50,6 +50,7 @@ def model_config_from_dict(config: dict[str, Any]) -> RNNConfig:
         output_size=task_config.n_classes,
         dt=float(model["dt"]),
         tau=float(model["tau"]),
+        activation=str(model.get("activation", "relu")),
     )
 
 
@@ -98,3 +99,8 @@ def fresh_model(config: dict[str, Any], device: torch.device) -> WorkingMemoryRN
 def with_batch_size(task_config: DelayTaskConfig, batch_size: int) -> DelayTaskConfig:
     """Return a copy of a task config with a different batch size."""
     return replace(task_config, batch_size=batch_size)
+
+
+def with_delay_steps(task_config: DelayTaskConfig, delay_steps: int) -> DelayTaskConfig:
+    """Return a copy of a task config with a different delay length."""
+    return replace(task_config, delay_steps=delay_steps)

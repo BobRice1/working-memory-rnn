@@ -413,3 +413,323 @@ Next action under consideration:
 
 </details>
 
+<details>
+<summary>Uncommitted: added a whole-delay-loss and randomized-delay training variant, kept as a separate versioned run</summary>
+
+Reasoning:
+
+- The stability analysis above showed the original baseline checkpoint does
+  not settle during the delay period; step-to-step speed grows throughout
+  the delay instead of shrinking. Two changes were identified as candidate,
+  complementary fixes to test before any architecture change:
+  1. Score the training loss across the whole delay period, not only the
+     response window, so the network is directly rewarded for staying
+     decodable at every delay time step, not only at one fixed offset.
+  2. Randomize the delay length used in each training batch, so the network
+     cannot rely on a solution that only needs to be correct at one exact,
+     fixed trained delay.
+- These two changes were judged complementary rather than redundant: (1)
+  creates pressure to stay correct at every moment, and (2) extends that
+  pressure across a range of durations instead of one fixed duration.
+- Both changes are implemented as opt-in configuration so the original
+  `configs/baseline_delay.yaml` config and its already-recorded results are
+  completely unaffected.
+- Outputs for this variant are written to a separate top-level output
+  directory (`outputs/baseline_delay_stable/`) rather than being mixed into
+  `outputs/baseline_delay/`, so figures, metrics, checkpoints, and arrays
+  are kept in their own folder per model version and can be compared
+  side by side without overwriting or interleaving files. This follows the
+  same per-run folder pattern already used by `seed_sweep.py`.
+
+File changes:
+
+- `src/wm_rnn/training_utils.py`: Added `with_delay_steps`, a small helper
+  that returns a copy of a task config with a different delay length,
+  mirroring the existing `with_batch_size` helper.
+- `src/wm_rnn/train.py`: Added two opt-in training behaviors, both disabled
+  by default:
+  - If `task.delay_steps_min` and `task.delay_steps_max` are both set, each
+    training step now samples a random delay length from that inclusive
+    range (using a seeded, reproducible random generator) instead of always
+    using the fixed `task.delay_steps`.
+  - If `training.score_delay_period` is `true`, the training loss is
+    computed over the delay period plus the response period, instead of the
+    response period only. Response-period accuracy is still always logged
+    using the original response-only mask, so training curves stay
+    comparable across configs regardless of this setting. The sampled delay
+    length for each step is now also recorded in the training history CSV.
+  - Final training metrics JSON now also records whether whole-delay
+    scoring and delay randomization were used, and the configured delay
+    range if randomization was on.
+- `configs/baseline_delay_stable.yaml`: Added a new, separate experiment
+  config that keeps the model architecture identical to the original
+  baseline (`hidden_size=64`, `dt=20.0`, `tau=100.0`) and only changes the
+  training objective: `delay_steps_min=15`, `delay_steps_max=45`,
+  `score_delay_period=true`, and `steps=2000` (increased from `1000` because
+  the task is harder). `paths.output_dir` is set to
+  `outputs/baseline_delay_stable` and `paths.run_name` to
+  `baseline_delay_stable`, so every output lands in its own folder tree
+  separate from the original baseline run. `task.delay_steps` is kept at
+  `20` so evaluation, delay-sweep, PCA, and stability analyses still probe
+  the same reference delay length as the original baseline for comparison.
+
+</details>
+
+<details>
+<summary>Uncommitted: added a configurable tanh activation and an isolated tanh test variant</summary>
+
+Reasoning:
+
+- The whole-delay-loss / randomized-delay variant improved how far the
+  delay length could be pushed before accuracy collapsed, but the hidden
+  state was still accelerating rather than settling (delay settling ratio
+  about `4.8x`, still above `1`). That pointed at a second, separate cause:
+  the recurrent layer's `relu` nonlinearity has no upper bound, so nothing
+  in the architecture itself prevents the hidden state from growing forever,
+  regardless of how the loss is scored.
+- Switching the hidden-state nonlinearity to `tanh` was proposed as a
+  structural fix rather than a training-incentive fix: `tanh` bounds hidden
+  activity to `(-1, 1)`, so unbounded growth becomes mathematically
+  impossible rather than merely discouraged.
+- This was deliberately tested in isolation: same fixed `20`-step delay,
+  same response-period-only loss, same `1000` training steps as the
+  original baseline, changing only the activation function. This isolates
+  whether bounding alone (independent of the training-objective changes
+  already tested) produces settled hidden-state dynamics.
+- `relu` gives only non-negative activity, loosely resembling a firing rate;
+  `tanh` allows negative activity and is the standard choice in most
+  trained-RNN dynamical-systems literature (for example the kind of
+  fixed-point-finding analysis flagged as a future next step), so this is
+  recorded as a real modelling choice, not only an implementation detail.
+
+File changes:
+
+- `src/wm_rnn/model.py`: Added an `activation` field to `RNNConfig`
+  (`"relu"` by default, or `"tanh"`), with validation against unsupported
+  values. `CTRNN` now resolves the configured activation once at
+  construction time and applies it in `recurrence()` instead of a hardcoded
+  `torch.relu` call. Docstrings updated to describe both activation options.
+- `src/wm_rnn/training_utils.py`: `model_config_from_dict` now reads
+  `model.activation` from the config dictionary (defaulting to `"relu"` if
+  absent) and passes it through to `RNNConfig`.
+- `src/wm_rnn/config.py`: Added `activation: "relu"` to the default model
+  configuration so the setting is discoverable and documented even when a
+  YAML config omits it.
+- `configs/baseline_delay_tanh.yaml`: Added a new experiment config that is
+  otherwise identical to `configs/baseline_delay.yaml` (same task timing,
+  same `1000`-step response-only training) except `model.activation: tanh`.
+  `paths.output_dir` is `outputs/baseline_delay_tanh` and `paths.run_name`
+  is `baseline_delay_tanh`, giving this variant its own separate output
+  folder tree, consistent with the other variants.
+
+</details>
+
+<details>
+<summary>2026-07-01 - Trained and analyzed the whole-delay-loss / randomized-delay variant, compared against the original baseline</summary>
+
+Action:
+
+- Trained a new model with `configs/baseline_delay_stable.yaml`: same
+  architecture as the original baseline, but with the training delay length
+  sampled per step from `[15, 45]` and the training loss scored across the
+  delay period plus the response period, for `2000` steps.
+- Evaluated the trained checkpoint, ran the same frozen-weight delay-length
+  sweep used for the original baseline (`20, 25, 30, 35, 40, 50, 60, 70,
+  80`), ran the PCA trajectory analysis, and ran the hidden-state stability
+  analysis, all against this new checkpoint.
+- All outputs were written to `outputs/baseline_delay_stable/` (separate
+  `checkpoints/`, `metrics/`, `figures/`, and `arrays/` subfolders), so they
+  do not overwrite or mix with `outputs/baseline_delay/`.
+
+Recorded result - training and evaluation:
+
+- Final training loss: `0.0038`. Final training (response-period) accuracy:
+  `1.000`, reached consistently across randomly sampled delay lengths from
+  step `100` onward.
+- Held-out evaluation accuracy at the reference `20`-step delay: `1.000`.
+
+Recorded result - delay-length sweep, compared with the original baseline:
+
+| Delay steps | Original baseline accuracy | Stable-variant accuracy |
+| ---: | ---: | ---: |
+| 20 | 1.000 | 1.000 |
+| 25 | 1.000 | 1.000 |
+| 30 | 0.907 | 1.000 |
+| 35 | 0.749 | 1.000 |
+| 40 | 0.745 | 1.000 |
+| 50 | 0.519 | 1.000 |
+| 60 | 0.485 | 0.712 |
+| 70 | 0.483 | 0.510 |
+| 80 | 0.503 | 0.511 |
+
+Recorded result - hidden-state stability, compared with the original baseline:
+
+| Metric | Original baseline | Stable variant |
+| --- | ---: | ---: |
+| Early-delay speed | 1.58 | 1.20 |
+| Late-delay speed | 17.09 | 5.72 |
+| Delay settling ratio (late / early) | 10.83 | 4.76 |
+
+Interpretation:
+
+- The delay-length sweep shows a large, direct improvement: the original
+  baseline started degrading past `25-30` steps, while the stable variant
+  holds perfect accuracy all the way to `50` steps, which lines up closely
+  with the trained random-delay upper bound of `45`. Accuracy still falls
+  off beyond that, roughly toward the same chance-level plateau seen in the
+  original baseline by `70-80` steps.
+- The hidden-state stability analysis shows real but partial improvement:
+  the delay settling ratio dropped from about `10.8x` to about `4.8x`, and
+  both early- and late-delay speeds are lower. The hidden state is still
+  accelerating through the delay rather than flattening toward zero, so
+  this is not yet a settled, tonic attractor state; it is a less extreme,
+  longer-range version of the same ramping signature seen in the original
+  baseline (confirmed visually in
+  `outputs/baseline_delay_stable/figures/baseline_delay_stable_pca_trajectories.png`,
+  where hidden-state trajectories still diverge outward by cue class rather
+  than curving toward fixed points).
+- Taken together, this suggests the two training changes successfully
+  widened the range of delay lengths the network can handle reliably
+  (matching the literal range it was trained on, plus some margin), but did
+  not by themselves convert the underlying mechanism into a settled
+  attractor. This is consistent with the ramping/phasic account of the
+  original baseline rather than a full mechanism change: the network
+  appears to have learned a ramp that stays correct over a wider trained
+  window, rather than learning to stop ramping.
+- This is a meaningful, literature-consistent result rather than a null
+  result: Ghazizadeh and Ching (2021) describe slow-manifold/phasic
+  solutions as a legitimate, sometimes more efficient alternative to tonic
+  fixed-point attractors, and this result is consistent with the network
+  favoring that kind of solution even when the training objective directly
+  rewards delay-period stability.
+
+Recorded outputs:
+
+- Training metrics: `outputs/baseline_delay_stable/metrics/baseline_delay_stable_train_metrics.json`.
+- Training history: `outputs/baseline_delay_stable/metrics/baseline_delay_stable_train_history.csv`.
+- Evaluation metrics: `outputs/baseline_delay_stable/metrics/baseline_delay_stable_eval_metrics.json`.
+- Delay-sweep metrics/CSV/figure: `outputs/baseline_delay_stable/metrics/baseline_delay_stable_delay_sweep_metrics.json`, `outputs/baseline_delay_stable/metrics/baseline_delay_stable_delay_sweep.csv`, `outputs/baseline_delay_stable/figures/baseline_delay_stable_delay_sweep.png`.
+- PCA figure/arrays: `outputs/baseline_delay_stable/figures/baseline_delay_stable_pca_trajectories.png`, `outputs/baseline_delay_stable/arrays/baseline_delay_stable_hidden_states.npz`.
+- Stability figure/summary/arrays: `outputs/baseline_delay_stable/figures/baseline_delay_stable_stability.png`, `outputs/baseline_delay_stable/metrics/baseline_delay_stable_stability_summary.json`, `outputs/baseline_delay_stable/arrays/baseline_delay_stable_stability.npz`.
+
+Next action under consideration:
+
+- If a genuinely settled, tonic attractor state is desired rather than a
+  wider-range ramp, consider a change that directly bounds or penalizes
+  hidden-state growth (for example a bounded nonlinearity such as `tanh`,
+  or an explicit hidden-state norm penalty) rather than further widening the
+  trained delay range.
+- Fixed-point or Jacobian-level analysis would give a more direct answer
+  than trajectory speed alone, and is a reasonable next step now that two
+  checkpoints with meaningfully different delay-generalization behavior
+  exist to compare.
+
+</details>
+
+<details>
+<summary>2026-07-01 - Trained and analyzed the isolated tanh-activation variant, compared against both prior runs</summary>
+
+Action:
+
+- Trained a new model with `configs/baseline_delay_tanh.yaml`: identical
+  training setup to the original baseline (fixed `20`-step delay,
+  response-period-only loss, `1000` steps), with only `model.activation`
+  changed from `relu` to `tanh`.
+- Ran the same evaluation, delay-length sweep (`20, 25, 30, 35, 40, 50, 60,
+  70, 80`), PCA trajectory analysis, and hidden-state stability analysis
+  used for the previous two runs, against this checkpoint.
+- All outputs were written to `outputs/baseline_delay_tanh/`, kept separate
+  from both `outputs/baseline_delay/` and `outputs/baseline_delay_stable/`.
+
+Recorded result - training and evaluation:
+
+- Final training loss: `0.0019`. Final training accuracy: `1.000`, reached
+  by step `150` and stable for the remainder of training.
+- Held-out evaluation accuracy at the reference `20`-step delay: `1.000`.
+
+Recorded result - delay-length sweep, compared with both prior runs:
+
+| Delay steps | Original baseline (relu) | Whole-delay-loss variant (relu) | Tanh variant |
+| ---: | ---: | ---: | ---: |
+| 20 | 1.000 | 1.000 | 1.000 |
+| 25 | 1.000 | 1.000 | 1.000 |
+| 30 | 0.907 | 1.000 | 1.000 |
+| 35 | 0.749 | 1.000 | 1.000 |
+| 40 | 0.745 | 1.000 | 1.000 |
+| 50 | 0.519 | 1.000 | 1.000 |
+| 60 | 0.485 | 0.712 | 1.000 |
+| 70 | 0.483 | 0.510 | 1.000 |
+| 80 | 0.503 | 0.511 | 1.000 |
+
+Recorded result - hidden-state stability, compared with both prior runs:
+
+| Metric | Original baseline (relu) | Whole-delay-loss variant (relu) | Tanh variant |
+| --- | ---: | ---: | ---: |
+| Early-delay speed | 1.58 | 1.20 | 0.56 |
+| Late-delay speed | 17.09 | 5.72 | 0.03 |
+| Delay settling ratio (late / early) | 10.83 | 4.76 | **0.06** |
+
+Interpretation:
+
+- The tanh variant reaches perfect response accuracy at every tested delay
+  length, including `80` steps, four times the trained `20`-step delay, and
+  it does this using the plain original training setup (fixed delay,
+  response-only loss, no extra training steps). This outperforms the
+  whole-delay-loss/randomized-delay variant, which needed a harder training
+  procedure and still degraded past `50` steps.
+- The hidden-state stability numbers now show genuine settling rather than
+  a smaller ramp: the delay settling ratio dropped from `10.83` (original)
+  and `4.76` (whole-delay-loss variant) to `0.06` for the tanh variant. A
+  ratio well below `1` means late-delay speed is much smaller than
+  early-delay speed, that is, the hidden state is slowing down and
+  flattening out as the delay continues, not accelerating.
+- This is visible directly in the recorded figures: hidden-state norm
+  (`outputs/baseline_delay_tanh/figures/baseline_delay_tanh_stability.png`)
+  rises during the cue period and then visibly plateaus partway through the
+  delay instead of continuing to climb; step-to-step speed rises briefly
+  after the cue, then decays toward near zero by the end of the delay. The
+  PCA trajectory figure
+  (`outputs/baseline_delay_tanh/figures/baseline_delay_tanh_pca_trajectories.png`)
+  shows trajectories that curve and slow into a settled region per cue
+  class, rather than the straight, ever-diverging rays seen in both `relu`
+  runs.
+- Taken together, this points to the unbounded `relu` nonlinearity, not the
+  training objective, as the primary cause of the original baseline's poor
+  delay generalization. The whole-delay-loss and randomized-delay changes
+  did help the `relu` network cope with a wider range of delays, but they
+  could not make it settle, because nothing in that architecture prevents
+  continued growth. Bounding the nonlinearity removed the underlying
+  capacity for unbounded growth directly, and a settled representation
+  emerged from the same simple training setup as the original baseline,
+  with no need for the more complex training changes.
+- This is the first run in this project to show a hidden-state signature
+  consistent with a genuinely settled, tonic, attractor-like mechanism
+  rather than a ramping or phasic one, in the terms used by Ghazizadeh and
+  Ching (2021). It should still be confirmed with a direct fixed-point or
+  Jacobian-level analysis rather than trajectory speed alone before treating
+  it as a confirmed attractor.
+
+Recorded outputs:
+
+- Training metrics: `outputs/baseline_delay_tanh/metrics/baseline_delay_tanh_train_metrics.json`.
+- Training history: `outputs/baseline_delay_tanh/metrics/baseline_delay_tanh_train_history.csv`.
+- Evaluation metrics: `outputs/baseline_delay_tanh/metrics/baseline_delay_tanh_eval_metrics.json`.
+- Delay-sweep metrics/CSV/figure: `outputs/baseline_delay_tanh/metrics/baseline_delay_tanh_delay_sweep_metrics.json`, `outputs/baseline_delay_tanh/metrics/baseline_delay_tanh_delay_sweep.csv`, `outputs/baseline_delay_tanh/figures/baseline_delay_tanh_delay_sweep.png`.
+- PCA figure/arrays: `outputs/baseline_delay_tanh/figures/baseline_delay_tanh_pca_trajectories.png`, `outputs/baseline_delay_tanh/arrays/baseline_delay_tanh_hidden_states.npz`.
+- Stability figure/summary/arrays: `outputs/baseline_delay_tanh/figures/baseline_delay_tanh_stability.png`, `outputs/baseline_delay_tanh/metrics/baseline_delay_tanh_stability_summary.json`, `outputs/baseline_delay_tanh/arrays/baseline_delay_tanh_stability.npz`.
+
+Next action under consideration:
+
+- Decide whether `tanh` should become the new default baseline activation
+  (updating `configs/baseline_delay.yaml` and `docs/model-architecture.md`)
+  given this result, or whether `relu` should be kept as the documented
+  original baseline with `tanh` recorded as a compared variant.
+- Run a fixed-point or Jacobian-level analysis on the tanh checkpoint to
+  directly confirm attractor structure rather than inferring it from
+  trajectory speed and norm alone.
+- Consider whether combining `tanh` with the whole-delay-loss/randomized-delay
+  training changes gives any further benefit, now that each change has been
+  tested in isolation.
+
+</details>
+
