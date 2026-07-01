@@ -9,7 +9,7 @@ Continuous-time ReLU RNN trained on a categorical delayed-response working-memor
 - `docs/build-log.md`: build-process notes and decisions.
 - `outputs/`: generated checkpoints, metrics, arrays, and figures.
 
-For CUDA training on the RTX 3060 notebook GPU, install the CUDA requirements first:
+For CUDA training on a GPU, install the CUDA requirements first:
 
 ```powershell
 python -m pip install -r requirements-cuda.txt
