@@ -25,7 +25,7 @@ class RNNConfig:
         tau: Recurrent time constant used to compute the leak factor.
         activation: Hidden-state nonlinearity, either ``"relu"`` (unbounded,
             non-negative) or ``"tanh"`` (bounded to ``(-1, 1)``). Defaults to
-            ``"relu"`` to preserve the original baseline behavior.
+            ``"tanh"`` for the current canonical baseline.
     """
 
     input_size: int
@@ -33,7 +33,7 @@ class RNNConfig:
     output_size: int
     dt: float = 20.0
     tau: float = 100.0
-    activation: str = "relu"
+    activation: str = "tanh"
 
 
 class CTRNN(nn.Module):

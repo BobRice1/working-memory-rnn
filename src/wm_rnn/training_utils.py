@@ -50,7 +50,7 @@ def model_config_from_dict(config: dict[str, Any]) -> RNNConfig:
         output_size=task_config.n_classes,
         dt=float(model["dt"]),
         tau=float(model["tau"]),
-        activation=str(model.get("activation", "relu")),
+        activation=str(model.get("activation", "tanh")),
     )
 
 

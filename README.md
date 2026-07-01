@@ -1,6 +1,6 @@
 # Working Memory RNN
 
-Continuous-time ReLU RNN trained on a categorical delayed-response working-memory task.
+Continuous-time RNN (`tanh` hidden-state nonlinearity by default) trained on a categorical delayed-response working-memory task.
 
 ## Repository Layout
 
@@ -77,27 +77,36 @@ is still changing at a similar or increasing rate through the delay.
 
 ## Model Variants
 
-- `configs/baseline_delay.yaml`: the original baseline. Fixed `20`-step
-  training delay, loss scored only on the response period. Outputs live
-  under `outputs/baseline_delay/`.
-- `configs/baseline_delay_stable.yaml`: same architecture, but trains with a
-  randomized delay length (`15`-`45` steps) and scores the loss across the
-  delay period plus the response period, to test whether that produces more
-  settled hidden-state dynamics. Outputs live under
-  `outputs/baseline_delay_stable/`, in the same `checkpoints/metrics/figures/arrays`
-  layout, kept fully separate from the original baseline's outputs.
-- `configs/baseline_delay_tanh.yaml`: identical training setup to the
-  original baseline (fixed `20`-step delay, response-period-only loss,
-  `1000` steps), but with `model.activation: tanh` instead of the default
-  `relu`, to test whether bounding the hidden-state nonlinearity alone
-  produces settled dynamics. Outputs live under `outputs/baseline_delay_tanh/`.
-  The hidden-state activation is a configurable field
-  (`model.activation: relu` or `tanh`) rather than a hardcoded choice, so
-  either setting can be reproduced from its config file.
+- `configs/baseline_delay.yaml`: **the current baseline.** Fixed `20`-step
+  training delay, loss scored only on the response period, `model.activation:
+  tanh`. Outputs live under `outputs/baseline_delay/`. This became the
+  baseline after hidden-state stability analysis showed it settles during
+  the delay period, using the plain, original training setup. A four-seed
+  sweep found this generalization is strong and typical but seed-dependent:
+  some seeds hold perfect accuracy to at least four times the trained delay
+  length, others settle to a lower-but-still-well-above-chance accuracy
+  beyond roughly twice the trained length; every seed clearly outperforms
+  every archived `relu` seed at long delays (see `docs/changelog.md`).
+- `configs/baseline_delay_relu.yaml`: the **archived original baseline**,
+  identical in every other respect but with `model.activation: relu`. Kept
+  for comparison and reproducibility; its previously recorded outputs are
+  archived under `outputs/baseline_delay_relu/` (including the original
+  multi-seed sweep). This is the `relu` network whose unbounded hidden-state
+  growth and delay-generalization failure motivated the switch to `tanh`.
+- `configs/baseline_delay_stable.yaml`: an `relu`-based variant that trains
+  with a randomized delay length (`15`-`45` steps) and scores the loss
+  across the delay period plus the response period, to test whether that
+  produces more settled hidden-state dynamics without changing the
+  activation function. Outputs live under `outputs/baseline_delay_stable/`.
+  It helped, but did not settle as fully as switching to `tanh` did; see
+  `docs/changelog.md` for the three-way comparison. Whether to re-test this
+  training-objective change on top of the new `tanh` baseline is an open
+  question, also logged in the changelog.
 
-Run any of the commands above against `configs/baseline_delay_stable.yaml`
-and its checkpoint to reproduce or extend that comparison. See
-`docs/changelog.md` for the recorded reasoning and before/after results.
+The hidden-state activation is a configurable field (`model.activation:
+relu` or `tanh`), not a hardcoded choice, so any of the above variants can
+be reproduced or extended from its config file. See `docs/changelog.md` for
+the full recorded reasoning and before/after results across all variants.
 
 ## Reproducible Baseline Run
 
