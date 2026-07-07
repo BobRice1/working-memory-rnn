@@ -1,0 +1,210 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=0.75in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage[font=small,labelfont=bf,justification=raggedright,singlelinecheck=false]{caption}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{../../outputs/baseline_delay_stable/figures/}{../../outputs/tuned_delay_stable/figures/}}
+
+\title{Stable Working-Memory RNN Model Summary}
+\author{Bob Rice Dissertation Model Notes}
+\date{7 July 2026}
+
+\newcommand{\figref}[1]{Figure~\ref{#1}}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+
+This report summarizes the two current stable working-memory model baselines before adding noise or psilocybin-inspired perturbations. The baseline-delay-stable model is the categorical delayed-response model. The tuned-delay-stable model is the newer continuous circular-location delayed-response model with population tuning curves and ring-attractor analyses.
+
+The results should be read as model-analysis evidence, not biological claims. The tuned model supports a sampled ring-like attractor interpretation, but it does not exhaustively map the full 64-dimensional hidden-state space.
+
+\section{Task and Model Overview}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.25\linewidth}p{0.33\linewidth}p{0.33\linewidth}}
+\toprule
+Property & Baseline delay stable & Tuned delay stable \\
+\midrule
+Task type & Categorical cue-delay-response memory task & Continuous circular-location cue-delay-response memory task \\
+Input representation & One-hot class cue plus context channel & Population bump over 32 angle-tuned units plus context channel \\
+Output target & Correct class label & Reconstructed population bump decoded into an angle \\
+Training objective & Cross-entropy, with delay-period scoring enabled & Population MSE, with delay-period scoring enabled \\
+Recurrent activation & ReLU variant preserved as the stable categorical comparison & Tanh recurrent activation \\
+Main performance metric & Accuracy & Circular angular error in degrees \\
+\bottomrule
+\end{tabular}
+\caption{High-level comparison of the two stable model baselines.}
+\end{table}
+
+\section{Baseline Delay Stable}
+
+The baseline-delay-stable model solves the categorical task very well at the trained delay and at moderately extended delays. However, the hidden-state stability analysis indicates that the hidden state is not settling into a stable delay-period state. Instead, the hidden-state norm and step-to-step speed continue to increase during the delay and response periods.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+Metric & Value \\
+\midrule
+Held-out categorical accuracy & 1.000 \\
+Accuracy at delay 20 & 1.000 \\
+Accuracy at delay 40 & 1.000 \\
+Accuracy at delay 60 & 0.712 \\
+Accuracy at delay 80 & 0.511 \\
+Early delay speed & 1.203 \\
+Late delay speed & 5.725 \\
+Delay settling ratio & 4.760 \\
+\bottomrule
+\end{tabular}
+\caption{Baseline-delay-stable headline metrics. The delay settling ratio is late-delay speed divided by early-delay speed. Values above 1 indicate increasing movement rather than settling.}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\linewidth]{baseline_delay_stable_delay_sweep.png}
+\caption{Baseline-delay-stable delay sweep. Accuracy remains perfect through moderate delay extensions, then degrades by delays 60 to 80.}
+\label{fig:baseline-delay-sweep}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\linewidth]{baseline_delay_stable_stability.png}
+\caption{Baseline-delay-stable hidden-state stability analysis. The hidden-state norm and speed increase rather than settle, which argues against a clean attractor interpretation for this categorical model.}
+\label{fig:baseline-stability}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\linewidth]{baseline_delay_stable_pca_trajectories.png}
+\caption{Baseline-delay-stable PCA trajectories. This gives a low-dimensional view of the categorical model's task-evoked hidden-state trajectories.}
+\label{fig:baseline-pca}
+\end{figure}
+
+\section{Tuned Delay Stable}
+
+The tuned-delay-stable model was introduced to represent a remembered continuous circular location using tuned units. Each unit has a preferred angle, and cue/target activity is a population bump over those preferred angles. This model preserves angular memory with low error and shows stronger attractor-like evidence than the categorical baseline.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+Metric & Value \\
+\midrule
+Held-out mean angular error & 0.644 degrees \\
+Held-out median angular error & 0.641 degrees \\
+Population MSE & $7.08\times10^{-5}$ \\
+Mean error at delay 20 & 0.643 degrees \\
+Mean error at delay 80 & 1.453 degrees \\
+Mean error at delay 120 & 1.903 degrees \\
+Early delay speed & 0.0659 \\
+Late delay speed & 0.00270 \\
+Delay settling ratio & 0.0409 \\
+\bottomrule
+\end{tabular}
+\caption{Tuned-delay-stable behavioral and stability metrics. The low delay settling ratio indicates that hidden-state movement slows strongly during the delay.}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\linewidth]{tuned_delay_stable_delay_sweep.png}
+\caption{Tuned-delay-stable delay sweep. Mean angular error remains low and rises gradually as the delay extends beyond the trained range.}
+\label{fig:tuned-delay-sweep}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\linewidth]{tuned_delay_stable_stability.png}
+\caption{Tuned-delay-stable stability analysis. Hidden-state speed drops sharply across the delay, consistent with settling onto a stable or slow memory manifold.}
+\label{fig:tuned-stability}
+\end{figure}
+
+\section{Attractor Evidence in the Tuned Model}
+
+The strongest evidence for an attractor-like representation comes from combining several analyses rather than relying on a single figure. The autonomous probe shows low drift under blank-delay dynamics. Fixed-point optimization finds low-speed states that preserve decoded angle. The Jacobian analysis shows a leading near-neutral mode, which is expected for a continuous ring-like memory where movement along the ring changes the represented angle while most other directions are locally stable.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+Metric & Value \\
+\midrule
+Attractor-probe final mean speed & 0.00145 \\
+Attractor-probe mean autonomous drift & 1.509 degrees \\
+Attractor-probe p95 autonomous drift & 2.918 degrees \\
+Fixed-point mean residual & 0.000792 \\
+Fixed-point converged fraction & 0.766 \\
+Mean fixed-point angle error & 1.356 degrees \\
+Mean spectral radius & 1.00004 \\
+Mean second-largest eigenvalue magnitude & 0.984 \\
+Tangent alignment with leading eigenvector & 0.945 \\
+\bottomrule
+\end{tabular}
+\caption{Tuned-delay-stable attractor-analysis metrics. These support a sampled ring-attractor interpretation, with the caveat that the full hidden-state space is not exhaustively mapped.}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\linewidth]{tuned_delay_stable_ring_manifold.png}
+\caption{Fixed-point ring in PCA space. Dots are sampled fixed points colored by decoded angle. The task trajectories approach and occupy a ring-like memory manifold. The visible bend or dip is a two-dimensional PCA projection of a higher-dimensional hidden-state structure, not necessarily a collapse of the full attractor.}
+\label{fig:tuned-ring}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\linewidth]{tuned_delay_stable_fixed_point_landscape.png}
+\caption{Fixed-point landscape. Fixed-point searches from actual late-delay states, perturbed late-delay states, and random hidden-state starts converge onto a shared ring-like structure. The dense run used 512 trajectory trials, 2048 perturbed late-delay starts, and 1024 random starts.}
+\label{fig:tuned-landscape}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.84\linewidth]{tuned_delay_stable_fixed_point_analysis.png}
+\caption{Fixed-point and Jacobian analysis. Approximate fixed points preserve the remembered angle, and the local eigenspectrum is consistent with one near-neutral direction along the ring plus more stable directions off the ring.}
+\label{fig:tuned-fixed-point}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\linewidth]{tuned_delay_stable_attractor_probe.png}
+\caption{Autonomous attractor probe. Late-delay states continue under blank-delay input. Low final speed and low angular drift support the attractor-like interpretation.}
+\label{fig:tuned-probe}
+\end{figure}
+
+\section{Dynamic Visualizations}
+
+The movie output is intended as an explanatory aid rather than a new statistical test. It shows the task trajectories moving toward the sampled ring and, in a separate panel, a wide cloud of perturbed late-delay states returning under blank recurrent dynamics. Smooth movie frames are interpolated between real recurrent model steps, so apparent visual smoothness should not be mistaken for additional recurrent updates.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{tuned_delay_stable_hidden_state_movie_preview.png}
+\caption{Preview frame from the hidden-state movie. Left: normal task trajectories. Middle: 2048 wide perturbed states returning toward the ring. Right: cue input, model output, decoded angle, and status text. Movie path: \texttt{outputs/tuned\_delay\_stable/figures/tuned\_delay\_stable\_hidden\_state\_movie.mp4}.}
+\label{fig:tuned-movie-preview}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{tuned_delay_stable_perturbation_recovery.png}
+\caption{Perturbation recovery summary. Moderate perturbations return close to the sampled ring; very large perturbations produce larger angular errors, showing a finite basin rather than unlimited stability.}
+\label{fig:tuned-perturbation}
+\end{figure}
+
+\section{Comparison and Next Step}
+
+The baseline-delay-stable model is behaviorally strong on the categorical task but does not show settled delay dynamics. The tuned-delay-stable model is also behaviorally strong, and its hidden-state analyses support a clearer ring-like attractor interpretation. This makes the tuned-delay-stable model the better current candidate for the next phase of dissertation modelling.
+
+The next planned development phase is noise and variability analysis. That should be introduced as a separate perturbation experiment, with careful separation between generic stochastic robustness tests and any later psilocybin-inspired modelling assumptions.
+
+\end{document}

@@ -24,6 +24,22 @@ baseline. Run-log entries recorded after this note that reference
 ## Git Commit History
 
 <details>
+<summary>2026-07-07 - Uncommitted stable model summary report</summary>
+
+Added a LaTeX/PDF summary of the two stable model baselines before moving on to
+noise analysis.
+
+File changes:
+
+- `docs/reports/stable_model_summary.tex`: Added a LaTeX report comparing
+  `baseline_delay_stable` and `tuned_delay_stable`, including task descriptions,
+  key metrics, attractor-analysis interpretation, and figure captions.
+- `docs/reports/stable_model_summary.pdf`: Compiled report with the relevant
+  saved figures embedded from the baseline and tuned output directories.
+
+</details>
+
+<details>
 <summary>2026-06-29 - ed92033 - feat: add baseline working-memory rnn</summary>
 
 Initial repository build for the baseline delayed-response working-memory RNN.
