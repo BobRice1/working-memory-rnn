@@ -9,7 +9,7 @@
 \usepackage[font=small,labelfont=bf,justification=raggedright,singlelinecheck=false]{caption}
 \usepackage[hidelinks]{hyperref}
 
-\graphicspath{{../../outputs/baseline_delay_stable/figures/}{../../outputs/tuned_delay_stable/figures/}}
+\graphicspath{{../../outputs/baseline_delay/figures/}{../../outputs/tuned_delay_stable/figures/}}
 
 \title{Stable Working-Memory RNN Model Summary}
 \author{Bob Rice Dissertation Model Notes}
@@ -22,7 +22,7 @@
 
 \section*{Purpose}
 
-This report summarizes the two current stable working-memory model baselines before adding noise or psilocybin-inspired perturbations. The baseline-delay-stable model is the categorical delayed-response model. The tuned-delay-stable model is the newer continuous circular-location delayed-response model with population tuning curves and ring-attractor analyses.
+This report summarizes the two current working-memory model baselines before adding noise or psilocybin-inspired perturbations. The baseline-delay model is the canonical categorical delayed-response model and uses a bounded tanh recurrent activation. The tuned-delay-stable model is the newer continuous circular-location delayed-response model with population tuning curves and ring-attractor analyses.
 
 The results should be read as model-analysis evidence, not biological claims. The tuned model supports a sampled ring-like attractor interpretation, but it does not exhaustively map the full 64-dimensional hidden-state space.
 
@@ -33,22 +33,22 @@ The results should be read as model-analysis evidence, not biological claims. Th
 \small
 \begin{tabular}{p{0.25\linewidth}p{0.33\linewidth}p{0.33\linewidth}}
 \toprule
-Property & Baseline delay stable & Tuned delay stable \\
+Property & Baseline delay & Tuned delay stable \\
 \midrule
 Task type & Categorical cue-delay-response memory task & Continuous circular-location cue-delay-response memory task \\
 Input representation & One-hot class cue plus context channel & Population bump over 32 angle-tuned units plus context channel \\
 Output target & Correct class label & Reconstructed population bump decoded into an angle \\
-Training objective & Cross-entropy, with delay-period scoring enabled & Population MSE, with delay-period scoring enabled \\
-Recurrent activation & ReLU variant preserved as the stable categorical comparison & Tanh recurrent activation \\
+Training objective & Cross-entropy, scored during response & Population MSE, with delay-period scoring enabled \\
+Recurrent activation & Tanh recurrent activation & Tanh recurrent activation \\
 Main performance metric & Accuracy & Circular angular error in degrees \\
 \bottomrule
 \end{tabular}
-\caption{High-level comparison of the two stable model baselines.}
+\caption{High-level comparison of the current categorical baseline and the tuned continuous baseline.}
 \end{table}
 
-\section{Baseline Delay Stable}
+\section{Baseline Delay}
 
-The baseline-delay-stable model solves the categorical task very well at the trained delay and at moderately extended delays. However, the hidden-state stability analysis indicates that the hidden state is not settling into a stable delay-period state. Instead, the hidden-state norm and step-to-step speed continue to increase during the delay and response periods.
+The baseline-delay model is the current categorical baseline. It uses tanh recurrent dynamics and solves the categorical task perfectly across the tested delay sweep. Its hidden-state speed drops substantially during the delay, indicating that the state slows and settles rather than continuing to accelerate.
 
 \begin{table}[H]
 \centering
@@ -60,34 +60,34 @@ Metric & Value \\
 Held-out categorical accuracy & 1.000 \\
 Accuracy at delay 20 & 1.000 \\
 Accuracy at delay 40 & 1.000 \\
-Accuracy at delay 60 & 0.712 \\
-Accuracy at delay 80 & 0.511 \\
-Early delay speed & 1.203 \\
-Late delay speed & 5.725 \\
-Delay settling ratio & 4.760 \\
+Accuracy at delay 60 & 1.000 \\
+Accuracy at delay 80 & 1.000 \\
+Early delay speed & 0.561 \\
+Late delay speed & 0.0349 \\
+Delay settling ratio & 0.0623 \\
 \bottomrule
 \end{tabular}
-\caption{Baseline-delay-stable headline metrics. The delay settling ratio is late-delay speed divided by early-delay speed. Values above 1 indicate increasing movement rather than settling.}
+\caption{Baseline-delay headline metrics. The delay settling ratio is late-delay speed divided by early-delay speed. Values well below 1 indicate slowing and settling during the delay.}
 \end{table}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.78\linewidth]{baseline_delay_stable_delay_sweep.png}
-\caption{Baseline-delay-stable delay sweep. Accuracy remains perfect through moderate delay extensions, then degrades by delays 60 to 80.}
+\includegraphics[width=0.78\linewidth]{baseline_delay_delay_sweep.png}
+\caption{Baseline-delay delay sweep. The tanh categorical baseline remains at perfect accuracy across the tested delays.}
 \label{fig:baseline-delay-sweep}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.78\linewidth]{baseline_delay_stable_stability.png}
-\caption{Baseline-delay-stable hidden-state stability analysis. The hidden-state norm and speed increase rather than settle, which argues against a clean attractor interpretation for this categorical model.}
+\includegraphics[width=0.78\linewidth]{baseline_delay_stability.png}
+\caption{Baseline-delay hidden-state stability analysis. Hidden-state speed decreases during the delay, consistent with settled tanh recurrent dynamics.}
 \label{fig:baseline-stability}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.78\linewidth]{baseline_delay_stable_pca_trajectories.png}
-\caption{Baseline-delay-stable PCA trajectories. This gives a low-dimensional view of the categorical model's task-evoked hidden-state trajectories.}
+\includegraphics[width=0.78\linewidth]{baseline_delay_pca_trajectories.png}
+\caption{Baseline-delay PCA trajectories. This gives a low-dimensional view of the categorical model's task-evoked hidden-state trajectories.}
 \label{fig:baseline-pca}
 \end{figure}
 
@@ -203,7 +203,7 @@ The movie output is intended as an explanatory aid rather than a new statistical
 
 \section{Comparison and Next Step}
 
-The baseline-delay-stable model is behaviorally strong on the categorical task but does not show settled delay dynamics. The tuned-delay-stable model is also behaviorally strong, and its hidden-state analyses support a clearer ring-like attractor interpretation. This makes the tuned-delay-stable model the better current candidate for the next phase of dissertation modelling.
+The baseline-delay model is behaviorally strong on the categorical task and shows settled tanh delay dynamics. The tuned-delay-stable model is also behaviorally strong, but it adds a continuous circular memory variable and stronger ring-attractor evidence. This makes tuned-delay-stable the better current candidate for the next phase of continuous working-memory modelling.
 
 The next planned development phase is noise and variability analysis. That should be introduced as a separate perturbation experiment, with careful separation between generic stochastic robustness tests and any later psilocybin-inspired modelling assumptions.
 

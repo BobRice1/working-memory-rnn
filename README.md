@@ -27,15 +27,9 @@ The current canonical baseline is a continuous-time RNN with a bounded `tanh`
 hidden-state nonlinearity. It is trained with a fixed `20`-step delay and a
 response-period-only classification loss.
 
-`tanh` replaced the original `relu` default after analysis showed that the
-`relu` model solved the trained task but did so with hidden states that kept
-growing through the delay. That ramping solution generalized poorly to longer
-delays. The bounded `tanh` model produced more settled delay-period dynamics
-and much stronger long-delay generalization, although the exact degree of
-long-delay accuracy remains seed-dependent.
-
-The archived original `relu` baseline remains available for comparison in
-`configs/baseline_delay_relu.yaml` and `outputs/baseline_delay_relu/`.
+The bounded `tanh` model produces settled delay-period dynamics and strong
+long-delay generalization. The categorical delay baseline should be treated as
+`tanh` only.
 
 The next model iteration is a continuous population-code task. Instead of
 remembering one of four abstract classes, the model remembers a sampled
@@ -47,9 +41,6 @@ population-code stability available as analysis measures.
 ## Model Variants
 
 - `configs/baseline_delay.yaml`: current `tanh` baseline.
-- `configs/baseline_delay_relu.yaml`: archived original `relu` baseline.
-- `configs/baseline_delay_stable.yaml`: `relu` variant trained with randomized
-delay lengths and loss over both delay and response periods.
 - `configs/tuned_delay.yaml`: continuous circular-location delayed-response
   model using Gaussian/von-Mises population tuning across input and output
   units. This is the next baseline iteration after the categorical task.
@@ -57,11 +48,6 @@ delay lengths and loss over both delay and response periods.
   randomized `20`-`80` step delays and loss over the delay plus response
   periods. This is the stronger continuous baseline for attractor-like memory
   analysis.
-
-The stable `relu` variant improved delay generalization but did not settle as
-fully as the `tanh` baseline. This suggests that bounding the hidden-state
-nonlinearity was more important than changing the training objective for this
-first baseline.
 
 For the continuous tuned task, the fixed-delay `configs/tuned_delay.yaml` model
 learns the trained `20`-step memory but drifts strongly when pushed to longer
@@ -119,11 +105,9 @@ but still sampled rather than a global proof of the entire attractor landscape.
 ## Current Interpretation
 
 The baseline model has learned to remember a briefly presented cue and report it
-later. The original `relu` version did this with a ramping hidden-state
-trajectory that was accurate at the trained response time but fragile when the
-delay was extended. The current `tanh` version is a stronger baseline because
-its bounded hidden activity supports more settled delay-period dynamics and
-better delay-length generalization.
+later. The current `tanh` version is the categorical baseline because its
+bounded hidden activity supports settled delay-period dynamics and strong
+delay-length generalization.
 
 This is still a baseline working-memory model, not a psilocybin model. Any
 future psilocybin-informed condition should be introduced as a separate

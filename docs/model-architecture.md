@@ -11,22 +11,13 @@ landscape mapping, or full global attractor analysis.
 
 ## Latest Build State
 
-The current canonical model is the `tanh` baseline defined by
-`configs/baseline_delay.yaml`. It uses the same task, training schedule, and
-readout as the original baseline, but the recurrent hidden-state nonlinearity is
-now bounded with `tanh` rather than unbounded `relu`.
+The current canonical categorical model is the `tanh` baseline defined by
+`configs/baseline_delay.yaml`. The recurrent hidden-state nonlinearity is
+bounded with `tanh`, and this is the only categorical delay baseline that should
+be used in current comparisons.
 
-The previous `relu` baseline is archived as `configs/baseline_delay_relu.yaml`
-with its outputs under `outputs/baseline_delay_relu/`. A separate
-`relu`-based training-objective variant is kept in
-`configs/baseline_delay_stable.yaml`; this uses randomized delay lengths and
-scores the delay period as well as the response period.
-
-The important build conclusion so far is that the original `relu` model learned
-the task but relied on a ramping hidden-state trajectory. The current `tanh`
-baseline gives a more stable delayed-memory representation and generalizes much
-better to longer delays, though the exact long-delay accuracy still varies
-across random seeds.
+The important build conclusion so far is that the current `tanh` baseline gives
+a stable delayed-memory representation and generalizes well to longer delays.
 
 ## Plain-English Walkthrough
 
@@ -259,31 +250,13 @@ from the exact trained trajectory states.
 ## Recurrent Core
 
 The recurrent core is implemented in `src/wm_rnn/model.py` as `CTRNN`. It is a
-continuous-time, rate-style recurrent layer with a configurable hidden-state
-nonlinearity. The baseline default is `tanh`; `relu` remains available as a
-configuration option (`model.activation: relu`).
+continuous-time, rate-style recurrent layer with a bounded `tanh` hidden-state
+nonlinearity. For the categorical baseline, `tanh` is the intended activation.
 
-`tanh` was adopted as the baseline default after hidden-state stability
-analysis (see `docs/changelog.md`) showed that the original `relu`-based
-baseline never settled during the delay period: hidden-state magnitude and
-step-to-step speed grew throughout the delay instead of shrinking, and
-response accuracy collapsed once the delay length exceeded the trained
-value. Because `relu` has no upper bound, nothing in that architecture
-prevented continued growth. Switching to the bounded `tanh` nonlinearity, on
-the same simple training setup used for the original baseline (fixed
-`20`-step delay, response-period-only loss, `1000` steps), produced a
-hidden state that visibly settles during the delay. For the single seed
-used in the initial checkpoint analysis, this generalized to delay lengths
-at least four times longer than trained with no measurable accuracy loss.
-A follow-up four-seed sweep showed this degree of generalization is typical
-but not universal: two of four independently trained seeds held perfect
-accuracy out to `80` steps, while the other two settled to roughly
-`0.71`-`0.78` accuracy beyond `40` steps rather than degrading toward
-chance. Every `tanh` seed still clearly outperformed every `relu` seed at
-long delays (`relu` seeds fell to roughly `0.22`-`0.75`, with a `0.49`
-mean, by `80` steps). The original `relu` baseline is preserved for
-comparison as `configs/baseline_delay_relu.yaml`, with its recorded outputs
-archived under `outputs/baseline_delay_relu/`.
+The current `baseline_delay` checkpoint has a delay settling ratio of about
+`0.062`, meaning late-delay hidden-state speed is much lower than early-delay
+speed. In the recorded delay sweep it remains at `1.0` accuracy through the
+tested `80`-step delay.
 
 The model configuration is:
 
@@ -509,12 +482,11 @@ recurrent state is the working-memory substrate: during the delay, there is no
 class input, so successful performance must depend on maintained hidden-state
 activity shaped by recurrent dynamics.
 
-The current `tanh` baseline is preferred over the archived `relu` baseline
-because it gives a more stable delayed-memory representation. The `relu` model
-was behaviorally successful at the trained delay but showed unbounded growth and
-weaker long-delay generalization. The `tanh` model is bounded, settles more
-strongly during the delay, and performs better when evaluated beyond the trained
-delay length.
+The current categorical baseline is `baseline_delay`, which uses a bounded
+`tanh` recurrent nonlinearity. It stores the cue in hidden-state activity during
+the delay, settles strongly late in the delay, and remains accurate across the
+tested delay sweep. Older relu-based delay variants are historical experiments
+and should not be treated as current baseline models.
 
 The `dt` and `tau` parameters still make the memory timescale explicit. They
 are not yet treated as psilocybin parameters, but they provide a natural place

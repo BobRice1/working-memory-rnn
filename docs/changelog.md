@@ -21,18 +21,27 @@ and the exact config used to produce them is preserved as
 baseline. Run-log entries recorded after this note that reference
 `outputs/baseline_delay/...` describe the new `tanh`-based artifacts.
 
+## Current Baseline Cleanup (2026-07-07)
+
+The active categorical delay baseline is now only `configs/baseline_delay.yaml`
+with `model.activation: tanh`. The older `baseline_delay_relu` and
+`baseline_delay_stable` configs were removed to avoid presenting relu-based
+categorical variants as current baseline models. Historical changelog entries
+may still describe those earlier experiments, but they are no longer active
+model variants.
+
 ## Git Commit History
 
 <details>
 <summary>2026-07-07 - Uncommitted stable model summary report</summary>
 
-Added a LaTeX/PDF summary of the two stable model baselines before moving on to
-noise analysis.
+Added a LaTeX/PDF summary of the current categorical baseline and tuned stable
+model before moving on to noise analysis.
 
 File changes:
 
 - `docs/reports/stable_model_summary.tex`: Added a LaTeX report comparing
-  `baseline_delay_stable` and `tuned_delay_stable`, including task descriptions,
+  `baseline_delay` and `tuned_delay_stable`, including task descriptions,
   key metrics, attractor-analysis interpretation, and figure captions.
 - `docs/reports/stable_model_summary.pdf`: Compiled report with the relevant
   saved figures embedded from the baseline and tuned output directories.
