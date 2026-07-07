@@ -13,6 +13,7 @@ def default_config() -> dict[str, Any]:
     """Return the default baseline delayed-response experiment config."""
     return {
         "task": {
+            "task_type": "categorical",
             "n_classes": 4,
             "cue_steps": 5,
             "delay_steps": 20,

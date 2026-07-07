@@ -29,8 +29,7 @@ import torch
 from wm_rnn.config import load_config
 from wm_rnn.device import select_device
 from wm_rnn.io import ensure_run_dirs, write_json
-from wm_rnn.task import generate_delay_batch
-from wm_rnn.training_utils import batch_to_tensors, fresh_model, task_config_from_dict
+from wm_rnn.training_utils import batch_to_tensors, fresh_model, generate_batch_for_task, task_config_from_dict
 
 
 @dataclass(frozen=True)
@@ -72,8 +71,9 @@ def run_stability_analysis(
     model.load_state_dict(checkpoint["model_state"])
     model.eval()
 
+    task_type = str(config["task"].get("task_type", "categorical"))
     task_config = task_config_from_dict(config, seed_offset=40000, batch_size=n_trials)
-    batch = generate_delay_batch(task_config)
+    batch = generate_batch_for_task(task_config)
 
     with torch.no_grad():
         inputs, _, _ = batch_to_tensors(batch, device_info.device)
@@ -141,6 +141,7 @@ def run_stability_analysis(
         {
             "device": device_info.description,
             "checkpoint": str(checkpoint_path),
+            "task_type": task_type,
             "n_trials": n_trials,
             "phase_bounds_steps": {name: list(bounds) for name, bounds in phase_bounds.items()},
             "mean_hidden_norm_by_phase": phase_norm,
@@ -179,13 +180,27 @@ def _plot_stability(
 
     fig, (ax_norm, ax_speed) = plt.subplots(2, 1, figsize=(8, 7), sharex=True)
 
-    ax_norm.plot(time_norm, norm_mean, color="#1f77b4", linewidth=2)
-    ax_norm.fill_between(time_norm, norm_mean - norm_std, norm_mean + norm_std, color="#1f77b4", alpha=0.2)
+    ax_norm.plot(time_norm, norm_mean, color="#1f77b4", linewidth=2, label="mean hidden-state norm")
+    ax_norm.fill_between(
+        time_norm,
+        norm_mean - norm_std,
+        norm_mean + norm_std,
+        color="#1f77b4",
+        alpha=0.2,
+        label="+/- 1 SD across trials",
+    )
     ax_norm.set_ylabel("Hidden-state norm")
     ax_norm.set_title("Hidden-state magnitude across trial time")
 
-    ax_speed.plot(time_speed, speed_mean, color="#d62728", linewidth=2)
-    ax_speed.fill_between(time_speed, speed_mean - speed_std, speed_mean + speed_std, color="#d62728", alpha=0.2)
+    ax_speed.plot(time_speed, speed_mean, color="#d62728", linewidth=2, label="mean step-to-step speed")
+    ax_speed.fill_between(
+        time_speed,
+        speed_mean - speed_std,
+        speed_mean + speed_std,
+        color="#d62728",
+        alpha=0.2,
+        label="+/- 1 SD across trials",
+    )
     ax_speed.set_ylabel("Step-to-step speed")
     ax_speed.set_xlabel("Time step")
     ax_speed.set_title("Hidden-state step-to-step speed across trial time")
@@ -197,10 +212,31 @@ def _plot_stability(
         for start, _ in phase_bounds.values():
             axis.axvline(start, color="#444444", linestyle=":", linewidth=1)
 
+    phase_handles = [
+        plt.Rectangle((0, 0), 1, 1, color=color, alpha=0.25)
+        for color in colors.values()
+    ]
     ax_norm.legend(
-        handles=[plt.Rectangle((0, 0), 1, 1, color=color, alpha=0.25) for color in colors.values()],
-        labels=list(colors.keys()),
+        handles=[
+            plt.Line2D([0], [0], color="#1f77b4", linewidth=2, label="mean norm"),
+            plt.Rectangle((0, 0), 1, 1, color="#1f77b4", alpha=0.2, label="+/- 1 SD"),
+            *phase_handles,
+        ],
+        labels=["mean norm", "+/- 1 SD", *colors.keys()],
         loc="upper left",
+        frameon=False,
+        fontsize=8,
+    )
+    ax_speed.legend(
+        handles=[
+            plt.Line2D([0], [0], color="#d62728", linewidth=2, label="mean speed"),
+            plt.Rectangle((0, 0), 1, 1, color="#d62728", alpha=0.2, label="+/- 1 SD"),
+            *[plt.Rectangle((0, 0), 1, 1, color=color, alpha=0.25) for color in colors.values()],
+        ],
+        labels=["mean speed", "+/- 1 SD", *colors.keys()],
+        loc="upper left",
+        frameon=False,
+        fontsize=8,
     )
 
     plt.tight_layout()

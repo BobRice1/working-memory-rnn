@@ -1,0 +1,35 @@
+task:
+  task_type: tuned
+  n_tuned_units: 32
+  tuning_kappa: 8.0
+  cue_steps: 5
+  delay_steps: 20
+  delay_steps_min: 20
+  delay_steps_max: 80
+  response_steps: 5
+  batch_size: 64
+  seed: 20260707
+
+model:
+  hidden_size: 64
+  dt: 20.0
+  tau: 100.0
+  activation: tanh
+
+training:
+  steps: 2000
+  learning_rate: 0.001
+  log_every: 100
+  score_delay_period: true
+  device: auto
+
+evaluation:
+  batches: 20
+
+analysis:
+  n_components: 2
+  n_trials: 64
+
+paths:
+  output_dir: outputs/tuned_delay_stable
+  run_name: tuned_delay_stable

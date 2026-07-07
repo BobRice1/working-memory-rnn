@@ -19,8 +19,7 @@ from sklearn.decomposition import PCA
 from wm_rnn.config import load_config
 from wm_rnn.device import select_device
 from wm_rnn.io import ensure_run_dirs, write_json
-from wm_rnn.task import generate_delay_batch
-from wm_rnn.training_utils import batch_to_tensors, fresh_model, task_config_from_dict
+from wm_rnn.training_utils import batch_to_tensors, fresh_model, generate_batch_for_task, task_config_from_dict
 
 
 @dataclass(frozen=True)
@@ -51,6 +50,7 @@ def run_pca_analysis(config: dict[str, Any], checkpoint_path: str | Path) -> PCA
     """
     device_info = select_device(config["training"].get("device", "auto"))
     dirs = ensure_run_dirs(config["paths"]["output_dir"])
+    task_type = str(config["task"].get("task_type", "categorical"))
     model = fresh_model(config, device_info.device)
     checkpoint = torch.load(checkpoint_path, map_location=device_info.device)
     model.load_state_dict(checkpoint["model_state"])
@@ -58,7 +58,8 @@ def run_pca_analysis(config: dict[str, Any], checkpoint_path: str | Path) -> PCA
 
     n_trials = int(config["analysis"].get("n_trials", 64))
     task_config = task_config_from_dict(config, seed_offset=20000, batch_size=n_trials)
-    batch = generate_delay_batch(task_config)
+    batch = generate_batch_for_task(task_config)
+    labels = batch.angles if task_type == "tuned" else batch.cues
 
     with torch.no_grad():
         inputs, _, _ = batch_to_tensors(batch, device_info.device)
@@ -71,10 +72,13 @@ def run_pca_analysis(config: dict[str, Any], checkpoint_path: str | Path) -> PCA
 
     run_name = config["paths"].get("run_name", "baseline_delay")
     hidden_states_path = dirs["arrays"] / f"{run_name}_hidden_states.npz"
-    np.savez_compressed(hidden_states_path, hidden=hidden_np, projected=projected, cues=batch.cues)
+    arrays = {"hidden": hidden_np, "projected": projected, "labels": labels, "task_type": task_type}
+    if task_type == "categorical":
+        arrays["cues"] = labels
+    np.savez_compressed(hidden_states_path, **arrays)
 
     figure_path = dirs["figures"] / f"{run_name}_pca_trajectories.png"
-    _plot_trajectories(projected, batch.cues, figure_path)
+    _plot_trajectories(projected, labels, figure_path, task_type)
     summary_path = write_json(
         dirs["metrics"] / f"{run_name}_pca_summary.json",
         {
@@ -88,23 +92,52 @@ def run_pca_analysis(config: dict[str, Any], checkpoint_path: str | Path) -> PCA
     return PCAResult(figure_path=figure_path, hidden_states_path=hidden_states_path, summary_path=summary_path)
 
 
-def _plot_trajectories(projected: np.ndarray, cues: np.ndarray, figure_path: Path) -> None:
-    """Save a 2D PCA trajectory plot colored by remembered cue class."""
-    plt.figure(figsize=(6, 5))
-    classes = np.unique(cues)
-    cmap = plt.get_cmap("tab10")
-    for class_idx in classes:
-        trial_indices = np.where(cues == class_idx)[0][:8]
-        for trial_idx in trial_indices:
+def _plot_trajectories(projected: np.ndarray, labels: np.ndarray, figure_path: Path, task_type: str) -> None:
+    """Save a 2D PCA trajectory plot colored by remembered label."""
+    fig, ax = plt.subplots(figsize=(6.5, 5.4))
+    if task_type == "tuned":
+        cmap = plt.get_cmap("hsv")
+        for trial_idx in range(min(projected.shape[1], labels.shape[0], 32)):
             xy = projected[:, trial_idx, :2]
-            plt.plot(xy[:, 0], xy[:, 1], marker="o", markersize=2, linewidth=1, alpha=0.55, color=cmap(int(class_idx)))
-    plt.xlabel("PC 1")
-    plt.ylabel("PC 2")
-    plt.title("Delay-task hidden-state trajectories by cue")
+            color = cmap(float(labels[trial_idx] % (2.0 * np.pi)) / (2.0 * np.pi))
+            ax.plot(xy[:, 0], xy[:, 1], marker="o", markersize=2, linewidth=1, alpha=0.55, color=color)
+            if trial_idx < 12:
+                ax.scatter(xy[0, 0], xy[0, 1], marker="s", s=16, color="black", alpha=0.45)
+                ax.scatter(xy[-1, 0], xy[-1, 1], marker="^", s=20, color=color, edgecolors="black", linewidths=0.25)
+        title = "Tuned delay-task hidden-state trajectories by angle"
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0.0, vmax=360.0))
+        sm.set_array([])
+        cbar = fig.colorbar(sm, ax=ax)
+        cbar.set_label("Target angle (deg)")
+        ax.scatter([], [], marker="s", s=28, color="black", alpha=0.45, label="trajectory start")
+        ax.scatter([], [], marker="^", s=32, color="white", edgecolors="black", label="trajectory end")
+        ax.legend(frameon=False, loc="best", fontsize=8)
+    else:
+        classes = np.unique(labels)
+        cmap = plt.get_cmap("tab10")
+        for class_idx in classes:
+            trial_indices = np.where(labels == class_idx)[0][:8]
+            for trial_idx in trial_indices:
+                xy = projected[:, trial_idx, :2]
+                ax.plot(
+                    xy[:, 0],
+                    xy[:, 1],
+                    marker="o",
+                    markersize=2,
+                    linewidth=1,
+                    alpha=0.55,
+                    color=cmap(int(class_idx)),
+                    label=f"cue {int(class_idx)}" if trial_idx == trial_indices[0] else None,
+                )
+        title = "Delay-task hidden-state trajectories by cue"
+        ax.legend(frameon=False, fontsize=8)
+    ax.set_xlabel("PC 1")
+    ax.set_ylabel("PC 2")
+    ax.set_title(title)
     plt.tight_layout()
     figure_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(figure_path, dpi=160)
-    plt.close()
+    plt.close(fig)
 
 
 def main() -> None:

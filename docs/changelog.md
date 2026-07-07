@@ -143,57 +143,398 @@ File changes:
 
 </details>
 
-## Current Working Changes
-
 <details>
-<summary>Uncommitted documentation and configuration changes</summary>
+<summary>2026-07-01 - 442e55a - Add hidden-state stability analysis module and changelog documentation</summary>
 
-These changes exist in the working tree at the time this changelog was written.
+Added the first direct diagnostic for hidden-state settling versus ramping.
 
 File changes:
 
-- `docs/model-architecture.md`: Added a model architecture document, including a plain-English walkthrough of the cue-delay-response task and the recurrent model.
-- `docs/changelog.md`: Added this changelog.
-- `pyproject.toml`: Removed remaining pytest configuration from the package metadata.
-- `docs/build-log.md`: Kept locally but removed from Git tracking and ignored.
+- `docs/changelog.md`: Added the project changelog and run log.
+- `src/wm_rnn/stability_analysis.py`: Added hidden-state norm and step-to-step speed analysis, phase summaries, a delay settling ratio, JSON/array outputs, and a two-panel stability figure.
 
 </details>
 
 <details>
-<summary>Uncommitted: added hidden-state stability analysis</summary>
+<summary>2026-07-01 - 57c24a6 - Enhance training configurations with delay scoring and activation variants</summary>
 
-Reasoning:
-
-- Discussion of whether the baseline model should be expected to show
-  attractor-like (settled, tonic) hidden-state dynamics raised a testable
-  question: does the trained checkpoint actually settle into a steady
-  hidden-state during the delay period, or does it keep changing?
-- The existing PCA trajectory analysis (`src/wm_rnn/analysis.py`) is
-  descriptive of trajectory shape in 2D but does not directly measure
-  whether the hidden state is settling (attractor-like) or continuing to
-  move/grow (ramping or phasic) over time.
-- The existing delay-length sweep already showed accuracy collapsing once
-  the delay length exceeds the trained value (see the 2026-07-01 delay-sweep
-  run log entry below), which is consistent with a time-locked or ramping
-  solution rather than a stable attractor, but this was only inferred
-  indirectly from behavior, not measured directly from the hidden state.
-- This analysis was added as a fast, low-cost first diagnostic before
-  committing to heavier dynamical-systems analysis (for example fixed-point
-  or Jacobian analysis), and before deciding whether to change training to
-  explicitly encourage more attractor-like dynamics.
+Added training and architecture variants used to test whether the original baseline's long-delay degradation came from the training objective or from the unbounded `relu` activation.
 
 File changes:
 
-- `src/wm_rnn/stability_analysis.py`: Added hidden-state stability analysis.
-  For a trained checkpoint, this loads a fresh analysis batch, runs the
-  model, and computes two per-time-step quantities across trials: hidden-state
-  norm (magnitude) and step-to-step speed (the size of the change in hidden
-  state from one time step to the next). It reports phase-averaged norm and
-  speed for the cue, delay, and response periods, a "delay settling ratio"
-  (late-delay speed divided by early-delay speed), a two-panel figure of
-  norm and speed across trial time with cue/delay/response periods shaded,
-  and a JSON summary with an interpretation note explaining how to read the
-  settling ratio.
+- `README.md`: Added stability-analysis instructions and model-variant descriptions.
+- `configs/baseline_delay_stable.yaml`: Added the randomized-delay, whole-delay-loss variant.
+- `configs/baseline_delay_tanh.yaml`: Added the isolated `tanh` activation variant used for comparison before `tanh` became the canonical baseline.
+- `docs/changelog.md`: Added reasoning and run-log entries for stability analysis, the stable training variant, and the isolated `tanh` variant.
+- `src/wm_rnn/config.py`: Added the activation field to the default model configuration.
+- `src/wm_rnn/model.py`: Made the hidden-state activation configurable (`relu` or `tanh`) instead of hardcoding `relu`.
+- `src/wm_rnn/train.py`: Added optional randomized delay lengths and optional whole-delay loss scoring.
+- `src/wm_rnn/training_utils.py`: Passed the activation into `RNNConfig` and added a helper for changing delay length.
+
+</details>
+
+<details>
+<summary>2026-07-01 - dc918f5 - Promote tanh as the canonical baseline activation</summary>
+
+Archived the original `relu` baseline and promoted the better-settling `tanh` model to the default baseline config.
+
+File changes:
+
+- `configs/baseline_delay.yaml`: Updated the canonical baseline to use `model.activation: tanh`.
+- `configs/baseline_delay_relu.yaml`: Added by renaming the previous `baseline_delay_tanh.yaml` path and editing it into an archival config for the original `relu` baseline.
+- `docs/changelog.md`: Added the `tanh` promotion rationale and recorded the new canonical baseline reruns.
+- `pyproject.toml`: Updated project metadata/configuration state after removing the old test setup.
+
+</details>
+
+## Current Working Changes
+
+<details>
+<summary>2026-07-06 - Uncommitted tuned continuous population-code model iteration</summary>
+
+Purpose:
+
+- Added the next baseline model iteration requested after supervisor feedback:
+  a continuous circular-location delayed-response task using Gaussian /
+  von-Mises-like population tuning curves.
+- This does not replace the existing categorical baseline. The categorical
+  model remains available through `configs/baseline_delay.yaml`; the tuned
+  continuous model is configured separately through `configs/tuned_delay.yaml`.
+- This is still a baseline working-memory model iteration, not a
+  psilocybin-informed perturbation.
+
+Model/task changes:
+
+- `src/wm_rnn/tuned_task.py`: Added the tuned circular task generator.
+  Each trial samples an angle in `[0, 2*pi)`, encodes it over evenly spaced
+  preferred-angle units using:
+
+  ```text
+  activity_i = exp(kappa * (cos(theta - preferred_i) - 1))
+  ```
+
+  The input contains the population bump during the cue period only, plus the
+  existing fixation/context channel. The target is the remembered population
+  bump, scored during the response period.
+- `configs/tuned_delay.yaml`: Added the new tuned-delay config with
+  `n_tuned_units: 32`, `tuning_kappa: 8.0`, `tanh` recurrent activation, and
+  outputs under `outputs/tuned_delay/`.
+- `src/wm_rnn/config.py`: Added `task.task_type: categorical` to the default
+  config so task dispatch is explicit.
+- `src/wm_rnn/training_utils.py`: Added typed dispatch for categorical vs
+  tuned task configs, `generate_batch_for_task()`, masked population MSE,
+  circular decoding metrics, and tensor conversion that preserves categorical
+  integer targets while allowing tuned float population targets.
+- `src/wm_rnn/train.py`: Updated training so categorical runs still use masked
+  cross-entropy and response accuracy, while tuned runs use masked population
+  MSE and report `population_mse` / `final_population_mse` instead of a fake
+  categorical accuracy value.
+- `src/wm_rnn/evaluate.py`: Updated evaluation so categorical runs still report
+  accuracy and write a confusion matrix, while tuned runs report mean angular
+  error, median angular error, and population MSE. Tuned evaluation does not
+  write a confusion matrix because the output is continuous.
+- `src/wm_rnn/analysis.py`: Updated PCA analysis to generate either task type,
+  save generic `labels` plus `task_type`, preserve categorical `cues` for
+  compatibility, and color tuned trajectories by continuous angle.
+
+Documentation and tests:
+
+- `README.md`: Added `configs/tuned_delay.yaml` as the next model variant and
+  briefly explained the continuous population-code task.
+- `docs/model-architecture.md`: Added a continuous tuned task section and
+  updated later architecture, training, evaluation, and data-flow sections to
+  distinguish categorical and tuned branches.
+- `tests/`: Added focused tests for tuned population encoding, circular
+  wraparound, generated batch semantics, angle decoding, masked MSE, task
+  dispatch, categorical regression behavior, tuned evaluation aggregation,
+  CLI metric printing, tuned training metrics, and PCA label saving.
+
+Verification:
+
+- Full test suite:
+
+  ```powershell
+  .\.venv\Scripts\python.exe -m pytest -q
+  ```
+
+  Result: `22 passed`.
+- Tuned smoke verification was run with a short 2-step training configuration:
+  training produced `population_mse`, evaluation produced finite angular-error
+  and population-MSE metrics, `confusion_path` was `None`, and PCA figure/array
+  outputs were written.
+- Categorical smoke verification was also run with a short 2-step training
+  configuration: categorical history still contained response accuracy,
+  evaluation still produced an accuracy metric, and the confusion matrix file
+  was still written.
+- Temporary smoke output directories were deleted afterward so `outputs/` only
+  retains the non-smoke baseline result folders.
+
+How to run the tuned model:
+
+```powershell
+.\.venv\Scripts\python.exe -m wm_rnn.train --config configs/tuned_delay.yaml --device cpu
+.\.venv\Scripts\python.exe -m wm_rnn.evaluate --config configs/tuned_delay.yaml --checkpoint outputs/tuned_delay/checkpoints/tuned_delay.pt --device cpu
+.\.venv\Scripts\python.exe -m wm_rnn.analysis --config configs/tuned_delay.yaml --checkpoint outputs/tuned_delay/checkpoints/tuned_delay.pt --device cpu
+```
+
+Next action under consideration:
+
+- Train the full `configs/tuned_delay.yaml` model, then inspect angular error,
+  population MSE, and PCA trajectories before adding distractors or any
+  psilocybin-informed perturbation.
+- Decide whether tuned continuous analysis should also get delay-length sweeps,
+  drift metrics, or stability analysis adapted from the categorical baseline.
+
+</details>
+
+<details>
+<summary>2026-07-06 - Uncommitted stable tuned continuous model and attractor-like probe</summary>
+
+Purpose:
+
+- Tested whether the continuous tuned model could maintain a circular
+  population-code memory over longer delays and during autonomous hidden-state
+  evolution.
+- Added a more stable tuned training configuration after the first fixed-delay
+  tuned model learned the trained delay but drifted strongly when pushed beyond
+  it.
+
+Implementation changes:
+
+- `configs/tuned_delay_stable.yaml`: Added a stable tuned config using
+  randomized `20`-`80` step delays, `score_delay_period: true`, `2000` training
+  steps, `tanh` recurrent activation, and outputs under
+  `outputs/tuned_delay_stable/`.
+- `src/wm_rnn/delay_sweep.py`: Extended delay sweeps to tuned tasks. Categorical
+  runs still report accuracy; tuned runs report mean, median, p95, and maximum
+  angular error plus population MSE.
+- `src/wm_rnn/stability_analysis.py`: Updated hidden-state stability analysis
+  to generate either categorical or tuned task batches.
+- `src/wm_rnn/attractor_probe.py`: Added an autonomous tuned hidden-state probe.
+  It starts from late-delay hidden states, removes the cue, runs the recurrent
+  dynamics forward, decodes the remembered angle over probe time, and reports
+  hidden-state speed, hidden-state displacement, angular drift, and final error.
+- `src/wm_rnn/fixed_point_analysis.py`: Added sampled fixed-point and Jacobian
+  analysis for tuned checkpoints. It starts from late-delay hidden states,
+  optimizes nearby hidden states under blank-delay input to minimize one-step
+  recurrent speed, decodes the resulting fixed-point angle, computes the local
+  recurrent Jacobian, and summarizes the eigenspectrum.
+- `src/wm_rnn/fixed_point_landscape.py`: Added the reference-notebook-style
+  landscape view. It fits PCA on task-evoked hidden trajectories, searches for
+  fixed points from late-delay, perturbed late-delay, and random bounded hidden
+  starts, and plots all fixed-point endpoints in the same PCA state space.
+- `src/wm_rnn/dynamics_figures.py`: Added four non-noise mechanism figures:
+  fixed-point ring in PCA space, decoded angle over time, Jacobian spectrum,
+  and deterministic perturbation recovery.
+- `src/wm_rnn/hidden_state_movie.py`: Added an animated tuned-delay hidden-state
+  movie that overlays sampled PCA trajectories, the fixed-point ring, cue/output
+  population activity, task phase, decoded angle, target angle, and angular
+  error. The movie also includes a separate PCA panel for perturbed late-delay
+  states returning toward the ring under blank recurrent dynamics, with options
+  for dense wide perturbation clouds and interpolated video frames between real
+  recurrent model steps. It writes GIF/MP4 movies plus a Manim-ready `.npz` data
+  archive.
+- `custom_config.yml`: Added a local ManimGL configuration so 3b1b Manim cache
+  and rendered assets stay under `outputs/manim/` when Manim is run from this
+  repository.
+- `requirements-animation.txt`: Added optional animation dependencies for the
+  ManimGL workflow without making them mandatory for normal model runs.
+- Tuned-delay-stable figure readability pass: added or clarified legends,
+  marker labels, phase labels, and degree/residual colorbars so the PCA,
+  delay-sweep, stability, attractor-probe, fixed-point, landscape, and dynamics
+  figures are easier to interpret without cross-referencing the code.
+- `docs/analysis-figure-rationale.md`: Added the rationale and reference
+  anchors for these figures, linking each plot to the working-memory RNN /
+  attractor literature it supports.
+
+Stable tuned run:
+
+```powershell
+.\.venv\Scripts\python.exe -m wm_rnn.train --config configs/tuned_delay_stable.yaml
+.\.venv\Scripts\python.exe -m wm_rnn.evaluate --config configs/tuned_delay_stable.yaml --checkpoint outputs\tuned_delay_stable\checkpoints\tuned_delay_stable.pt
+.\.venv\Scripts\python.exe -m wm_rnn.delay_sweep --config configs\tuned_delay_stable.yaml --checkpoint outputs\tuned_delay_stable\checkpoints\tuned_delay_stable.pt --delays 20 30 40 60 80 100 120
+.\.venv\Scripts\python.exe -m wm_rnn.stability_analysis --config configs\tuned_delay_stable.yaml --checkpoint outputs\tuned_delay_stable\checkpoints\tuned_delay_stable.pt --n-trials 128
+.\.venv\Scripts\python.exe -m wm_rnn.attractor_probe --config configs\tuned_delay_stable.yaml --checkpoint outputs\tuned_delay_stable\checkpoints\tuned_delay_stable.pt --n-trials 128 --probe-steps 100
+.\.venv\Scripts\python.exe -m wm_rnn.fixed_point_analysis --config configs\tuned_delay_stable.yaml --checkpoint outputs\tuned_delay_stable\checkpoints\tuned_delay_stable.pt --n-trials 64 --max-steps 5000 --lbfgs-steps 200 --learning-rate 0.03 --anchor-weight 0.00001 --residual-threshold 0.001 --device cuda
+.\.venv\Scripts\python.exe -m wm_rnn.fixed_point_landscape --config configs\tuned_delay_stable.yaml --checkpoint outputs\tuned_delay_stable\checkpoints\tuned_delay_stable.pt --n-trajectory-trials 64 --n-random-starts 128 --perturbations-per-trial 2 --perturbation-scale 0.15 --max-steps 3000 --lbfgs-steps 100 --learning-rate 0.03 --residual-threshold 0.001 --device cuda
+.\.venv\Scripts\python.exe -m wm_rnn.dynamics_figures --config configs\tuned_delay_stable.yaml --checkpoint outputs\tuned_delay_stable\checkpoints\tuned_delay_stable.pt --n-trials 64 --example-trials 12 --recovery-steps 100 --perturbation-scales 0 0.05 0.1 0.2 0.4 0.8 --device cuda
+.\.venv\Scripts\python.exe -m wm_rnn.hidden_state_movie --config configs\tuned_delay_stable.yaml --checkpoint outputs\tuned_delay_stable\checkpoints\tuned_delay_stable.pt --n-trials 512 --example-trials 24 --delay-steps 90 --recovery-source wide-perturbed --recovery-perturbations-per-trial 4 --perturbation-scale 1.0 --recovery-steps 100 --fps 30 --frames-per-step 5 --format mp4 --device cuda
+.\.venv\Scripts\python.exe -m wm_rnn.analysis --config configs\tuned_delay_stable.yaml --checkpoint outputs\tuned_delay_stable\checkpoints\tuned_delay_stable.pt
+```
+
+Recorded result - trained-delay evaluation:
+
+- Held-out mean angular error: `0.644` degrees.
+- Population MSE: approximately `0.000`.
+
+Recorded result - delay sweep:
+
+| Delay steps | Mean angular error | P95 angular error | Population MSE |
+| ---: | ---: | ---: | ---: |
+| 20 | 0.643 | 1.375 | 0.000069 |
+| 30 | 0.791 | 1.662 | 0.000090 |
+| 40 | 0.956 | 1.988 | 0.000119 |
+| 60 | 1.182 | 2.515 | 0.000178 |
+| 80 | 1.453 | 2.958 | 0.000267 |
+| 100 | 1.681 | 3.435 | 0.000401 |
+| 120 | 1.903 | 3.862 | 0.000489 |
+
+Recorded result - hidden-state stability:
+
+- Early-delay speed: `0.065857`.
+- Late-delay speed: `0.002696`.
+- Delay settling ratio: `0.040939`.
+
+Recorded result - autonomous hidden-state probe:
+
+- Mean initial probe speed: `0.002005`.
+- Mean final probe speed: `0.001455`.
+- Speed settling ratio: `0.725529`.
+- Mean autonomous drift: `1.509` degrees.
+- Median autonomous drift: `1.512` degrees.
+- P95 autonomous drift: `2.918` degrees.
+- Mean final angular error: `2.108` degrees.
+- P95 final angular error: `3.978` degrees.
+
+Recorded result - fixed-point and Jacobian analysis:
+
+- Mean fixed-point residual: `0.000792`.
+- Median fixed-point residual: `0.000728`.
+- Maximum fixed-point residual: `0.002811`.
+- Fraction below the `0.001` residual threshold: `0.766`.
+- Mean distance from late-delay trajectory state: `0.130`.
+- Mean fixed-point decoding error: `1.356` degrees.
+- P95 fixed-point decoding error: `3.244` degrees.
+- Mean drift from late-delay decoded angle: `1.118` degrees.
+- Mean spectral radius: `1.000036`.
+- Maximum spectral radius: `1.005071`.
+- Mean second-largest absolute eigenvalue: `0.984019`.
+- Mean number of eigenvalues with absolute value above `0.99`: `1.328`.
+- Mean number of eigenvalues with absolute value above `1.0`: `0.516`.
+- Mean tangent alignment between the sampled ring direction and leading
+  eigenvector: `0.945`.
+
+Recorded result - fixed-point landscape visualization:
+
+- PCA explained variance ratio: PC1 `0.348`, PC2 `0.293`.
+- Starts searched: `320` total (`64` late-delay, `128` perturbed late-delay,
+  `128` random bounded hidden starts).
+- Mean fixed-point residual: `0.000470`.
+- Median fixed-point residual: `0.000157`.
+- Fraction below the `0.001` residual threshold: `0.856`.
+- Fraction below threshold by source: late-delay `0.797`, perturbed late-delay
+  `0.750`, random `0.992`.
+- Mean known-angle error: `3.477` degrees.
+- P95 known-angle error: `9.919` degrees.
+- Mean known-angle error by source: late-delay `3.188` degrees, perturbed
+  late-delay `3.621` degrees.
+- Visual result: task trajectories and fixed-point endpoints occupy the same
+  ring-shaped structure in PCA space, including endpoints found from random
+  bounded hidden-state starts.
+
+Recorded result - additional dynamics figures:
+
+- PCA explained variance ratio for the figure batch: PC1 `0.312`, PC2 `0.277`.
+- Mean delay-period decoded angular error: `0.523` degrees.
+- Mean response-period decoded angular error: `0.648` degrees.
+- Jacobian mean absolute eigenvalue: `0.667`.
+- Jacobian maximum absolute eigenvalue: `1.005`.
+- Deterministic perturbation recovery after `100` blank-delay steps:
+
+| Hidden perturbation SD | Mean final angular error | P95 final angular error | Mean initial distance to ring | Mean final distance to ring |
+| ---: | ---: | ---: | ---: | ---: |
+| 0.00 | 1.879 deg | 3.807 deg | 0.159 | 0.159 |
+| 0.05 | 1.885 deg | 3.901 deg | 0.444 | 0.167 |
+| 0.10 | 2.040 deg | 4.296 deg | 0.829 | 0.159 |
+| 0.20 | 2.791 deg | 6.355 deg | 1.575 | 0.169 |
+| 0.40 | 7.185 deg | 13.764 deg | 2.885 | 0.230 |
+| 0.80 | 24.296 deg | 116.251 deg | 4.910 | 0.689 |
+
+Interpretation of these figures:
+
+- The fixed-point ring figure gives a cleaner version of the ring manifold in
+  task PCA space, colored by decoded fixed-point angle.
+- The decoded-angle plot shows that the model quickly locks onto the target
+  angle and keeps it stable through delay and response.
+- The Jacobian spectrum plot shows most modes inside the unit circle, with
+  near-neutral leading modes around the ring.
+- The perturbation recovery plot shows deterministic return toward the sampled
+  ring for small and moderate hidden-state perturbations; very large
+  perturbations begin to produce substantial angular errors. This is a basin /
+  recovery analysis, not noise-driven diffusion analysis.
+
+Comparison with the first fixed-delay tuned model:
+
+| Metric | `tuned_delay` | `tuned_delay_stable` |
+| --- | ---: | ---: |
+| Mean error at 80-step delay | 25.833 deg | 1.453 deg |
+| Mean error at 120-step delay | 56.397 deg | 1.903 deg |
+| Delay settling ratio | 0.125353 | 0.040939 |
+| Mean autonomous drift over 100 probe steps | 57.243 deg | 1.509 deg |
+| Mean final autonomous-probe speed | 0.041944 | 0.001455 |
+
+Interpretation:
+
+- The original fixed-delay tuned model learned the `20`-step continuous memory
+  but did not maintain a stable continuous state when the delay was extended or
+  when the hidden state was probed autonomously.
+- The stable tuned model is a much stronger continuous baseline. It preserves
+  angle with low error beyond the randomized training range and shows very small
+  autonomous drift after the cue has been removed.
+- The fixed-point/Jacobian analysis strengthens this from a trajectory-only
+  attractor-like interpretation to sampled direct evidence for a
+  ring-attractor-like memory structure: approximate blank-delay fixed points
+  preserve the remembered angle, the leading eigenvalue is near neutral, the
+  leading eigenvector is aligned with the circular manifold, and secondary
+  eigenvalues are smaller. The result is still sampled rather than a global
+  proof over all hidden states.
+- The landscape analysis adds the missing visual state-space check from the
+  reference RNN notebook. It shows that fixed-point searches from random bounded
+  hidden states also land on the same ring-shaped fixed-point set, so the ring
+  is broader than the exact sampled task trajectory states.
+
+Recorded outputs:
+
+- Checkpoint: `outputs/tuned_delay_stable/checkpoints/tuned_delay_stable.pt`.
+- Training metrics/history: `outputs/tuned_delay_stable/metrics/tuned_delay_stable_train_metrics.json`, `outputs/tuned_delay_stable/metrics/tuned_delay_stable_train_history.csv`.
+- Evaluation metrics: `outputs/tuned_delay_stable/metrics/tuned_delay_stable_eval_metrics.json`.
+- Delay-sweep metrics/CSV/figure: `outputs/tuned_delay_stable/metrics/tuned_delay_stable_delay_sweep_metrics.json`, `outputs/tuned_delay_stable/metrics/tuned_delay_stable_delay_sweep.csv`, `outputs/tuned_delay_stable/figures/tuned_delay_stable_delay_sweep.png`.
+- Stability summary/arrays/figure: `outputs/tuned_delay_stable/metrics/tuned_delay_stable_stability_summary.json`, `outputs/tuned_delay_stable/arrays/tuned_delay_stable_stability.npz`, `outputs/tuned_delay_stable/figures/tuned_delay_stable_stability.png`.
+- Attractor-probe summary/trials/arrays/figure: `outputs/tuned_delay_stable/metrics/tuned_delay_stable_attractor_probe_summary.json`, `outputs/tuned_delay_stable/metrics/tuned_delay_stable_attractor_probe_trials.csv`, `outputs/tuned_delay_stable/arrays/tuned_delay_stable_attractor_probe.npz`, `outputs/tuned_delay_stable/figures/tuned_delay_stable_attractor_probe.png`.
+- Fixed-point summary/trials/arrays/figure: `outputs/tuned_delay_stable/metrics/tuned_delay_stable_fixed_point_analysis_summary.json`, `outputs/tuned_delay_stable/metrics/tuned_delay_stable_fixed_point_analysis_trials.csv`, `outputs/tuned_delay_stable/arrays/tuned_delay_stable_fixed_point_analysis.npz`, `outputs/tuned_delay_stable/figures/tuned_delay_stable_fixed_point_analysis.png`.
+- Fixed-point landscape summary/points/arrays/figure: `outputs/tuned_delay_stable/metrics/tuned_delay_stable_fixed_point_landscape_summary.json`, `outputs/tuned_delay_stable/metrics/tuned_delay_stable_fixed_point_landscape_points.csv`, `outputs/tuned_delay_stable/arrays/tuned_delay_stable_fixed_point_landscape.npz`, `outputs/tuned_delay_stable/figures/tuned_delay_stable_fixed_point_landscape.png`.
+- Additional dynamics figures summary/arrays/CSV: `outputs/tuned_delay_stable/metrics/tuned_delay_stable_dynamics_figures_summary.json`, `outputs/tuned_delay_stable/arrays/tuned_delay_stable_dynamics_figures.npz`, `outputs/tuned_delay_stable/metrics/tuned_delay_stable_perturbation_recovery.csv`.
+- Additional dynamics figures: `outputs/tuned_delay_stable/figures/tuned_delay_stable_ring_manifold.png`, `outputs/tuned_delay_stable/figures/tuned_delay_stable_decoded_angle_over_time.png`, `outputs/tuned_delay_stable/figures/tuned_delay_stable_jacobian_spectrum.png`, `outputs/tuned_delay_stable/figures/tuned_delay_stable_perturbation_recovery.png`.
+- Hidden-state movie outputs: `outputs/tuned_delay_stable/figures/tuned_delay_stable_hidden_state_movie.mp4`, `outputs/tuned_delay_stable/figures/tuned_delay_stable_hidden_state_movie.gif`, `outputs/tuned_delay_stable/arrays/tuned_delay_stable_hidden_state_movie.npz`, `outputs/tuned_delay_stable/metrics/tuned_delay_stable_hidden_state_movie_summary.json`.
+- PCA summary/arrays/figure: `outputs/tuned_delay_stable/metrics/tuned_delay_stable_pca_summary.json`, `outputs/tuned_delay_stable/arrays/tuned_delay_stable_hidden_states.npz`, `outputs/tuned_delay_stable/figures/tuned_delay_stable_pca_trajectories.png`.
+
+Next action under consideration:
+
+- Promote `configs/tuned_delay_stable.yaml` as the main continuous baseline for
+  future perturbation work, after checking whether the result holds across a
+  small seed sweep.
+- Repeat the fixed-point/Jacobian analysis across a small seed sweep before
+  treating the stable tuned result as seed-general.
+- Use the stable tuned checkpoint as the cleaner target for psilocybin-informed
+  perturbations, because it gives memory precision, drift, and hidden-state
+  stability metrics on a continuous representational variable.
+
+</details>
+
+<details>
+<summary>Uncommitted cleanup after reviewing the Claude changes</summary>
+
+These changes exist in the working tree at the time this changelog was updated.
+
+File changes:
+
+- `src/wm_rnn/config.py`: Changed `default_config()` from `model.activation: relu` to `model.activation: tanh`, so calling `load_config()` without a YAML file now matches the documented canonical baseline.
+- `src/wm_rnn/model.py`: Changed the `RNNConfig` dataclass default activation from `relu` to `tanh`, so direct model construction also matches the canonical baseline.
+- `src/wm_rnn/training_utils.py`: Changed the activation fallback in `model_config_from_dict()` from `relu` to `tanh`, so handcrafted config dictionaries without `model.activation` also follow the canonical baseline.
+- `configs/baseline_delay_stable.yaml`: Added `model.activation: relu` explicitly, preserving this comparison run as the documented `relu`-based whole-delay-loss/randomized-delay variant after the global default changed to `tanh`.
+- `docs/changelog.md`: Updated commit history to include the latest Claude commits and removed stale "Uncommitted" labels for work that has since been committed.
+- `docs/model-architecture.md`: Remains an untracked documentation file describing the current model architecture and plain-English task walkthrough.
+- `README.md`: Has local documentation edits in the working tree.
 
 </details>
 
@@ -429,7 +770,7 @@ Next action under consideration:
 </details>
 
 <details>
-<summary>Uncommitted: added a whole-delay-loss and randomized-delay training variant, kept as a separate versioned run</summary>
+<summary>2026-07-01 - Implementation note: added a whole-delay-loss and randomized-delay training variant, kept as a separate versioned run</summary>
 
 Reasoning:
 
@@ -491,7 +832,7 @@ File changes:
 </details>
 
 <details>
-<summary>Uncommitted: added a configurable tanh activation and an isolated tanh test variant</summary>
+<summary>2026-07-01 - Implementation note: added a configurable tanh activation and an isolated tanh test variant</summary>
 
 Reasoning:
 
@@ -525,11 +866,14 @@ File changes:
   construction time and applies it in `recurrence()` instead of a hardcoded
   `torch.relu` call. Docstrings updated to describe both activation options.
 - `src/wm_rnn/training_utils.py`: `model_config_from_dict` now reads
-  `model.activation` from the config dictionary (defaulting to `"relu"` if
-  absent) and passes it through to `RNNConfig`.
-- `src/wm_rnn/config.py`: Added `activation: "relu"` to the default model
-  configuration so the setting is discoverable and documented even when a
-  YAML config omits it.
+  `model.activation` from the config dictionary and passes it through to
+  `RNNConfig`. This originally fell back to `"relu"` if absent; after
+  `tanh` was promoted to the canonical baseline, the fallback was updated to
+  `"tanh"`.
+- `src/wm_rnn/config.py`: Added an explicit `activation` setting to the
+  default model configuration so the setting is discoverable and documented
+  even when a YAML config omits it. This was initially added as `"relu"` and
+  later updated to `"tanh"` when `tanh` became the canonical baseline.
 - `configs/baseline_delay_tanh.yaml`: Added a new experiment config that is
   otherwise identical to `configs/baseline_delay.yaml` (same task timing,
   same `1000`-step response-only training) except `model.activation: tanh`.
@@ -749,7 +1093,7 @@ Next action under consideration:
 </details>
 
 <details>
-<summary>Uncommitted: promoted tanh to the canonical baseline activation</summary>
+<summary>2026-07-01 - Implementation note: promoted tanh to the canonical baseline activation</summary>
 
 Reasoning:
 
@@ -965,4 +1309,3 @@ Next action under consideration:
   the bounded nonlinearity alone.
 
 </details>
-

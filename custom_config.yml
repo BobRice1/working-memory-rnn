@@ -1,0 +1,10 @@
+directories:
+  base: "outputs/manim"
+  subdirs:
+    output: "videos"
+    raster_images: "raster_images"
+    vector_images: "vector_images"
+    sounds: "sounds"
+    data: "data"
+    downloads: "downloads"
+  cache: "outputs/manim/cache"
