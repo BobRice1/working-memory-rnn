@@ -13,13 +13,12 @@ to `tanh` (see the "Promoted `tanh` to the canonical baseline activation"
 entry below for the full reasoning and results). Every run-log entry below
 this note that references `outputs/baseline_delay/...` paths and was
 recorded **before** this change describes the original `relu`-based
-network. Those artifacts still exist and were not deleted; they were moved
-to `outputs/baseline_delay_relu/` (same internal file names, unchanged),
-and the exact config used to produce them is preserved as
-`configs/baseline_delay_relu.yaml`. `outputs/baseline_delay/` and
-`configs/baseline_delay.yaml` now refer to the current `tanh`-based
+network. Those historical output artifacts may still exist locally under
+`outputs/baseline_delay_relu/` (same internal file names, unchanged), but the
+old relu config is no longer part of the active tracked config set. The tracked
+`configs/baseline_delay.yaml` file now refers to the current `tanh`-based
 baseline. Run-log entries recorded after this note that reference
-`outputs/baseline_delay/...` describe the new `tanh`-based artifacts.
+`outputs/baseline_delay/...` describe the `tanh`-based artifacts.
 
 ## Current Baseline Cleanup (2026-07-07)
 
@@ -33,7 +32,27 @@ model variants.
 ## Git Commit History
 
 <details>
-<summary>2026-07-07 - Uncommitted stable model summary report</summary>
+<summary>2026-07-07 - 408e824 - Remove obsolete relu delay variants</summary>
+
+Cleaned the active model set so the only current categorical baseline is
+`configs/baseline_delay.yaml` with `model.activation: tanh`.
+
+File changes:
+
+- `configs/baseline_delay_relu.yaml`: Removed from the active config set.
+- `configs/baseline_delay_stable.yaml`: Removed from the active config set.
+- `README.md`: Removed active relu/stable categorical baseline references.
+- `docs/model-architecture.md`: Reframed the categorical baseline as
+  `baseline_delay` only.
+- `docs/changelog.md`: Added the current baseline cleanup note.
+- `docs/reports/stable_model_summary.tex`: Updated the report to compare
+  `baseline_delay` against `tuned_delay_stable`.
+- `docs/reports/stable_model_summary.pdf`: Recompiled the updated report.
+
+</details>
+
+<details>
+<summary>2026-07-07 - 7c0197a - Add stable model summary report</summary>
 
 Added a LaTeX/PDF summary of the current categorical baseline and tuned stable
 model before moving on to noise analysis.
@@ -45,6 +64,61 @@ File changes:
   key metrics, attractor-analysis interpretation, and figure captions.
 - `docs/reports/stable_model_summary.pdf`: Compiled report with the relevant
   saved figures embedded from the baseline and tuned output directories.
+
+</details>
+
+<details>
+<summary>2026-07-07 - 6e948d3 - Add tuned delay attractor model analysis</summary>
+
+Added the tuned continuous population-code model, the stable tuned variant, and
+the attractor-analysis tooling used for fixed-point, Jacobian, perturbation, and
+movie visualizations.
+
+File changes:
+
+- `configs/tuned_delay.yaml`: Added the fixed-delay continuous circular
+  population-code model.
+- `configs/tuned_delay_stable.yaml`: Added the stable tuned model trained with
+  randomized delay lengths and delay-period scoring.
+- `src/wm_rnn/tuned_task.py`: Added the tuned circular task generator.
+- `src/wm_rnn/*`: Updated training, evaluation, PCA analysis, delay sweeps,
+  stability analysis, attractor probing, fixed-point analysis, dynamics figures,
+  and hidden-state movie generation for tuned tasks.
+- `tests/`: Added focused tuned-task, tuned-training, evaluation, and PCA tests.
+- `docs/model-architecture.md`: Added the tuned model architecture and analysis
+  explanation.
+- `docs/analysis-figure-rationale.md`: Added figure rationale and literature
+  anchors.
+- `custom_config.yml` and `requirements-animation.txt`: Added optional Manim
+  animation support.
+
+</details>
+
+<details>
+<summary>2026-07-07 - 061fde5 - Updated README</summary>
+
+Documentation-only README cleanup after the baseline activation updates.
+
+File changes:
+
+- `README.md`: Updated current model and workflow notes.
+
+</details>
+
+<details>
+<summary>2026-07-01 - 9c63925 - Update tanh defaults and baseline documentation</summary>
+
+Aligned defaults and documentation with the `tanh` baseline direction that was
+being tested after the original relu baseline showed ramping delay dynamics.
+
+File changes:
+
+- `README.md`: Updated model-variant documentation.
+- `configs/baseline_delay_stable.yaml`: Preserved the then-current stable
+  comparison configuration state.
+- `src/wm_rnn/config.py`: Updated default model activation handling.
+- `src/wm_rnn/model.py`: Updated the `RNNConfig` activation default.
+- `src/wm_rnn/training_utils.py`: Updated config-to-model activation fallback.
 
 </details>
 
@@ -212,10 +286,8 @@ File changes:
 
 </details>
 
-## Current Working Changes
-
 <details>
-<summary>2026-07-06 - Uncommitted tuned continuous population-code model iteration</summary>
+<summary>2026-07-07 - 6e948d3 detail - Tuned continuous population-code model iteration</summary>
 
 Purpose:
 
@@ -313,7 +385,7 @@ Next action under consideration:
 </details>
 
 <details>
-<summary>2026-07-06 - Uncommitted stable tuned continuous model and attractor-like probe</summary>
+<summary>2026-07-07 - 6e948d3 detail - Stable tuned continuous model and attractor-like probe</summary>
 
 Purpose:
 
@@ -368,6 +440,14 @@ Implementation changes:
   marker labels, phase labels, and degree/residual colorbars so the PCA,
   delay-sweep, stability, attractor-probe, fixed-point, landscape, and dynamics
   figures are easier to interpret without cross-referencing the code.
+- Interpretation note: the ring can appear flipped between the static
+  ring/landscape figures and the hidden-state movie because each visualization
+  currently fits its own two-dimensional PCA projection. PCA component signs are
+  arbitrary, and the movie also uses its own sampled trajectory batch. This is a
+  visualization-orientation issue, not evidence that the attractor itself
+  changed. A future cleanup should save and reuse one shared PCA basis across the
+  ring manifold, fixed-point landscape, and movie outputs for consistent figure
+  orientation.
 - `docs/analysis-figure-rationale.md`: Added the rationale and reference
   anchors for these figures, linking each plot to the working-memory RNN /
   attractor literature it supports.
@@ -543,23 +623,6 @@ Next action under consideration:
 - Use the stable tuned checkpoint as the cleaner target for psilocybin-informed
   perturbations, because it gives memory precision, drift, and hidden-state
   stability metrics on a continuous representational variable.
-
-</details>
-
-<details>
-<summary>Uncommitted cleanup after reviewing the Claude changes</summary>
-
-These changes exist in the working tree at the time this changelog was updated.
-
-File changes:
-
-- `src/wm_rnn/config.py`: Changed `default_config()` from `model.activation: relu` to `model.activation: tanh`, so calling `load_config()` without a YAML file now matches the documented canonical baseline.
-- `src/wm_rnn/model.py`: Changed the `RNNConfig` dataclass default activation from `relu` to `tanh`, so direct model construction also matches the canonical baseline.
-- `src/wm_rnn/training_utils.py`: Changed the activation fallback in `model_config_from_dict()` from `relu` to `tanh`, so handcrafted config dictionaries without `model.activation` also follow the canonical baseline.
-- `configs/baseline_delay_stable.yaml`: Added `model.activation: relu` explicitly, preserving this comparison run as the documented `relu`-based whole-delay-loss/randomized-delay variant after the global default changed to `tanh`.
-- `docs/changelog.md`: Updated commit history to include the latest Claude commits and removed stale "Uncommitted" labels for work that has since been committed.
-- `docs/model-architecture.md`: Remains an untracked documentation file describing the current model architecture and plain-English task walkthrough.
-- `README.md`: Has local documentation edits in the working tree.
 
 </details>
 
@@ -1130,10 +1193,11 @@ Reasoning:
   separately tracked variant, since it is a strictly better-generalizing,
   more settled network produced by the same architecture family and the
   same training procedure, not a different modelling approach.
-- The original `relu`-based baseline was not discarded. Its config and
-  recorded outputs were archived under new, clearly named files/folders so
-  the full history remains reproducible and inspectable, consistent with
-  how `docs/changelog.md` otherwise preserves a complete run history.
+- At the time of this entry, the original `relu`-based baseline config and
+  recorded outputs were archived under clearly named files/folders. This was
+  later superseded by the 2026-07-07 active-baseline cleanup, which removed the
+  old relu config from the tracked active config set while preserving the
+  historical run record in this changelog.
 - The standalone `configs/baseline_delay_tanh.yaml` config and its
   `outputs/baseline_delay_tanh/` outputs were removed, because after this
   change they would be an exact duplicate of the new canonical
@@ -1160,11 +1224,10 @@ File changes:
   `activation(...)`, and added a short explanation of why `tanh` replaced
   `relu` as the default, pointing to this changelog for full detail.
 - `README.md`: Updated the top-line description, and rewrote "Model
-  Variants" to describe `configs/baseline_delay.yaml` as the current
-  (`tanh`) baseline, `configs/baseline_delay_relu.yaml` as the archived
-  original baseline, and `configs/baseline_delay_stable.yaml` as a
-  still-open comparison; removed the now-deleted `baseline_delay_tanh`
-  entry.
+  Variants" to describe the then-current `tanh`, archived `relu`, and
+  stable-delay comparison configs. This README state was later superseded by
+  the 2026-07-07 cleanup, which keeps only `configs/baseline_delay.yaml` as the
+  active categorical baseline.
 
 Filesystem changes (outputs, not tracked by Git since `outputs/` is
 git-ignored):
@@ -1237,9 +1300,10 @@ Next action under consideration:
   directly confirm attractor structure, since this is now the checkpoint
   that will anchor future baseline comparisons and psilocybin-informed
   perturbations.
-- Decide whether to retrain `configs/baseline_delay_stable.yaml`-style
-  whole-delay-loss/randomized-delay training on top of `tanh` rather than
-  `relu`, now that `tanh` is the baseline activation.
+- Superseded by the 2026-07-07 active-baseline cleanup: there is no longer an
+  active `baseline_delay_stable` config. Any future whole-delay-loss or
+  randomized-delay categorical experiment should be introduced as a new config
+  with a clear name and rationale, not as the current baseline.
 - Consider whether the existing multi-seed sweep tooling
   (`src/wm_rnn/seed_sweep.py`) should be re-run under the new `tanh`
   baseline to confirm the settled, delay-robust behavior holds across
@@ -1332,5 +1396,96 @@ Next action under consideration:
   reduce this seed-to-seed variability, since that combination directly
   rewards delay-period stability during training rather than relying on
   the bounded nonlinearity alone.
+
+</details>
+
+<details>
+<summary>2026-07-07 - Tuned continuous model and stable tuned attractor analyses committed</summary>
+
+Action:
+
+- Added and analyzed the continuous circular population-code task requested as
+  the next model iteration after supervisor feedback.
+- Trained and analyzed `configs/tuned_delay_stable.yaml` as the stronger
+  continuous working-memory baseline.
+- Added delay sweeps, stability analysis, autonomous drift probing,
+  fixed-point/Jacobian analysis, fixed-point landscape plotting, deterministic
+  perturbation recovery, and a hidden-state movie for the tuned model.
+
+Current interpretation:
+
+- The fixed-delay tuned model learns the trained delay but drifts over longer
+  delays and autonomous probe periods.
+- The stable tuned model preserves the remembered circular angle with low error
+  across extended delays and shows sampled ring-attractor-like structure in
+  hidden-state analyses.
+- The attractor evidence is sampled evidence in projected and probed state
+  space, not a complete proof over the full 64-dimensional hidden-state space.
+
+Recorded outputs:
+
+- Stable tuned checkpoint: `outputs/tuned_delay_stable/checkpoints/tuned_delay_stable.pt`.
+- Main analysis figures: `outputs/tuned_delay_stable/figures/`.
+- Main analysis arrays: `outputs/tuned_delay_stable/arrays/`.
+- Main analysis metrics: `outputs/tuned_delay_stable/metrics/`.
+- Hidden-state movie: `outputs/tuned_delay_stable/figures/tuned_delay_stable_hidden_state_movie.mp4`.
+
+Visualization note:
+
+- The ring may appear flipped between the static ring/landscape figures and the
+  movie because those visualizations currently fit separate two-dimensional PCA
+  projections. PCA component signs are arbitrary. This is a display-orientation
+  issue, not evidence that the underlying ring attractor changed.
+
+</details>
+
+<details>
+<summary>2026-07-07 - Stable model summary report compiled</summary>
+
+Action:
+
+- Added `docs/reports/stable_model_summary.tex`.
+- Compiled `docs/reports/stable_model_summary.pdf`.
+- Updated the report to compare the current categorical baseline
+  `baseline_delay` against the stable tuned continuous model
+  `tuned_delay_stable`.
+
+Report interpretation:
+
+- `baseline_delay` is the categorical tanh baseline and remains behaviorally
+  strong on the categorical task.
+- `tuned_delay_stable` is the better current candidate for continuous
+  attractor-style working-memory analysis because it provides a circular memory
+  variable, angular error metrics, fixed-point/Jacobian diagnostics, and
+  perturbation-recovery analysis.
+
+</details>
+
+<details>
+<summary>2026-07-07 - Active categorical baseline cleanup</summary>
+
+Action:
+
+- Removed `configs/baseline_delay_relu.yaml` and
+  `configs/baseline_delay_stable.yaml` from the active config set.
+- Kept `configs/baseline_delay.yaml` as the only current categorical baseline.
+- Updated README, architecture documentation, changelog, and the stable model
+  summary report so active comparisons no longer present relu-based categorical
+  variants as current models.
+
+Current active model state:
+
+- Categorical baseline: `configs/baseline_delay.yaml`, with
+  `model.activation: tanh`.
+- Continuous tuned model: `configs/tuned_delay.yaml`.
+- Stable continuous tuned model for attractor analyses:
+  `configs/tuned_delay_stable.yaml`.
+
+Historical note:
+
+- Older run-log entries still describe the original relu baseline and the
+  relu-based randomized-delay/whole-delay-loss categorical variant. Those are
+  historical experiment records only. They should not be treated as active model
+  variants for new analyses.
 
 </details>
