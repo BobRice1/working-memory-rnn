@@ -34,6 +34,7 @@ class RNNConfig:
     dt: float = 20.0
     tau: float = 100.0
     activation: str = "tanh"
+    recurrent_noise_std: float = 0.0
 
 
 class CTRNN(nn.Module):
@@ -74,6 +75,9 @@ class CTRNN(nn.Module):
         self.oneminusalpha = 1.0 - alpha
         self.activation_name = config.activation
         self._activation = _ACTIVATIONS[config.activation]
+        if config.recurrent_noise_std < 0:
+            raise ValueError("recurrent_noise_std must be non-negative")
+        self.recurrent_noise_std = config.recurrent_noise_std
         self.input2h = nn.Linear(config.input_size, config.hidden_size)
         self.h2h = nn.Linear(config.hidden_size, config.hidden_size)
 
@@ -102,7 +106,10 @@ class CTRNN(nn.Module):
             or bounded to ``(-1, 1)`` if ``activation`` is ``"tanh"``.
         """
         pre_activation = self.input2h(input_t) + self.h2h(hidden)
-        return self._activation(hidden * self.oneminusalpha + pre_activation * self.alpha)
+        updated = hidden * self.oneminusalpha + pre_activation * self.alpha
+        if self.training and self.recurrent_noise_std > 0:
+            updated = updated + torch.randn_like(updated) * self.recurrent_noise_std
+        return self._activation(updated)
 
     def forward(self, inputs: torch.Tensor, hidden: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor]:
         """Run the recurrent layer over a full sequence.

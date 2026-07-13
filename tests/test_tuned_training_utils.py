@@ -1,9 +1,15 @@
 import math
 
+import numpy as np
 import torch
 import pytest
 
-from wm_rnn.training_utils import model_config_from_dict, task_config_from_dict, tuned_response_metrics
+from wm_rnn.training_utils import (
+    model_config_from_dict,
+    task_config_from_dict,
+    tuned_response_metrics,
+    weighted_tuned_mse,
+)
 from wm_rnn.task import DelayBatch, DelayTaskConfig, generate_delay_batch
 from wm_rnn.tuned_task import TunedDelayTaskConfig, circular_preferred_angles, encode_circular_population
 from wm_rnn.tuned_task import TunedDelayBatch
@@ -225,3 +231,29 @@ def test_tuned_response_metrics_report_low_error_for_matching_population():
 
     assert metrics["mean_angular_error_degrees"] < 1.0
     assert metrics["population_mse"] == 0.0
+
+
+def test_tuned_response_metrics_report_fixation_quality():
+    preferred = circular_preferred_angles(4)
+    population = encode_circular_population(np.array([0.0]), preferred, tuning_kappa=8.0)
+    predictions = torch.tensor([[[*population[0], 0.0]], [[*population[0], 1.0]]])
+    targets = predictions.clone()
+    loss_mask = torch.tensor([[0.0], [1.0]])
+
+    metrics = tuned_response_metrics(
+        predictions, targets, loss_mask, preferred, np.array([0.0], dtype=np.float32)
+    )
+
+    assert metrics["fixation_mse"] == 0.0
+    assert metrics["fixation_accuracy"] == 1.0
+
+
+def test_weighted_tuned_mse_emphasizes_fixation_channel():
+    predictions = torch.zeros((2, 1, 3))
+    targets = torch.zeros_like(predictions)
+    predictions[1, 0, -1] = 1.0
+    time_weights = torch.tensor([[0.0], [5.0]])
+
+    loss = weighted_tuned_mse(predictions, targets, time_weights, fixation_weight=2.0)
+
+    assert loss.item() == pytest.approx(0.5)

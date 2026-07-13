@@ -102,6 +102,53 @@ def test_generate_tuned_delay_batch_shapes_and_phases():
     np.testing.assert_allclose(repeat_batch.loss_mask, batch.loss_mask)
 
 
+def test_fixation_gated_tuned_batch_holds_fixation_until_response():
+    config = TunedDelayTaskConfig(
+        n_tuned_units=8,
+        cue_steps=2,
+        delay_steps=3,
+        response_steps=2,
+        batch_size=4,
+        seed=123,
+        fixation_gated=True,
+    )
+    batch = generate_tuned_delay_batch(config)
+
+    assert config.input_size == 9
+    assert config.output_size == 9
+    np.testing.assert_allclose(batch.inputs[:5, :, -1], 1.0)
+    np.testing.assert_allclose(batch.inputs[5:, :, -1], 0.0)
+    np.testing.assert_allclose(batch.targets[:5, :, :8], 0.0)
+    np.testing.assert_allclose(batch.targets[:5, :, -1], 1.0)
+    np.testing.assert_allclose(batch.targets[5:, :, -1], 0.0)
+    np.testing.assert_allclose(batch.loss_mask[:5, :], 0.0)
+    np.testing.assert_allclose(batch.loss_mask[5:, :], 1.0)
+
+
+def test_fixation_gated_batch_supports_pre_cue_fixation_period():
+    config = TunedDelayTaskConfig(
+        n_tuned_units=8,
+        pre_cue_steps=3,
+        cue_steps=2,
+        delay_steps=4,
+        response_steps=5,
+        batch_size=2,
+        seed=321,
+        fixation_gated=True,
+    )
+    batch = generate_tuned_delay_batch(config)
+
+    assert batch.inputs.shape == (14, 2, 9)
+    assert batch.phase_index["fixation"] == slice(0, 3)
+    assert batch.phase_index["cue"] == slice(3, 5)
+    assert batch.phase_index["delay"] == slice(5, 9)
+    assert batch.phase_index["response"] == slice(9, 14)
+    np.testing.assert_allclose(batch.inputs[:9, :, -1], 1.0)
+    np.testing.assert_allclose(batch.inputs[9:, :, -1], 0.0)
+    np.testing.assert_allclose(batch.inputs[:3, :, :8], 0.0)
+    assert np.all(batch.inputs[3:5, :, :8] > 0.0)
+
+
 def test_decode_population_angle_recovers_known_preferred_angle():
     preferred = circular_preferred_angles(8)
     populations = np.zeros((2, 8), dtype=np.float32)

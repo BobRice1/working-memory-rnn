@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +22,7 @@ from wm_rnn.training_utils import (
     response_accuracy,
     task_config_from_dict,
     with_delay_steps,
+    weighted_tuned_mse,
 )
 
 
@@ -58,6 +59,9 @@ def train_model(config: dict[str, Any]) -> TrainResult:
       as the response period, instead of the response period only. This is
       intended to reward a hidden state that stays decodable throughout the
       delay, not only at the final response window.
+    - Whole-trial loss scoring: if ``training.score_all_periods`` is ``true``,
+      the loss is computed over every phase. Fixation-gated tuned tasks use
+      this to train their silent pre-response circular readout and fixation output.
 
     Categorical runs log response-period accuracy using the response-only mask.
     Tuned runs log population MSE instead of categorical accuracy.
@@ -82,10 +86,17 @@ def train_model(config: dict[str, Any]) -> TrainResult:
     log_every = int(config["training"].get("log_every", 50))
     task_type = str(config["task"].get("task_type", "categorical"))
     score_delay_period = bool(config["training"].get("score_delay_period", False))
+    score_all_periods = bool(config["training"].get("score_all_periods", False))
+    yang_weighted_loss = bool(config["training"].get("yang_weighted_loss", False))
+    input_noise_std = float(config["training"].get("input_noise_std", 0.0))
+    gradient_clip_value = float(config["training"].get("gradient_clip_value", 0.0))
 
     delay_min = config["task"].get("delay_steps_min")
     delay_max = config["task"].get("delay_steps_max")
-    randomize_delay = delay_min is not None and delay_max is not None
+    delay_choices = config["task"].get("delay_steps_choices")
+    pre_cue_choices = config["task"].get("pre_cue_steps_choices")
+    cue_choices = config["task"].get("cue_steps_choices")
+    randomize_delay = (delay_min is not None and delay_max is not None) or delay_choices is not None
     delay_rng = np.random.default_rng(base_seed + 777777) if randomize_delay else None
 
     history: list[dict[str, Any]] = []
@@ -93,12 +104,43 @@ def train_model(config: dict[str, Any]) -> TrainResult:
     for step in range(1, steps + 1):
         task_config = task_config_from_dict(config, seed_offset=step)
         if randomize_delay:
-            sampled_delay = int(delay_rng.integers(int(delay_min), int(delay_max) + 1))
+            sampled_delay = (
+                int(delay_rng.choice(delay_choices))
+                if delay_choices is not None
+                else int(delay_rng.integers(int(delay_min), int(delay_max) + 1))
+            )
             task_config = with_delay_steps(task_config, sampled_delay)
+        if pre_cue_choices is not None or cue_choices is not None:
+            task_config = replace(
+                task_config,
+                pre_cue_steps=(
+                    int(delay_rng.choice(pre_cue_choices))
+                    if pre_cue_choices is not None
+                    else task_config.pre_cue_steps
+                ),
+                cue_steps=(
+                    int(delay_rng.choice(cue_choices))
+                    if cue_choices is not None
+                    else task_config.cue_steps
+                ),
+            )
         batch = generate_batch_for_task(task_config)
         inputs, targets, loss_mask = batch_to_tensors(batch, device_info.device)
 
-        if score_delay_period:
+        if input_noise_std > 0:
+            inputs = inputs + torch.randn_like(inputs) * input_noise_std
+
+        if yang_weighted_loss:
+            training_mask = torch.zeros_like(loss_mask)
+            response_slice = batch.phase_index["response"]
+            ignore_initial = int(config["training"].get("ignore_initial_steps", 5))
+            transition_steps = int(config["training"].get("response_transition_steps", 5))
+            response_weight = float(config["training"].get("response_weight", 5.0))
+            training_mask[ignore_initial : response_slice.start, :] = 1.0
+            training_mask[response_slice.start + transition_steps : response_slice.stop, :] = response_weight
+        elif score_all_periods:
+            training_mask = torch.ones_like(loss_mask)
+        elif score_delay_period:
             full_mask = batch.loss_mask.copy()
             full_mask[batch.phase_index["delay"], :] = 1.0
             training_mask = torch.from_numpy(full_mask).float().to(device_info.device)
@@ -108,16 +150,28 @@ def train_model(config: dict[str, Any]) -> TrainResult:
         optimizer.zero_grad(set_to_none=True)
         logits, _ = model(inputs)
         if task_type == "tuned":
-            loss = masked_mse(logits, targets, training_mask)
+            if yang_weighted_loss:
+                loss = weighted_tuned_mse(
+                    logits,
+                    targets,
+                    training_mask,
+                    fixation_weight=float(config["training"].get("fixation_weight", 2.0)),
+                )
+            else:
+                loss = masked_mse(logits, targets, training_mask)
         else:
             loss = masked_cross_entropy(logits, targets, training_mask)
         loss.backward()
+        if gradient_clip_value > 0:
+            torch.nn.utils.clip_grad_value_(model.parameters(), gradient_clip_value)
         optimizer.step()
 
         row = {
             "step": step,
             "loss": float(loss.item()),
             "delay_steps": task_config.delay_steps,
+            "pre_cue_steps": getattr(task_config, "pre_cue_steps", 0),
+            "cue_steps": task_config.cue_steps,
         }
         if task_type == "tuned":
             row["population_mse"] = row["loss"]
@@ -141,8 +195,15 @@ def train_model(config: dict[str, Any]) -> TrainResult:
         "steps": steps,
         "final_loss": history[-1]["loss"],
         "score_delay_period": score_delay_period,
+        "score_all_periods": score_all_periods,
+        "yang_weighted_loss": yang_weighted_loss,
+        "input_noise_std": input_noise_std,
+        "gradient_clip_value": gradient_clip_value,
         "randomize_delay": randomize_delay,
-        "delay_steps_range": [int(delay_min), int(delay_max)] if randomize_delay else None,
+        "delay_steps_range": (
+            [int(delay_min), int(delay_max)] if delay_choices is None and randomize_delay else None
+        ),
+        "delay_steps_choices": [int(value) for value in delay_choices] if delay_choices is not None else None,
         "checkpoint": str(checkpoint_path),
     }
     if task_type == "tuned":

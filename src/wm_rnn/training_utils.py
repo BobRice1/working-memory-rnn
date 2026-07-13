@@ -65,11 +65,13 @@ def task_config_from_dict(config: dict[str, Any], seed_offset: int = 0, batch_si
         return TunedDelayTaskConfig(
             n_tuned_units=int(task["n_tuned_units"]),
             tuning_kappa=float(task["tuning_kappa"]),
+            pre_cue_steps=int(task.get("pre_cue_steps", 0)),
             cue_steps=int(task["cue_steps"]),
             delay_steps=int(task["delay_steps"]),
             response_steps=int(task["response_steps"]),
             batch_size=resolved_batch_size,
             seed=seed,
+            fixation_gated=bool(task.get("fixation_gated", False)),
         )
     raise ValueError(f"unknown task_type: {task_type}")
 
@@ -85,6 +87,7 @@ def model_config_from_dict(config: dict[str, Any]) -> RNNConfig:
         dt=float(model["dt"]),
         tau=float(model["tau"]),
         activation=str(model.get("activation", "tanh")),
+        recurrent_noise_std=float(model.get("recurrent_noise_std", 0.0)),
     )
 
 
@@ -113,6 +116,21 @@ def masked_mse(predictions: torch.Tensor, targets: torch.Tensor, loss_mask: torc
     return (loss * loss_mask).sum() / loss_mask.sum().clamp_min(1.0)
 
 
+def weighted_tuned_mse(
+    predictions: torch.Tensor,
+    targets: torch.Tensor,
+    time_weights: torch.Tensor,
+    fixation_weight: float = 2.0,
+) -> torch.Tensor:
+    """Compute Yang-style time-weighted MSE with extra fixation emphasis."""
+    squared_error = (predictions - targets).square()
+    output_weights = torch.ones(predictions.size(-1), device=predictions.device)
+    if predictions.size(-1) > 1:
+        output_weights[-1] = fixation_weight
+    weights = time_weights.unsqueeze(-1) * output_weights
+    return (squared_error * weights).sum() / weights.sum().clamp_min(1.0)
+
+
 def tuned_response_metrics(
     predictions: torch.Tensor,
     targets: torch.Tensor,
@@ -133,19 +151,30 @@ def tuned_response_metrics(
 
     pred_np = predictions.detach().cpu().numpy()
     target_np = targets.detach().cpu().numpy()
-    decoded_angles = decode_population_angle(pred_np, preferred_angles)
+    n_tuned_units = len(preferred_angles)
+    population_predictions = pred_np[..., :n_tuned_units]
+    population_targets = target_np[..., :n_tuned_units]
+    decoded_angles = decode_population_angle(population_predictions, preferred_angles)
     target_angle_values = np.asarray(target_angles, dtype=np.float32).reshape(1, -1)
     repeated_targets = np.broadcast_to(target_angle_values, mask_np.shape)
     angular_errors = circular_angular_error(decoded_angles, repeated_targets)[mask_np]
     angular_error_degrees = np.degrees(angular_errors)
-    population_squared_errors = ((pred_np - target_np) ** 2).mean(axis=-1)[mask_np]
-    return {
+    population_squared_errors = ((population_predictions - population_targets) ** 2).mean(axis=-1)[mask_np]
+    metrics = {
         "mean_angular_error_degrees": float(np.nan_to_num(angular_error_degrees.mean(), nan=0.0)),
         "median_angular_error_degrees": float(np.nan_to_num(np.median(angular_error_degrees), nan=0.0)),
         "population_mse": float(np.nan_to_num(population_squared_errors.mean(), nan=0.0, posinf=0.0, neginf=0.0)),
         "angular_errors_degrees": [float(x) for x in angular_error_degrees],
         "population_squared_errors": [float(x) for x in population_squared_errors],
     }
+    if pred_np.shape[-1] > n_tuned_units:
+        gate_predictions = pred_np[..., n_tuned_units]
+        gate_targets = target_np[..., n_tuned_units]
+        metrics["fixation_mse"] = float(np.mean((gate_predictions - gate_targets) ** 2))
+        metrics["fixation_accuracy"] = float(
+            np.mean((gate_predictions >= 0.5) == (gate_targets >= 0.5))
+        )
+    return metrics
 
 
 def response_accuracy(logits: torch.Tensor, targets: torch.Tensor, loss_mask: torch.Tensor) -> float:

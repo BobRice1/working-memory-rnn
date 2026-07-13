@@ -56,11 +56,17 @@ def aggregate_tuned_metrics(batch_metrics: list[dict[str, Any]]) -> dict[str, fl
             "median_angular_error_degrees": 0.0,
             "population_mse": 0.0,
         }
-    return {
+    metrics = {
         "mean_angular_error_degrees": float(np.mean(angular_errors)),
         "median_angular_error_degrees": float(np.median(angular_errors)),
         "population_mse": float(np.mean(population_errors)),
     }
+    if batch_metrics and "fixation_mse" in batch_metrics[0]:
+        metrics["fixation_mse"] = float(np.mean([item["fixation_mse"] for item in batch_metrics]))
+        metrics["fixation_accuracy"] = float(
+            np.mean([item["fixation_accuracy"] for item in batch_metrics])
+        )
+    return metrics
 
 
 def evaluate_model(config: dict[str, Any], checkpoint_path: str | Path) -> EvalResult:
