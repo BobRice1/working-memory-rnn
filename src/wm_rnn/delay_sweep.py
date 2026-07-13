@@ -123,7 +123,7 @@ def run_delay_sweep(config: dict[str, Any], checkpoint_path: str | Path, delays:
                     "batches": batches,
                 })
 
-    run_name = config["paths"].get("run_name", "baseline_delay")
+    run_name = config["paths"].get("run_name", "working_memory_model")
     figure_path = _plot_delay_sweep(
         dirs["figures"] / f"{run_name}_delay_sweep.png",
         results,
@@ -199,7 +199,7 @@ def _plot_delay_sweep(
 def main() -> None:
     """Parse command-line arguments and run a delay-length sweep."""
     parser = argparse.ArgumentParser(description="Evaluate a trained working-memory RNN across delay lengths.")
-    parser.add_argument("--config", default="configs/baseline_delay.yaml", help="Path to YAML config.")
+    parser.add_argument("--config", default="configs/categorical_working_memory.yaml", help="Path to YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to checkpoint produced by training.")
     parser.add_argument("--delays", nargs="+", type=int, required=True, help="Delay lengths to evaluate.")
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], help="Override evaluation device.")

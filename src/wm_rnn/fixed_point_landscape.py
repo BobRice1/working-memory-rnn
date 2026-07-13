@@ -190,7 +190,7 @@ def run_fixed_point_landscape(
         ),
     }
 
-    run_name = config["paths"].get("run_name", "tuned_delay")
+    run_name = config["paths"].get("run_name", "circular_working_memory")
     arrays_path = dirs["arrays"] / f"{run_name}_fixed_point_landscape.npz"
     np.savez_compressed(
         arrays_path,
@@ -405,7 +405,7 @@ def _plot_landscape(
 def main() -> None:
     """Parse arguments and run fixed-point landscape analysis."""
     parser = argparse.ArgumentParser(description="Visualize tuned fixed-point search endpoints in PCA state space.")
-    parser.add_argument("--config", default="configs/tuned_delay_stable.yaml", help="Path to YAML config.")
+    parser.add_argument("--config", default="configs/yang_fixation_circular_working_memory.yaml", help="Path to YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to checkpoint produced by training.")
     parser.add_argument("--n-trajectory-trials", type=int, default=64, help="Task trajectories used to fit PCA.")
     parser.add_argument("--n-random-starts", type=int, default=128, help="Number of random hidden-state starts.")

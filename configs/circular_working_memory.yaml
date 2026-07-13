@@ -28,5 +28,5 @@ analysis:
   n_trials: 64
 
 paths:
-  output_dir: outputs/tuned_delay
-  run_name: tuned_delay
+  output_dir: outputs/circular_working_memory
+  run_name: circular_working_memory

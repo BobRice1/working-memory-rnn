@@ -40,6 +40,11 @@ analysis:
   n_components: 2
   n_trials: 64
 
+decoder:
+  n_trials: 512
+  train_fraction: 0.75
+  ridge_alpha: 1.0
+
 paths:
-  output_dir: outputs/tuned_delay_fixation_gate_stable
-  run_name: tuned_delay_fixation_gate_stable
+  output_dir: outputs/yang_fixation_circular_working_memory
+  run_name: yang_fixation_circular_working_memory

@@ -142,7 +142,7 @@ def run_attractor_probe(
         ),
     }
 
-    run_name = config["paths"].get("run_name", "tuned_delay")
+    run_name = config["paths"].get("run_name", "circular_working_memory")
     arrays_path = dirs["arrays"] / f"{run_name}_attractor_probe.npz"
     np.savez_compressed(
         arrays_path,
@@ -265,7 +265,7 @@ def _plot_probe(
 def main() -> None:
     """Parse command-line arguments and run the attractor probe."""
     parser = argparse.ArgumentParser(description="Probe tuned RNN late-delay states for attractor-like stability.")
-    parser.add_argument("--config", default="configs/tuned_delay.yaml", help="Path to YAML config.")
+    parser.add_argument("--config", default="configs/circular_working_memory.yaml", help="Path to YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to checkpoint produced by training.")
     parser.add_argument("--n-trials", type=int, default=128, help="Number of trials to probe.")
     parser.add_argument("--probe-steps", type=int, default=100, help="Autonomous recurrence steps after delay.")

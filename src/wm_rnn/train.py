@@ -183,7 +183,7 @@ def train_model(config: dict[str, Any]) -> TrainResult:
         if step == 1 or step % log_every == 0 or step == steps:
             print(f"step={step} loss={row['loss']:.4f} {metric_text} delay_steps={task_config.delay_steps}")
 
-    run_name = config["paths"].get("run_name", "baseline_delay")
+    run_name = config["paths"].get("run_name", "working_memory_model")
     checkpoint_path = dirs["checkpoints"] / f"{run_name}.pt"
     history_path = dirs["metrics"] / f"{run_name}_train_history.csv"
     metrics_path = dirs["metrics"] / f"{run_name}_train_metrics.json"
@@ -217,7 +217,7 @@ def train_model(config: dict[str, Any]) -> TrainResult:
 def main() -> None:
     """Parse command-line arguments and run baseline training."""
     parser = argparse.ArgumentParser(description="Train the baseline delayed-response working-memory RNN.")
-    parser.add_argument("--config", default="configs/baseline_delay.yaml", help="Path to YAML config.")
+    parser.add_argument("--config", default="configs/categorical_working_memory.yaml", help="Path to YAML config.")
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], help="Override training device.")
     args = parser.parse_args()
 

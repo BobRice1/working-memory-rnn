@@ -115,7 +115,7 @@ def run_stability_analysis(
     else:
         delay_settling_ratio = float("nan")
 
-    run_name = config["paths"].get("run_name", "baseline_delay")
+    run_name = config["paths"].get("run_name", "working_memory_model")
     figure_path = _plot_stability(
         dirs["figures"] / f"{run_name}_stability.png",
         norm_mean=norm_mean,
@@ -252,7 +252,7 @@ def main() -> None:
         description="Diagnose whether a trained working-memory RNN settles (attractor-like) or keeps "
         "changing (ramping/phasic) during the delay period."
     )
-    parser.add_argument("--config", default="configs/baseline_delay.yaml", help="Path to YAML config.")
+    parser.add_argument("--config", default="configs/categorical_working_memory.yaml", help="Path to YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to checkpoint produced by training.")
     parser.add_argument("--n-trials", type=int, default=64, help="Number of trials to analyze.")
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], help="Override analysis device.")

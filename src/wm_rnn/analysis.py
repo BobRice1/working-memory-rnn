@@ -70,7 +70,7 @@ def run_pca_analysis(config: dict[str, Any], checkpoint_path: str | Path) -> PCA
     pca = PCA(n_components=int(config["analysis"].get("n_components", 2)))
     projected = pca.fit_transform(flattened).reshape(hidden_np.shape[0], hidden_np.shape[1], -1)
 
-    run_name = config["paths"].get("run_name", "baseline_delay")
+    run_name = config["paths"].get("run_name", "working_memory_model")
     hidden_states_path = dirs["arrays"] / f"{run_name}_hidden_states.npz"
     arrays = {"hidden": hidden_np, "projected": projected, "labels": labels, "task_type": task_type}
     if task_type == "categorical":
@@ -143,7 +143,7 @@ def _plot_trajectories(projected: np.ndarray, labels: np.ndarray, figure_path: P
 def main() -> None:
     """Parse command-line arguments and run hidden-state PCA analysis."""
     parser = argparse.ArgumentParser(description="Run PCA analysis for a trained working-memory RNN checkpoint.")
-    parser.add_argument("--config", default="configs/baseline_delay.yaml", help="Path to YAML config.")
+    parser.add_argument("--config", default="configs/categorical_working_memory.yaml", help="Path to YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to checkpoint produced by training.")
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], help="Override analysis device.")
     args = parser.parse_args()

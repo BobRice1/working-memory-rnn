@@ -117,7 +117,7 @@ def run_dynamics_figures(
     pca = PCA(n_components=2)
     trajectory_pc = pca.fit_transform(flattened_hidden).reshape(hidden_np.shape[0], hidden_np.shape[1], 2)
 
-    run_name = config["paths"].get("run_name", "tuned_delay")
+    run_name = config["paths"].get("run_name", "circular_working_memory")
     landscape_arrays = _load_npz(dirs["arrays"] / f"{run_name}_fixed_point_landscape.npz")
     fixed_point_arrays = _load_npz(dirs["arrays"] / f"{run_name}_fixed_point_analysis.npz")
     fixed_points = np.asarray(landscape_arrays["fixed_points"])
@@ -519,7 +519,7 @@ def _write_recovery_csv(path: Path, recovery: dict[str, np.ndarray]) -> Path:
 def main() -> None:
     """Parse command-line arguments and generate dynamics figures."""
     parser = argparse.ArgumentParser(description="Generate tuned RNN dynamics figures.")
-    parser.add_argument("--config", default="configs/tuned_delay_stable.yaml", help="Path to YAML config.")
+    parser.add_argument("--config", default="configs/yang_fixation_circular_working_memory.yaml", help="Path to YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to checkpoint produced by training.")
     parser.add_argument("--n-trials", type=int, default=64, help="Number of trials to analyze.")
     parser.add_argument("--example-trials", type=int, default=12, help="Number of decoded-angle examples.")

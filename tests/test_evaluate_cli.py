@@ -9,7 +9,7 @@ def test_main_prints_tuned_metrics_without_accuracy(monkeypatch, capsys, tmp_pat
         [
             "wm_rnn.evaluate",
             "--config",
-            "configs/tuned_delay.yaml",
+            "configs/circular_working_memory.yaml",
             "--checkpoint",
             "checkpoint.pt",
             "--device",
@@ -45,7 +45,7 @@ def test_main_keeps_categorical_accuracy_output(monkeypatch, capsys, tmp_path):
         [
             "wm_rnn.evaluate",
             "--config",
-            "configs/baseline_delay.yaml",
+            "configs/categorical_working_memory.yaml",
             "--checkpoint",
             "checkpoint.pt",
         ],

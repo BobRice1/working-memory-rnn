@@ -88,7 +88,7 @@ def evaluate_model(config: dict[str, Any], checkpoint_path: str | Path) -> EvalR
 
     task_type = str(config["task"].get("task_type", "categorical"))
     batches = int(config["evaluation"]["batches"])
-    run_name = config["paths"].get("run_name", "baseline_delay")
+    run_name = config["paths"].get("run_name", "working_memory_model")
 
     if task_type == "tuned":
         tuned_metrics = []
@@ -143,7 +143,7 @@ def evaluate_model(config: dict[str, Any], checkpoint_path: str | Path) -> EvalR
 def main() -> None:
     """Parse command-line arguments and evaluate a trained checkpoint."""
     parser = argparse.ArgumentParser(description="Evaluate a trained working-memory RNN checkpoint.")
-    parser.add_argument("--config", default="configs/baseline_delay.yaml", help="Path to YAML config.")
+    parser.add_argument("--config", default="configs/categorical_working_memory.yaml", help="Path to YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to checkpoint produced by training.")
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], help="Override evaluation device.")
     args = parser.parse_args()

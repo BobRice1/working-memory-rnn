@@ -176,7 +176,7 @@ def run_fixed_point_analysis(
         ),
     }
 
-    run_name = config["paths"].get("run_name", "tuned_delay")
+    run_name = config["paths"].get("run_name", "circular_working_memory")
     arrays_path = dirs["arrays"] / f"{run_name}_fixed_point_analysis.npz"
     np.savez_compressed(
         arrays_path,
@@ -474,7 +474,7 @@ def _plot_fixed_point_analysis(
 def main() -> None:
     """Parse command-line arguments and run fixed-point analysis."""
     parser = argparse.ArgumentParser(description="Run tuned RNN fixed-point and Jacobian analysis.")
-    parser.add_argument("--config", default="configs/tuned_delay_stable.yaml", help="Path to YAML config.")
+    parser.add_argument("--config", default="configs/yang_fixation_circular_working_memory.yaml", help="Path to YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to checkpoint produced by training.")
     parser.add_argument("--n-trials", type=int, default=64, help="Number of late-delay states to analyze.")
     parser.add_argument("--max-steps", type=int, default=2000, help="Maximum fixed-point optimization steps.")

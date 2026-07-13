@@ -5,7 +5,7 @@ from wm_rnn.train import train_model
 
 
 def test_tuned_training_metrics_do_not_report_categorical_accuracy(tmp_path):
-    config = load_config("configs/tuned_delay.yaml")
+    config = load_config("configs/circular_working_memory.yaml")
     config["model"]["hidden_size"] = 8
     config["task"]["n_tuned_units"] = 8
     config["task"]["batch_size"] = 4

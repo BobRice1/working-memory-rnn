@@ -41,8 +41,8 @@ def default_config() -> dict[str, Any]:
             "n_trials": 64,
         },
         "paths": {
-            "output_dir": "outputs/baseline_delay",
-            "run_name": "baseline_delay",
+            "output_dir": "outputs/categorical_working_memory",
+            "run_name": "categorical_working_memory",
         },
     }
 

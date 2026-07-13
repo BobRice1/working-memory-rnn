@@ -112,7 +112,7 @@ def run_hidden_state_movie(
     pca = PCA(n_components=2)
     trajectory_pc = pca.fit_transform(flattened_hidden).reshape(hidden_np.shape[0], hidden_np.shape[1], 2)
 
-    run_name = config["paths"].get("run_name", "tuned_delay")
+    run_name = config["paths"].get("run_name", "circular_working_memory")
     landscape_path = dirs["arrays"] / f"{run_name}_fixed_point_landscape.npz"
     fixed_point_pc = np.empty((0, 2), dtype=np.float32)
     fixed_point_decoded = np.empty((0,), dtype=np.float32)
@@ -581,7 +581,7 @@ def _render_movie(
 def main() -> None:
     """Parse command-line arguments and generate a hidden-state movie."""
     parser = argparse.ArgumentParser(description="Animate tuned RNN hidden-state dynamics.")
-    parser.add_argument("--config", default="configs/tuned_delay_stable.yaml", help="Path to YAML config.")
+    parser.add_argument("--config", default="configs/yang_fixation_circular_working_memory.yaml", help="Path to YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to checkpoint produced by training.")
     parser.add_argument("--n-trials", type=int, default=64, help="Number of trials to sample.")
     parser.add_argument("--example-trials", type=int, default=16, help="Number of simultaneous trajectories to draw.")
