@@ -1,4 +1,4 @@
-"""Train and evaluate the baseline model across multiple random seeds."""
+"""Train and evaluate working-memory models across multiple random seeds."""
 
 from __future__ import annotations
 
@@ -9,11 +9,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from wm_rnn.config import load_config
+from wm_rnn.cross_temporal_decoder import run_cross_temporal_decoder
 from wm_rnn.delay_sweep import run_delay_sweep
 from wm_rnn.evaluate import evaluate_model
 from wm_rnn.io import ensure_run_dirs, write_json
 from wm_rnn.train import train_model
+from wm_rnn.training_utils import task_config_from_dict
 
 
 @dataclass(frozen=True)
@@ -53,7 +57,8 @@ def run_seed_sweep(config: dict[str, Any], seeds: list[int], delays: list[int] |
         raise ValueError("at least one seed is required")
 
     base_output_dir = Path(config["paths"]["output_dir"])
-    base_run_name = config["paths"].get("run_name", "baseline_delay")
+    base_run_name = config["paths"].get("run_name", "working_memory_model")
+    task_type = str(config["task"].get("task_type", "categorical"))
     summary_dirs = ensure_run_dirs(base_output_dir)
     results: list[dict[str, Any]] = []
 
@@ -66,17 +71,42 @@ def run_seed_sweep(config: dict[str, Any], seeds: list[int], delays: list[int] |
         train_result = train_model(seed_config)
         eval_result = evaluate_model(seed_config, train_result.checkpoint_path)
 
+        final_history = train_result.history[-1]
         row: dict[str, Any] = {
             "seed": seed,
+            "task_type": task_type,
             "output_dir": seed_config["paths"]["output_dir"],
             "checkpoint": str(train_result.checkpoint_path),
-            "train_final_loss": train_result.history[-1]["loss"],
-            "train_final_accuracy": train_result.history[-1]["accuracy"],
-            "eval_accuracy": eval_result.metrics["accuracy"],
+            "train_final_loss": final_history["loss"],
+            "train_final_accuracy": final_history.get("accuracy", ""),
+            "train_final_population_mse": final_history.get("population_mse", ""),
+            "eval_accuracy": eval_result.metrics.get("accuracy", ""),
+            "eval_mean_angular_error_degrees": eval_result.metrics.get("mean_angular_error_degrees", ""),
+            "eval_population_mse": eval_result.metrics.get("population_mse", ""),
+            "eval_fixation_accuracy": eval_result.metrics.get("fixation_accuracy", ""),
+            "decoder_summary": "",
+            "decoder_mean_diagonal_error_degrees": "",
+            "decoder_mean_delay_diagonal_error_degrees": "",
             "delay_sweep_metrics": "",
             "delay_sweep_csv": "",
             "delay_sweep_figure": "",
         }
+
+        if task_type == "tuned":
+            decoder_result = run_cross_temporal_decoder(seed_config, train_result.checkpoint_path)
+            decoder_task = task_config_from_dict(seed_config)
+            delay_start = int(getattr(decoder_task, "pre_cue_steps", 0)) + int(decoder_task.cue_steps)
+            delay_end = delay_start + int(decoder_task.delay_steps)
+            diagonal = np.diag(decoder_result.mean_error_degrees)
+            row.update(
+                {
+                    "decoder_summary": str(decoder_result.summary_path),
+                    "decoder_mean_diagonal_error_degrees": float(diagonal.mean()),
+                    "decoder_mean_delay_diagonal_error_degrees": float(
+                        diagonal[delay_start:delay_end].mean()
+                    ),
+                }
+            )
 
         if delays:
             delay_result = run_delay_sweep(seed_config, train_result.checkpoint_path, delays)
@@ -96,8 +126,13 @@ def run_seed_sweep(config: dict[str, Any], seeds: list[int], delays: list[int] |
         {
             "base_output_dir": str(base_output_dir),
             "base_run_name": base_run_name,
+            "task_type": task_type,
             "trained_delay_steps": int(config["task"]["delay_steps"]),
-            "chance_accuracy": 1.0 / int(config["task"]["n_classes"]),
+            "chance_accuracy": (
+                1.0 / int(config["task"]["n_classes"])
+                if task_type == "categorical"
+                else None
+            ),
             "seeds": [int(value) for value in seeds],
             "delays": [int(value) for value in delays] if delays else [],
             "results": results,
@@ -112,11 +147,19 @@ def _write_seed_sweep_csv(path: str | Path, results: list[dict[str, Any]]) -> Pa
     target.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
         "seed",
+        "task_type",
         "output_dir",
         "checkpoint",
         "train_final_loss",
         "train_final_accuracy",
+        "train_final_population_mse",
         "eval_accuracy",
+        "eval_mean_angular_error_degrees",
+        "eval_population_mse",
+        "eval_fixation_accuracy",
+        "decoder_summary",
+        "decoder_mean_diagonal_error_degrees",
+        "decoder_mean_delay_diagonal_error_degrees",
         "delay_sweep_metrics",
         "delay_sweep_csv",
         "delay_sweep_figure",
@@ -130,8 +173,8 @@ def _write_seed_sweep_csv(path: str | Path, results: list[dict[str, Any]]) -> Pa
 
 def main() -> None:
     """Parse command-line arguments and run multi-seed training."""
-    parser = argparse.ArgumentParser(description="Train and evaluate baseline working-memory RNNs across seeds.")
-    parser.add_argument("--config", default="configs/baseline_delay.yaml", help="Path to YAML config.")
+    parser = argparse.ArgumentParser(description="Train and evaluate working-memory RNNs across seeds.")
+    parser.add_argument("--config", required=True, help="Path to YAML config.")
     parser.add_argument("--seeds", nargs="+", type=int, required=True, help="Training/task seeds to run.")
     parser.add_argument("--delays", nargs="*", type=int, help="Optional delay lengths to sweep after each seed run.")
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], help="Override training/evaluation device.")
@@ -145,10 +188,18 @@ def main() -> None:
     print(f"summary={result.summary_path}")
     print(f"csv={result.csv_path}")
     for row in result.results:
-        print(
-            f"seed={row['seed']} train_accuracy={row['train_final_accuracy']:.3f} "
-            f"eval_accuracy={row['eval_accuracy']:.3f}"
-        )
+        if row["task_type"] == "tuned":
+            print(
+                f"seed={row['seed']} mean_angular_error_degrees="
+                f"{row['eval_mean_angular_error_degrees']:.3f} "
+                f"delay_decoder_error_degrees="
+                f"{row['decoder_mean_delay_diagonal_error_degrees']:.3f}"
+            )
+        else:
+            print(
+                f"seed={row['seed']} train_accuracy={row['train_final_accuracy']:.3f} "
+                f"eval_accuracy={row['eval_accuracy']:.3f}"
+            )
 
 
 if __name__ == "__main__":

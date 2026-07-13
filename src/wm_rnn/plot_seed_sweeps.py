@@ -60,43 +60,51 @@ def plot_seed_sweeps(
         summary = json.load(handle)
 
     base_output_dir = Path(summary.get("base_output_dir", summary_file.parents[1]))
-    base_run_name = summary.get("base_run_name", "baseline_delay")
+    base_run_name = summary.get("base_run_name", "working_memory_model")
     trained_delay = int(trained_delay_steps or summary.get("trained_delay_steps", 20))
-    chance = float(chance_accuracy if chance_accuracy is not None else summary.get("chance_accuracy", 0.25))
+    task_type = str(summary.get("task_type", "categorical"))
+    stored_chance = summary.get("chance_accuracy")
+    chance = float(chance_accuracy if chance_accuracy is not None else (stored_chance or 0.25))
     target = Path(output_path) if output_path else base_output_dir / "figures" / f"{base_run_name}_seed_sweep_delay_curves.png"
 
     seed_curves = _load_seed_curves(summary)
     if not seed_curves:
         raise ValueError("summary does not contain any delay_sweep_csv entries with data")
 
-    delays = sorted({delay for curve in seed_curves for delay in curve["accuracies"].keys()})
+    delays = sorted({delay for curve in seed_curves for delay in curve["values"].keys()})
     matrix = np.full((len(seed_curves), len(delays)), np.nan, dtype=np.float64)
     for seed_idx, curve in enumerate(seed_curves):
         for delay_idx, delay in enumerate(delays):
-            if delay in curve["accuracies"]:
-                matrix[seed_idx, delay_idx] = curve["accuracies"][delay]
+            if delay in curve["values"]:
+                matrix[seed_idx, delay_idx] = curve["values"][delay]
 
-    mean_accuracy = np.nanmean(matrix, axis=0)
-    std_accuracy = np.nanstd(matrix, axis=0)
+    mean_values = np.nanmean(matrix, axis=0)
+    std_values = np.nanstd(matrix, axis=0)
 
     target.parent.mkdir(parents=True, exist_ok=True)
     plt.figure(figsize=(7.5, 4.8))
     for curve in seed_curves:
-        curve_delays = sorted(curve["accuracies"].keys())
-        curve_accuracy = [curve["accuracies"][delay] for delay in curve_delays]
-        plt.plot(curve_delays, curve_accuracy, marker="o", linewidth=1, alpha=0.35, label=f"seed {curve['seed']}")
+        curve_delays = sorted(curve["values"].keys())
+        curve_values = [curve["values"][delay] for delay in curve_delays]
+        plt.plot(curve_delays, curve_values, marker="o", linewidth=1, alpha=0.35, label=f"seed {curve['seed']}")
 
-    plt.plot(delays, mean_accuracy, marker="o", linewidth=2.5, color="#111111", label="mean")
+    plt.plot(delays, mean_values, marker="o", linewidth=2.5, color="#111111", label="mean")
     if len(seed_curves) > 1:
-        lower = np.clip(mean_accuracy - std_accuracy, 0.0, 1.0)
-        upper = np.clip(mean_accuracy + std_accuracy, 0.0, 1.0)
+        lower = mean_values - std_values
+        upper = mean_values + std_values
+        if task_type == "categorical":
+            lower = np.clip(lower, 0.0, 1.0)
+            upper = np.clip(upper, 0.0, 1.0)
         plt.fill_between(delays, lower, upper, color="#111111", alpha=0.12, label="+/- 1 SD")
 
-    plt.axhline(chance, linestyle="--", linewidth=1.25, color="#666666", label="chance")
+    if task_type == "categorical":
+        plt.axhline(chance, linestyle="--", linewidth=1.25, color="#666666", label="chance")
+        plt.ylim(0.0, 1.05)
+        plt.ylabel("Response accuracy")
+    else:
+        plt.ylabel("Mean angular error (degrees)")
     plt.axvline(trained_delay, linestyle=":", linewidth=1.5, color="#444444", label="trained delay")
-    plt.ylim(0.0, 1.05)
     plt.xlabel("Delay length (time steps)")
-    plt.ylabel("Response accuracy")
     plt.title("Delay-length sweeps across training seeds")
     plt.legend(fontsize=8, ncols=2)
     plt.tight_layout()
@@ -107,7 +115,9 @@ def plot_seed_sweeps(
 
 
 def _load_seed_curves(summary: dict[str, Any]) -> list[dict[str, Any]]:
-    """Load delay-accuracy mappings from each seed's delay-sweep CSV."""
+    """Load task-appropriate delay metrics from each seed's sweep CSV."""
+    task_type = str(summary.get("task_type", "categorical"))
+    metric_name = "accuracy" if task_type == "categorical" else "mean_angular_error_degrees"
     curves = []
     for row in summary.get("results", []):
         csv_path = row.get("delay_sweep_csv")
@@ -117,14 +127,14 @@ def _load_seed_curves(summary: dict[str, Any]) -> list[dict[str, Any]]:
         if not path.exists():
             continue
 
-        accuracies = {}
+        values = {}
         with path.open("r", newline="", encoding="utf-8") as handle:
             reader = csv.DictReader(handle)
             for csv_row in reader:
-                accuracies[int(csv_row["delay_steps"])] = float(csv_row["accuracy"])
+                values[int(csv_row["delay_steps"])] = float(csv_row[metric_name])
 
-        if accuracies:
-            curves.append({"seed": row.get("seed", "?"), "accuracies": accuracies})
+        if values:
+            curves.append({"seed": row.get("seed", "?"), "values": values})
     return curves
 
 
