@@ -165,14 +165,14 @@ Tangent alignment with leading eigenvector & 0.945 \\
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.88\linewidth]{tuned_delay_stable_fixed_point_landscape.png}
-\caption{Fixed-point landscape. Fixed-point searches from actual late-delay states, perturbed late-delay states, and random hidden-state starts converge onto a shared ring-like structure. The dense run used 512 trajectory trials, 2048 perturbed late-delay starts, and 1024 random starts.}
+\caption{Fixed-point landscape. Top left: task trajectories and fixed-point search endpoints in the same PCA space; black trajectory paths show where normal trials move, while endpoint markers show where searches from actual late-delay states, perturbed late-delay states, and random hidden-state starts converge. Top right: the same fixed-point endpoints colored by decoded angle, showing that position around the ring corresponds to remembered angle. Bottom left: fixed-point residual in PCA space; lower residual means the endpoint changes less under one blank recurrent update, so it is closer to a true fixed point. Bottom right: angular-error histogram for starts with a known target angle; this is mainly a quality-control panel showing how accurately the found fixed points preserve the original remembered angle, not a separate geometry plot. Overall, the panels show that many different start types converge onto a shared ring-like fixed-point structure.}
 \label{fig:tuned-landscape}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.84\linewidth]{tuned_delay_stable_fixed_point_analysis.png}
-\caption{Fixed-point and Jacobian analysis. Approximate fixed points preserve the remembered angle, and the local eigenspectrum is consistent with one near-neutral direction along the ring plus more stable directions off the ring.}
+\caption{Fixed-point and Jacobian analysis. Top left: fixed-point search loss, shown as the mean one-step recurrent residual during optimization; lower values mean the optimized hidden states change less under blank-delay dynamics. Top right: decoded fixed-point error for each remembered angle; points near the dotted zero-error line mean the optimized fixed point still represents the original target angle. Bottom left: drift between each optimized fixed point and its late-delay trajectory state; small values mean the fixed point lies close to the state the task naturally reached. Bottom right: local Jacobian eigenvalue magnitudes around the fixed points; purple points show the largest local mode, orange points show the second-largest mode, and the dotted line marks neutral stability at magnitude 1. A ring-attractor-like memory should have one near-neutral direction along the ring and more stable directions away from it.}
 \label{fig:tuned-fixed-point}
 \end{figure}
 
