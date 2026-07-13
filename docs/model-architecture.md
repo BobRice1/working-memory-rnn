@@ -227,6 +227,21 @@ There are currently two tuned configurations:
   loss applied across the delay and response periods. This variant preserves the
   remembered angle much more stably beyond the trained range and is the stronger
   continuous baseline for attractor-like analysis.
+- `configs/tuned_delay_fixation_gate.yaml`: fixed `20`-step Yang-style
+  fixation-gated circular task. The fixation input and matching fixation output
+  are high during cue/delay and low during response. Whole-trial MSE trains the
+  circular population to remain silent before reporting the remembered angle.
+- `configs/tuned_delay_fixation_gate_stable.yaml`: selected stabilized
+  Yang-style variant. Training randomizes pre-cue fixation (`15`, `25`, or `35`
+  steps), cue duration (`10`, `20`, or `30` steps), and delay (`10`, `20`, `40`,
+  or `80` steps). The response lasts `25` steps; its first `5` steps are an
+  unscored transition and the remaining response receives weight `5`. The
+  fixation output receives weight `2`. Training also uses input noise `0.01`,
+  recurrent noise `0.05`, and gradient clipping at `1.0`.
+
+The loss weights are applied linearly in a normalized weighted MSE. This is a
+documented adaptation of Yang's implementation, where masks multiply the error
+before squaring and therefore have squared effective weights.
 
 The stable tuned run now has direct sampled fixed-point/Jacobian evidence. A
 follow-up analysis starts from late-delay hidden states, optimizes nearby states

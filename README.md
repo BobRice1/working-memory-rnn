@@ -38,16 +38,21 @@ each with a preferred angle, and the readout is trained to reproduce that bump
 after the delay. This makes memory precision, angular error, drift, and
 population-code stability available as analysis measures.
 
-## Model Variants
+## Model Progression
 
 - `configs/baseline_delay.yaml`: current `tanh` baseline.
 - `configs/tuned_delay.yaml`: continuous circular-location delayed-response
   model using Gaussian/von-Mises population tuning across input and output
   units. This is the next baseline iteration after the categorical task.
-- `configs/tuned_delay_stable.yaml`: tuned continuous model trained with
-  randomized `20`-`80` step delays and loss over the delay plus response
-  periods. This is the stronger continuous baseline for attractor-like memory
-  analysis.
+- `configs/tuned_delay_fixation_gate_stable.yaml`: stronger Yang-style baseline
+  trained with randomized cue timing and `10`, `20`, `40`, or `80` step delays,
+  a 25-step response period, transition-aware weighted loss, input/recurrent
+  training noise, and gradient clipping.
+
+These three models are the active dissertation progression: categorical
+baseline, circular tuned task, and stabilized Yang-style fixation-gated task.
+Superseded runs are preserved under `outputs/archive/`, with retained YAMLs
+under `configs/archive/`. See `docs/model-run-archive.md`.
 
 For the continuous tuned task, the fixed-delay `configs/tuned_delay.yaml` model
 learns the trained `20`-step memory but drifts strongly when pushed to longer
@@ -117,8 +122,9 @@ before implementation.
 ## Repository Structure
 
 - `src/wm_rnn/`: model, task generation, training, evaluation, and analysis code.
-- `configs/`: baseline and comparison experiment configurations.
+- `configs/`: active progression configurations; superseded configurations are
+  retained under `configs/archive/`.
 - `docs/model-architecture.md`: architecture and plain-English task explanation.
 - `docs/changelog.md`: commit history, experiment run log, and interpretation history.
-- `outputs/`: generated checkpoints, metrics, arrays, and figures. This folder is  
-not tracked by Git.
+- `outputs/`: active generated artifacts; superseded runs are under
+  `outputs/archive/`. This folder is not tracked by Git.
