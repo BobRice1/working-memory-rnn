@@ -2,9 +2,158 @@
 
 This changelog tracks two related histories:
 
+<details>
+<summary>2026-07-13 - Archived superseded model runs</summary>
+
+The active dissertation progression is now `baseline_delay`, `tuned_delay`,
+and `tuned_delay_fixation_gate_stable`. The five superseded output directories
+were moved beneath `outputs/archive/` without deleting checkpoints, metrics,
+arrays, or figures. Retained superseded YAMLs were moved beneath
+`configs/archive/`; `docs/model-run-archive.md` records provenance. These runs
+remain development history rather than active model alternatives.
+
+</details>
+
 1. Git commits: code and documentation changes committed to the repository.
 2. Run log: experiment actions performed with the baseline model, including
    training, delay sweeps, multi-seed runs, and plotting.
+
+<details>
+<summary>2026-07-13 - Stabilized Yang-style randomized-timing baseline</summary>
+
+Action:
+
+- Added `configs/tuned_delay_fixation_gate_stable.yaml` and support for a
+  pre-cue fixation phase plus randomized pre-cue, cue-duration, and discrete
+  delay choices.
+- Followed the main Yang delayed-response schedule with pre-cue choices `15`,
+  `25`, `35`; cue choices `10`, `20`, `30`; delay choices `10`, `20`, `40`,
+  `80`; a `25`-step response; and an unscored `5`-step response transition.
+- Added normalized weighted tuned MSE (response weight `5`, fixation weight
+  `2`), input noise `0.01`, training-only recurrent noise `0.05`, and gradient
+  clipping at `1.0`. Weighting is linear rather than reproducing the accidental
+  squared-mask effect of the reference TensorFlow implementation.
+- Trained for 4,000 steps on CPU and regenerated evaluation, delay-sweep, PCA,
+  stability, attractor, fixed-point, landscape, and dynamics artifacts.
+- Corrected stability phase boundaries to use generated batch phases, including
+  the new pre-cue fixation period.
+
+Recorded result:
+
+- Reference-timing evaluation: mean angular error `3.406` degrees, population
+  MSE `0.00806`, fixation MSE `0.01915`, fixation accuracy `0.9667` including
+  the deliberately unscored response transition.
+- Frozen-delay mean angular error was `3.295`, `3.399`, `3.432`, and `4.174`
+  degrees at trained delays `10`, `20`, `40`, and `80`; it remained `5.682`
+  degrees at the untrained `160`-step delay.
+- Corrected delay settling ratio was `0.366`. The autonomous probe's final
+  speed was `0.00253` and mean drift was `16.958` degrees.
+- Fixed-point analyses found a near-neutral leading eigenvalue (mean spectral
+  radius `0.99974`), contracting secondary direction (`0.88742`), and strong
+  leading-eigenvector/tangent alignment (`0.9783`). Landscape convergence was
+  `0.766` at residual threshold `0.001`.
+
+Recorded outputs:
+
+- `outputs/tuned_delay_fixation_gate_stable/checkpoints/tuned_delay_fixation_gate_stable.pt`
+- `outputs/tuned_delay_fixation_gate_stable/metrics/`
+- `outputs/tuned_delay_fixation_gate_stable/arrays/`
+- `outputs/tuned_delay_fixation_gate_stable/figures/`
+
+Interpretation:
+
+- Randomized Yang-style timing largely removed the fixed-delay model's timing
+  overfitting and produced much stronger settling and local-stability evidence.
+- Circular readout angle during fixation/delay is not a valid memory decoder
+  because the architecture explicitly trains that readout to remain silent.
+  Accordingly, fixed-point decoded-angle error and delay-period output-angle
+  traces should not be used to judge memory preservation; hidden-state or
+  cross-temporal decoding is required for that claim.
+
+</details>
+
+<details>
+<summary>2026-07-13 - Yang-style fixation-gated circular baseline</summary>
+
+Action:
+
+- Replaced the active response-gated prototype configuration with
+  `configs/tuned_delay_fixation_gate.yaml`.
+- Renamed the opt-in task flag and auxiliary metrics to fixation terminology.
+  The fixation input/output are high during cue and delay and low during
+  response, following the Yang-style hold-then-report convention.
+- Retained the 32-unit circular population readout, silent before response, and
+  whole-trial supervision.
+- Trained for 2,000 steps on CPU, evaluated 20 batches, and regenerated the
+  delay-sweep, PCA, stability, attractor, fixed-point, landscape, and dynamics
+  figures for the new checkpoint.
+
+Recorded result:
+
+- Final whole-trial training loss was `0.00168`.
+- Mean response angular error was `1.927` degrees, response population MSE was
+  `0.00511`, fixation MSE was `0.00946`, and fixation accuracy was `1.000`.
+- Longer-delay performance degraded from `1.923` degrees at 20 steps to
+  `43.951` degrees at 80 steps.
+- The delay settling ratio was `2.356`; the autonomous probe drifted `58.431`
+  degrees; no trajectory-seeded fixed points met the `0.001` residual threshold.
+  The fixed-delay model therefore performs well at its trained response time but
+  does not reproduce the stable tuned model's attractor evidence.
+- Delay-period angle traces from the circular readout are not memory-decoding
+  measures for this architecture because that readout is explicitly trained to
+  remain silent before response.
+
+Recorded outputs:
+
+- `outputs/tuned_delay_fixation_gate/checkpoints/tuned_delay_fixation_gate.pt`
+- `outputs/tuned_delay_fixation_gate/metrics/`
+- `outputs/tuned_delay_fixation_gate/arrays/`
+- `outputs/tuned_delay_fixation_gate/figures/`
+
+Interpretation:
+
+- The Yang-style interface is implemented correctly and enforces fixation then
+  report. Variable-delay training or another stability objective is still
+  needed before treating this selected interface as the stable attractor
+  baseline for perturbation experiments.
+
+</details>
+
+<details>
+<summary>2026-07-09 - Response-gated circular delayed-response baseline</summary>
+
+Action:
+
+- Added `configs/tuned_delay_response_gate.yaml` and an opt-in
+  `task.response_gated` path for the tuned circular task.
+- The final input is a binary response cue, the final output is a binary
+  response gate, and the circular target remains zero until the response
+  period. `training.score_all_periods` scores the whole trial to penalize an
+  early circular report.
+- Added response-gate evaluation metrics and focused tests.
+
+Recorded result:
+
+- The 2,000-step fixed-delay run reached `0.0012` final whole-trial MSE.
+- Over 20 evaluation batches, mean response angular error was `2.212` degrees,
+  response population MSE was `0.00454`, response-gate MSE was `0.00210`, and
+  response-gate accuracy was `1.000`.
+- CUDA was requested but unavailable in the current Python/PyTorch environment,
+  so the run used CPU.
+
+Recorded outputs:
+
+- `outputs/tuned_delay_response_gate/checkpoints/tuned_delay_response_gate.pt`
+- `outputs/tuned_delay_response_gate/metrics/tuned_delay_response_gate_train_metrics.json`
+- `outputs/tuned_delay_response_gate/metrics/tuned_delay_response_gate_eval_metrics.json`
+
+Interpretation:
+
+- This established the first hold-then-report prototype. It was superseded on
+  2026-07-13 by the selected Yang-style fixation-gated convention; its recorded
+  checkpoint and metrics remain historical comparison artifacts.
+
+</details>
 
 ## Note On Archived Baseline Artifacts (2026-07-01)
 
@@ -32,6 +181,61 @@ model variants.
 ## Git Commit History
 
 <details>
+<summary>2026-07-13 - e7a826b - Archive superseded model variants</summary>
+
+Consolidated the repository around the three active dissertation progression
+stages while preserving superseded configurations and generated run artifacts.
+
+File changes:
+
+- `README.md`, `docs/model-architecture.md`: Documented the active progression.
+- `configs/archive/`: Retained superseded tuned configurations and provenance.
+- `docs/model-run-archive.md`: Added the archived-run manifest.
+
+</details>
+
+<details>
+<summary>2026-07-13 - 9e92165 - Update stabilized Yang model summary</summary>
+
+Updated the durable Markdown, LaTeX, and PDF summary for the stabilized
+Yang-style model and its corrected analysis results.
+
+File changes:
+
+- `docs/tuned-delay-stable-model-summary.md`: Added the model summary.
+- `docs/reports/stable_model_summary.tex`: Updated the report source.
+- `docs/reports/stable_model_summary.pdf`: Regenerated the report artifact.
+
+</details>
+
+<details>
+<summary>2026-07-13 - 9c853e8 - Align analyses with variable Yang timing</summary>
+
+Made stability and dynamics analyses respect generated phase boundaries for
+randomized pre-cue, cue, delay, and response timing.
+
+File changes:
+
+- `src/wm_rnn/dynamics_figures.py`: Used generated phase metadata in figures.
+- `src/wm_rnn/stability_analysis.py`: Corrected phase-boundary handling.
+
+</details>
+
+<details>
+<summary>2026-07-13 - 92a4517 - Implement Yang-style fixation-gated training</summary>
+
+Implemented fixation-gated circular task dimensions, randomized timing,
+weighted loss, training noise, gradient clipping, evaluation, and tests.
+
+File changes:
+
+- `src/wm_rnn/`: Added Yang-style task and training support.
+- `configs/`: Added the stabilized active config and retained fixed-delay config.
+- `tests/`: Added coverage for fixation gating, timing, and weighted loss.
+
+</details>
+
+<details>
 <summary>2026-07-07 - 408e824 - Remove obsolete relu delay variants</summary>
 
 Cleaned the active model set so the only current categorical baseline is
@@ -48,6 +252,23 @@ File changes:
 - `docs/reports/stable_model_summary.tex`: Updated the report to compare
   `baseline_delay` against `tuned_delay_stable`.
 - `docs/reports/stable_model_summary.pdf`: Recompiled the updated report.
+
+</details>
+
+<details>
+<summary>2026-07-09 - Repository memory and maintenance protocol added</summary>
+
+Action:
+
+- Added the vault-level `AGENTS.md` instructions for session context loading,
+  supervisor-feedback capture, durable wiki updates, changelog maintenance, and
+  repository hygiene.
+
+Interpretation:
+
+- The dissertation vault is the durable source of project memory between Codex
+  sessions. This governance change does not modify model code, configurations,
+  experiments, or generated outputs.
 
 </details>
 
@@ -1487,5 +1708,34 @@ Historical note:
   relu-based randomized-delay/whole-delay-loss categorical variant. Those are
   historical experiment records only. They should not be treated as active model
   variants for new analyses.
+
+</details>
+
+<details>
+<summary>2026-07-07 - Stable summary report figure-caption clarifications</summary>
+
+Action:
+
+- Updated the caption for the fixed-point landscape figure in
+  `docs/reports/stable_model_summary.tex`.
+- Reworded the caption so each panel is explained directly: task trajectories
+  plus fixed-point endpoints, decoded-angle coloring, fixed-point residuals, and
+  the angular-error histogram. The caption now states that the histogram panel is
+  mainly a quality-control view rather than a separate geometry plot.
+- Updated the caption for the fixed-point/Jacobian figure in
+  `docs/reports/stable_model_summary.tex`.
+- Reworded the caption so each panel is explained directly: fixed-point search
+  residual, decoded fixed-point error, drift from late-delay trajectory state,
+  and Jacobian eigenvalue magnitudes.
+
+Interpretation:
+
+- This is a readability update only. It does not change the underlying analysis
+  results or regenerate model outputs.
+
+Recorded outputs:
+
+- Updated report source: `docs/reports/stable_model_summary.tex`.
+- Recompiled report PDF: `docs/reports/stable_model_summary.pdf`.
 
 </details>
