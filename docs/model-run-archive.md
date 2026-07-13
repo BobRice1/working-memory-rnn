@@ -3,9 +3,9 @@
 On 2026-07-13, the outputs were organized around three active dissertation
 progression stages:
 
-1. `outputs/baseline_delay/`: categorical `tanh` delayed-response baseline.
-2. `outputs/tuned_delay/`: continuous circular population-code model.
-3. `outputs/tuned_delay_fixation_gate_stable/`: stabilized Yang-style
+1. `outputs/categorical_working_memory/`: categorical `tanh` delayed-response baseline.
+2. `outputs/circular_working_memory/`: continuous circular population-code model.
+3. `outputs/yang_fixation_circular_working_memory/`: canonical Yang-style
    fixation-gated circular model.
 
 The following runs were preserved, not deleted, under `outputs/archive/`:

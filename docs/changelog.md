@@ -3,6 +3,45 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-13 - Hidden-state decoder, five-seed baseline, and canonical model names</summary>
+
+Action:
+
+- Renamed the active progression to `categorical_working_memory`,
+  `circular_working_memory`, and `yang_fixation_circular_working_memory`.
+- Added cross-temporal ridge decoding from hidden states to circular sine/cosine
+  targets using independent training and test trials.
+- Generalized `seed_sweep` to tuned circular models and trained five independent
+  4,000-step Yang-style baselines with response evaluation, hidden-state
+  decoding, and delay sweeps at `10`, `20`, `40`, `80`, and `160` steps.
+
+Recorded result:
+
+- Mean response angular error was `4.36 ± 1.55` degrees across seeds.
+- Mean fixation accuracy was `0.9677 ± 0.0016`.
+- Mean delay hidden-state decoding error was `0.55 ± 0.46` degrees.
+- At an untrained 160-step delay, seed-level response error ranged from `5.14`
+  to `11.73` degrees.
+
+Recorded outputs:
+
+- `outputs/yang_fixation_circular_working_memory/metrics/yang_fixation_circular_working_memory_cross_temporal_decoder_summary.json`
+- `outputs/yang_fixation_circular_working_memory/figures/yang_fixation_circular_working_memory_cross_temporal_decoder.png`
+- `outputs/yang_fixation_circular_working_memory/metrics/yang_fixation_circular_working_memory_seed_sweep_summary.json`
+- `outputs/yang_fixation_circular_working_memory/seed_sweep/`
+
+Interpretation:
+
+- Circular memory content is accurately decodable during the silent-output delay
+  in every independently trained network. The model now has both prerequisites
+  for perturbation work: a maintenance-period memory measure and an independent
+  baseline ensemble.
+- Between-seed variation must remain part of later perturbation comparisons;
+  perturbation conclusions should not be based on one selected checkpoint.
+
+</details>
+
+<details>
 <summary>2026-07-13 - Archived superseded model runs</summary>
 
 The active dissertation progression is now `baseline_delay`, `tuned_delay`,
@@ -179,6 +218,47 @@ may still describe those earlier experiments, but they are no longer active
 model variants.
 
 ## Git Commit History
+
+<details>
+<summary>2026-07-13 - bb43031 - Support circular models in seed sweeps</summary>
+
+Generalized independent-seed training, evaluation, decoder analysis, delay
+sweeps, and aggregate plotting to continuous circular working-memory models.
+
+File changes:
+
+- `src/wm_rnn/seed_sweep.py`: Added circular metrics and per-seed decoding.
+- `src/wm_rnn/plot_seed_sweeps.py`: Added angular-error aggregate plots.
+- `tests/test_plot_seed_sweeps.py`: Added tuned-model plotting coverage.
+
+</details>
+
+<details>
+<summary>2026-07-13 - 2d0f8c5 - Add cross-temporal hidden-state decoder</summary>
+
+Added held-out circular decoding across training and testing time points so
+memory content can be measured while the Yang-style output remains silent.
+
+File changes:
+
+- `src/wm_rnn/cross_temporal_decoder.py`: Added decoder analysis and artifacts.
+- `tests/test_cross_temporal_decoder.py`: Added recovery and validation tests.
+
+</details>
+
+<details>
+<summary>2026-07-13 - c93feb4 - Rename active working-memory models clearly</summary>
+
+Replaced developmental run names with task- and representation-based names for
+the three active dissertation models.
+
+File changes:
+
+- `configs/`: Renamed all active configurations and output/run paths.
+- `src/wm_rnn/`: Updated command defaults and fallback run names.
+- `tests/`: Updated active configuration references.
+
+</details>
 
 <details>
 <summary>2026-07-13 - e7a826b - Archive superseded model variants</summary>

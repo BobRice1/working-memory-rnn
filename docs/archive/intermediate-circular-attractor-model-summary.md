@@ -1,8 +1,10 @@
-# Tuned Delay Stable Model Summary
+# Archived Intermediate Circular Attractor Model Summary
 
 ## Purpose
 
-The `tuned_delay_stable` model is the current continuous working-memory baseline.
+The historical `tuned_delay_stable` model is an archived intermediate circular
+working-memory model. It is not the current perturbation baseline; the canonical
+model is `yang_fixation_circular_working_memory`.
 It extends the earlier categorical delayed-response task into a continuous
 circular memory task. Instead of remembering one of four discrete cue classes,
 the model remembers an angle on a circle.
@@ -215,9 +217,9 @@ structure as the task trajectories. This suggests the ring is not only visible
 from the exact trial trajectories, although the result is still sampled rather
 than exhaustive.
 
-## Current Role In The Project
+## Historical Role In The Project
 
-`tuned_delay_stable` is the strongest current continuous baseline. It is more
+`tuned_delay_stable` was the strongest intermediate continuous baseline. It is more
 useful than the categorical baseline for attractor-style working-memory analysis
 because it provides:
 

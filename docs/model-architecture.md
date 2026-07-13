@@ -11,8 +11,8 @@ landscape mapping, or full global attractor analysis.
 
 ## Latest Build State
 
-The current canonical categorical model is the `tanh` baseline defined by
-`configs/baseline_delay.yaml`. The recurrent hidden-state nonlinearity is
+The canonical categorical model is the `tanh` baseline defined by
+`configs/categorical_working_memory.yaml`. The recurrent hidden-state nonlinearity is
 bounded with `tanh`, and this is the only categorical delay baseline that should
 be used in current comparisons.
 
@@ -181,7 +181,7 @@ The target class is present at every time step, but the loss mask scores only
 the response period. This lets the network receive the cue early, maintain it
 through the delay, and be trained only on the final report.
 
-The default configuration in `configs/baseline_delay.yaml` uses:
+The default categorical configuration in `configs/categorical_working_memory.yaml` uses:
 
 ```text
 n_classes: 4
@@ -217,22 +217,15 @@ This is still a baseline working-memory model. It does not introduce
 psilocybin-informed perturbations; it gives a richer representational format
 for later stability, drift, and perturbation analyses.
 
-There are currently two tuned configurations:
+The active model progression contains three explicitly named configurations:
 
-- `configs/tuned_delay.yaml`: fixed `20`-step delay, response-period loss only.
+- `configs/categorical_working_memory.yaml`: four-class delayed-response task.
+- `configs/circular_working_memory.yaml`: fixed `20`-step circular delay task.
   This model learns accurate reporting at the trained delay but shows substantial
   drift when evaluated at much longer delays or in an autonomous hidden-state
   probe.
-- `configs/tuned_delay_stable.yaml`: randomized `20`-`80` step delays, with the
-  loss applied across the delay and response periods. This variant preserves the
-  remembered angle much more stably beyond the trained range and is the stronger
-  continuous baseline for attractor-like analysis.
-- `configs/tuned_delay_fixation_gate.yaml`: fixed `20`-step Yang-style
-  fixation-gated circular task. The fixation input and matching fixation output
-  are high during cue/delay and low during response. Whole-trial MSE trains the
-  circular population to remain silent before reporting the remembered angle.
-- `configs/tuned_delay_fixation_gate_stable.yaml`: selected stabilized
-  Yang-style variant. Training randomizes pre-cue fixation (`15`, `25`, or `35`
+- `configs/yang_fixation_circular_working_memory.yaml`: canonical Yang-style
+  circular working-memory baseline. Training randomizes pre-cue fixation (`15`, `25`, or `35`
   steps), cue duration (`10`, `20`, or `30` steps), and delay (`10`, `20`, `40`,
   or `80` steps). The response lasts `25` steps; its first `5` steps are an
   unscored transition and the remaining response receives weight `5`. The
@@ -242,6 +235,21 @@ There are currently two tuned configurations:
 The loss weights are applied linearly in a normalized weighted MSE. This is a
 documented adaptation of Yang's implementation, where masks multiply the error
 before squaring and therefore have squared effective weights.
+
+## Hidden-State Memory Decoder
+
+Because the Yang-style circular output is intentionally silent during fixation
+and delay, output angle is not a valid maintenance-period measure. The
+cross-temporal decoder fits ridge regressions from hidden state to the sine and
+cosine of the remembered angle. Each decoder is trained at one time step and
+tested at every time step on held-out trials, producing a train-time by
+test-time angular-error matrix. This supports both same-time delay decoding and
+tests of representational stability across time.
+
+Across five independently trained Yang-style models, mean delay-period decoding
+error was `0.55 ± 0.46` degrees (range `0.31–1.37`). This establishes that the
+silent-output architecture retains readily decodable circular memory content in
+its recurrent hidden state.
 
 The stable tuned run now has direct sampled fixed-point/Jacobian evidence. A
 follow-up analysis starts from late-delay hidden states, optimizes nearby states
@@ -497,7 +505,7 @@ recurrent state is the working-memory substrate: during the delay, there is no
 class input, so successful performance must depend on maintained hidden-state
 activity shaped by recurrent dynamics.
 
-The current categorical baseline is `baseline_delay`, which uses a bounded
+The categorical progression stage is `categorical_working_memory`, which uses a bounded
 `tanh` recurrent nonlinearity. It stores the cue in hidden-state activity during
 the delay, settles strongly late in the delay, and remains accurate across the
 tested delay sweep. Older relu-based delay variants are historical experiments
