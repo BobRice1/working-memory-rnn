@@ -394,13 +394,14 @@ def _plot_decoded_angle_over_time(
     for axis in axes[:, 0]:
         axis.set_ylabel("Decoded angle (deg)")
     phase_handles = [
+        plt.Rectangle((0, 0), 1, 1, color="#bbdefb", alpha=0.35, label="fixation"),
         plt.Rectangle((0, 0), 1, 1, color="#dddddd", alpha=0.35, label="cue"),
         plt.Rectangle((0, 0), 1, 1, color="#c8e6c9", alpha=0.35, label="delay"),
         plt.Rectangle((0, 0), 1, 1, color="#ffe0b2", alpha=0.35, label="response"),
         plt.Line2D([0], [0], color="#1f77b4", linewidth=1.8, label="decoded angle"),
         plt.Line2D([0], [0], color="#d62728", linestyle=":", linewidth=1.2, label="target angle"),
     ]
-    fig.legend(handles=phase_handles, loc="lower center", ncol=5, frameon=False, bbox_to_anchor=(0.5, -0.02))
+    fig.legend(handles=phase_handles, loc="lower center", ncol=6, frameon=False, bbox_to_anchor=(0.5, -0.02))
     fig.suptitle("Decoded remembered angle over trial time", y=1.01)
     plt.tight_layout(rect=(0, 0.04, 1, 1))
     plt.savefig(path, dpi=180, bbox_inches="tight")
@@ -484,7 +485,12 @@ def _plot_perturbation_recovery(path: Path, recovery: dict[str, np.ndarray]) -> 
 
 def _shade_phases(axis: plt.Axes, phase_index: dict[str, slice]) -> None:
     """Shade cue, delay, and response phases."""
-    colors = {"cue": "#dddddd", "delay": "#c8e6c9", "response": "#ffe0b2"}
+    colors = {
+        "fixation": "#bbdefb",
+        "cue": "#dddddd",
+        "delay": "#c8e6c9",
+        "response": "#ffe0b2",
+    }
     for name, span in phase_index.items():
         axis.axvspan(span.start, span.stop, color=colors.get(name, "#eeeeee"), alpha=0.35)
 

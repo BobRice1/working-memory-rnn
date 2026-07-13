@@ -89,13 +89,9 @@ def run_stability_analysis(
     speed_mean = speed_per_trial.mean(axis=1)
     speed_std = speed_per_trial.std(axis=1)
 
-    cue_steps = int(config["task"]["cue_steps"])
-    delay_steps = int(config["task"]["delay_steps"])
-    response_steps = int(config["task"]["response_steps"])
     phase_bounds = {
-        "cue": (0, cue_steps),
-        "delay": (cue_steps, cue_steps + delay_steps),
-        "response": (cue_steps + delay_steps, cue_steps + delay_steps + response_steps),
+        name: (span.start, span.stop)
+        for name, span in batch.phase_index.items()
     }
 
     def _phase_mean(series: np.ndarray, start: int, end: int) -> float:
@@ -205,7 +201,12 @@ def _plot_stability(
     ax_speed.set_xlabel("Time step")
     ax_speed.set_title("Hidden-state step-to-step speed across trial time")
 
-    colors = {"cue": "#999999", "delay": "#66bb6a", "response": "#ffa726"}
+    colors = {
+        "fixation": "#90caf9",
+        "cue": "#bdbdbd",
+        "delay": "#66bb6a",
+        "response": "#ffa726",
+    }
     for axis in (ax_norm, ax_speed):
         for name, (start, end) in phase_bounds.items():
             axis.axvspan(start, end, color=colors.get(name, "#cccccc"), alpha=0.12)
