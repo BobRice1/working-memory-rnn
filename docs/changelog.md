@@ -3,6 +3,29 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-15 - Gaussian-control report and figure refinement</summary>
+
+Action:
+
+- Regenerated the Gaussian-control figure suite with shared Fig. 1 y-axis limits,
+  translucent Gaussian geometry overlay and simplified PC labels, and a visible
+  horizontal clean baseline in Fig. 4.
+- Clarified the report's decoder interpretation and removed the forced page break
+  before the bibliography.
+
+Recorded outputs:
+
+- `outputs/yang_fixation_circular_working_memory/perturbation_experiments/noise_structure/gaussian_control/figures/`
+- `docs/reports/gaussian_control_results.pdf`
+
+Interpretation:
+
+- The Gaussian perturbation remains a nonspecific degradation control; the edits
+  improve visual comparability and make the clean reference explicit.
+
+</details>
+
+<details>
 <summary>2026-07-13 - Hidden-state decoder, five-seed baseline, and canonical model names</summary>
 
 Action:
@@ -928,6 +951,108 @@ Next action under consideration:
 </details>
 
 ## Chronological Run Log
+
+<details>
+<summary>2026-07-15 - Gaussian-vs-baseline supervisor control pack</summary>
+
+Action:
+
+- Added `wm_rnn.gaussian_baseline_figures` to extract clean vs independent
+  Gaussian results from the completed five-seed noise experiment.
+- Generated dose–delay behaviour, maintenance metrics, geometry, and a focused
+  CUDA settling-time analysis (delay 80; 20° threshold).
+- Wrote a short markdown summary for the supervisor meeting.
+
+Recorded result:
+
+- At delay 80 and RMS 0.05, Gaussian raised response error from about 6.5° to
+  7.5°, decoder error from 1.3° to 3.7°, and drift from 2.6° to 5.2°, with
+  fixation essentially unchanged.
+- Settling showed a floor near the unscored transition under clean/RMS 0.05 and
+  a clearer slowing at RMS 0.10.
+
+Recorded outputs:
+
+- `src/wm_rnn/gaussian_baseline_figures.py`
+- `outputs/.../noise_structure/gaussian_control/figures/`
+- `outputs/.../noise_structure/gaussian_control/figure_data/`
+
+Interpretation:
+
+- Confirms Gaussian noise as a weak nonspecific control pack for the meeting,
+  separate from the benched structured-noise hierarchy.
+
+</details>
+
+<details>
+<summary>2026-07-14 - Marker-facing audit of dissertation noise figures</summary>
+
+Action:
+
+- Rebuilt Fig 1 as equation-forward noise definitions with plain-language meaning
+  and matched-RMS example traces.
+- Replaced Fig 2 correlation heatmaps with a unit-coupling bar summary; relabelled
+  traces and autocorrelation axes in plain language.
+- Removed unexplained seed spaghetti from Fig 3B; used solid means with dashed CI
+  bounds and darker shaded bands; replaced Fig 3C with labelled bars + seed points
+  and an in-figure CI legend.
+- Updated Fig 4 to solid means, dashed CI bounds, stronger fill, and neutral epoch
+  bands that do not clash with condition colours.
+- Converted Fig 5 bottom panels to categorical bars with plain-English y-labels and
+  an explicit note that the x-axis is not continuous; added PC axis labels.
+- Added full independent / AR(1) / topology covariance equations to the revtex
+  results report and recompiled the PDF.
+
+Recorded outputs:
+
+- `src/wm_rnn/noise_structure_dissertation_figures.py`
+- `docs/reports/noise_structure_perturbation_results.{tex,pdf}`
+- `outputs/.../noise_structure/figures/`
+
+Interpretation:
+
+- Presentation and labelling audit only; primary numerical conclusions unchanged.
+
+</details>
+
+<details>
+<summary>2026-07-14 - Dissertation-oriented noise-structure figure set</summary>
+
+Action:
+
+- Archived the prior dense figure suite, plotted-data CSVs, and long report under
+  `outputs/archive/noise_structure_initial_figure_suite_2026-07-14/`.
+- Added `wm_rnn.noise_structure_dissertation_figures` for a six-figure Masters
+  results layout: schematic, validation, hero behaviour, delay timecourse, ring
+  geometry, and epoch sensitivity.
+- Regenerated PNG/PDF figures and plotted-data CSVs from the frozen full and
+  epoch-timing datasets, reusing archived hidden-state analyses.
+- Replaced `docs/reports/noise_structure_perturbation_results.tex` with a concise
+  revtex4-2 results presentation and recompiled the PDF.
+
+Recorded result:
+
+- Primary comparison at RMS 0.05 retained the established ordering independent <
+  temporal < topology, with delay-80 response errors of approximately 6.5°,
+  7.5°, 16.3°, and 32.4°.
+- The new hero figure centers the dissertation claim; condition-specific dose
+  grids and hidden-speed panels were demoted out of the main report.
+
+Recorded outputs:
+
+- `src/wm_rnn/noise_structure_dissertation_figures.py`
+- `outputs/.../noise_structure/figures/`
+- `outputs/.../noise_structure/figure_data/`
+- `docs/reports/noise_structure_perturbation_results.{tex,pdf}`
+- `outputs/archive/noise_structure_initial_figure_suite_2026-07-14/`
+
+Interpretation:
+
+- Presentation changed; primary numerical conclusions from the five-seed
+  experiment did not. The archived suite remains available for denser analysis
+  panels.
+
+</details>
 
 <details>
 <summary>2026-06-29 - Baseline model trained once</summary>

@@ -26,3 +26,7 @@ runs were originally produced.
 The active progression supports the dissertation narrative from categorical
 memory, through continuous circular coding, to the selected Yang-style task.
 Archived runs may be cited as development history but are not current variants.
+
+On 2026-07-14, the initial dense structured-noise figure suite and long report
+were archived under `outputs/archive/noise_structure_initial_figure_suite_2026-07-14/`
+without deleting the underlying five-seed experiment metrics.

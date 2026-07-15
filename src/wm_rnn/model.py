@@ -94,7 +94,12 @@ class CTRNN(nn.Module):
         batch_size = input_shape[1]
         return torch.zeros(batch_size, self.hidden_size, device=device)
 
-    def recurrence(self, input_t: torch.Tensor, hidden: torch.Tensor) -> torch.Tensor:
+    def recurrence(
+        self,
+        input_t: torch.Tensor,
+        hidden: torch.Tensor,
+        perturbation: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         """Advance hidden activity by one time step.
 
         Args:
@@ -107,11 +112,20 @@ class CTRNN(nn.Module):
         """
         pre_activation = self.input2h(input_t) + self.h2h(hidden)
         updated = hidden * self.oneminusalpha + pre_activation * self.alpha
+        if perturbation is not None:
+            if perturbation.shape != hidden.shape:
+                raise ValueError("perturbation must have shape (batch, hidden_size)")
+            updated = updated + perturbation
         if self.training and self.recurrent_noise_std > 0:
             updated = updated + torch.randn_like(updated) * self.recurrent_noise_std
         return self._activation(updated)
 
-    def forward(self, inputs: torch.Tensor, hidden: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self,
+        inputs: torch.Tensor,
+        hidden: torch.Tensor | None = None,
+        perturbations: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Run the recurrent layer over a full sequence.
 
         Args:
@@ -125,9 +139,14 @@ class CTRNN(nn.Module):
         if hidden is None:
             hidden = self.init_hidden(inputs.shape, inputs.device)
 
+        if perturbations is not None and perturbations.shape != (
+            inputs.size(0), inputs.size(1), self.hidden_size
+        ):
+            raise ValueError("perturbations must have shape (time, batch, hidden_size)")
         states = []
         for step in range(inputs.size(0)):
-            hidden = self.recurrence(inputs[step], hidden)
+            perturbation = None if perturbations is None else perturbations[step]
+            hidden = self.recurrence(inputs[step], hidden, perturbation=perturbation)
             states.append(hidden)
         return torch.stack(states, dim=0), hidden
 
@@ -146,7 +165,11 @@ class WorkingMemoryRNN(nn.Module):
         self.rnn = CTRNN(config)
         self.readout = nn.Linear(config.hidden_size, config.output_size)
 
-    def forward(self, inputs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self,
+        inputs: torch.Tensor,
+        perturbations: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Predict cue class logits for every time step.
 
         Args:
@@ -156,6 +179,6 @@ class WorkingMemoryRNN(nn.Module):
             Pair of logits ``(time, batch, output_size)`` and hidden states
             ``(time, batch, hidden_size)``.
         """
-        hidden_states, _ = self.rnn(inputs)
+        hidden_states, _ = self.rnn(inputs, perturbations=perturbations)
         logits = self.readout(hidden_states)
         return logits, hidden_states

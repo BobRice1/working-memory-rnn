@@ -93,6 +93,16 @@ future psilocybin-informed condition should be introduced as a separate
 modelling hypothesis, with the literature-to-parameter mapping documented
 before implementation.
 
+## Structured Noise Experiment
+
+The first frozen-model perturbation pipeline is implemented in
+`wm_rnn.noise_structure_experiment`. It compares independent, temporally
+correlated, and recurrent-topology-correlated equal-RMS noise against the
+unperturbed five-seed Yang ensemble, with mandatory CUDA and checkpoint-hash
+provenance. See `docs/noise-structure-experiment-protocol.md`. A reduced GPU
+smoke run has generated every named table and raster/vector figure type; the
+publication-scale five-seed run has not yet been executed.
+
 ## Repository Structure
 
 - `src/wm_rnn/`: model, task generation, training, evaluation, and analysis code.

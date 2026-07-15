@@ -1,0 +1,186 @@
+\documentclass[aps,preprint,amsmath,amssymb,nofootinbib,floatfix]{revtex4-2}
+
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{../../outputs/yang_fixation_circular_working_memory/perturbation_experiments/noise_structure/figures/}}
+\newcommand{\figref}[1]{Fig.~\ref{#1}}
+\newcommand{\tabref}[1]{Table~\ref{#1}}
+
+\begin{document}
+
+\title{Structured Noise Impairs Circular Working Memory in a Frozen RNN}
+\author{Bob Rice}
+\affiliation{MSc Dissertation}
+\date{14 July 2026}
+
+\begin{abstract}
+Five independently trained Yang-style fixation-gated RNNs performed continuous circular delayed response. Equal-energy hidden-state perturbations were compared: independent Gaussian noise, temporally correlated AR(1) noise, and AR(1) noise aligned with recurrent topology. These are psilocybin-informed modelling interventions, not literal pharmacology. At matched RMS, impairment followed independent $<$ temporal $<$ topology-correlated structure, grew with delay, accumulated during maintenance, and coincided with collapse of the circular memory geometry. Delay-phase topology noise was far more damaging than cue- or response-phase noise.
+\end{abstract}
+
+\maketitle
+
+\section{Question}
+
+Does the \emph{structure} of equal-energy hidden-state noise change how badly a frozen working-memory RNN loses a remembered angle? The comparison was motivated by two literatures. Working-memory models show that stochastic fluctuations can drive drift and that robustness depends on the network's dynamical organization~\cite{kilpatrick2013,ghazizadeh2021}. Psychedelic studies motivate increased signal diversity, temporally structured and context-sensitive activity, and network-topology-dependent changes rather than a simple equation of psychedelics with unstructured noise~\cite{carhartharris2014,schartner2017,herzog2023,stoliker2026,bredenberg2026}. The three conditions therefore form a controlled hierarchy---independent, temporally persistent, and temporally plus population correlated---without claiming to simulate receptor pharmacology.
+
+\section{What the three noises mean}
+
+Noise $\boldsymbol{\varepsilon}_t$ is added to the leaky recurrent update during selected task phases, then rescaled so every condition has the same realised root-mean-square (RMS) amplitude. RMS is therefore matched energy, not a drug dose.
+
+\paragraph{Independent Gaussian.}
+Each time, trial, and hidden unit is kicked independently:
+\begin{equation}
+\tilde{\boldsymbol{\varepsilon}}_t \sim \mathcal{N}(\mathbf{0},I).
+\end{equation}
+There is no designed persistence across time and no designed coupling across units. This is the reference stochastic-robustness condition: independent fluctuations are a standard way to test whether a recurrent memory representation diffuses or leaves its task-relevant manifold~\cite{kilpatrick2013,ghazizadeh2021}. It also provides the necessary unstructured control for asking whether adding temporal or population structure changes the effect at the same RMS. It is not presented as a model of psilocybin.
+
+\paragraph{Temporal AR(1).}
+Each unit follows a sticky autoregressive process with $\rho=0.9$:
+\begin{equation}
+\mathbf{z}_t = \rho\mathbf{z}_{t-1} + \sqrt{1-\rho^2}\,\boldsymbol{\eta}_t,
+\qquad \boldsymbol{\eta}_t\sim\mathcal{N}(\mathbf{0},I).
+\end{equation}
+The expected lag-$k$ autocorrelation is $\rho^k$. Units remain independent; only time is correlated. Intuition: a gust that keeps blowing the same way for a while. This condition isolates \emph{temporal persistence}: unlike independent kicks, a displacement continues in a similar direction over several recurrent updates and can therefore accumulate during memory maintenance. The motivation is that psychedelic-related variability has measurable temporal organization and diversity~\cite{schartner2017,stoliker2026}; AR(1) is a deliberately simple test process, not a process fitted to those data. The choice $\rho=0.9$ is a project parameter.
+
+\paragraph{Topology-correlated AR(1).}
+The same AR(1) process is then mixed across units using recurrent-weight similarity:
+\begin{align}
+G &= \frac{W_{\mathrm{rec}}W_{\mathrm{rec}}^\top}{\mathrm{mean}[\mathrm{diag}(W_{\mathrm{rec}}W_{\mathrm{rec}}^\top)]},\\
+\Sigma &= \frac{0.25I + 0.75G}{\mathrm{mean}[\mathrm{diag}(0.25I+0.75G)]},\\
+\boldsymbol{\varepsilon}_t &= L\mathbf{z}_t,\qquad LL^\top=\Sigma.
+\end{align}
+Units with similar incoming recurrent weight profiles tend to be pushed together. This condition tests whether variability aligned with the trained recurrent architecture is more consequential than equally strong unit-wise variability. The motivation is Herzog et al.'s whole-brain result that the spatial pattern of psychedelic-related entropy change depended strongly on structural-network topology, not receptor density alone~\cite{herzog2023}, together with computational evidence that learned network structure can distinguish organized variability from additive noise~\cite{bredenberg2026}. The covariance $0.25I+0.75G$ is our project operationalisation of that question: it is neither taken from those papers nor a receptor or connectome map.
+
+\figref{fig:schematic} summarises the task timeline and these definitions. \figref{fig:validation} checks that RMS matched while temporal stickiness and unit coupling differed as designed. Correlation heatmaps were replaced by a direct summary of mean absolute unit--unit correlation, which is the quantity a marker needs.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figure_01_task_perturbation_schematic.pdf}
+\caption{\textbf{Noise definitions.} (A)~Cue--delay--response task; main analyses add noise during delay. Below: equations, plain-language meaning, and matched-RMS example traces for the three interventions.}
+\label{fig:schematic}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figure_02_manipulation_validation.pdf}
+\caption{\textbf{Manipulation checks at RMS 0.05.} (A)~Example noise on one unit: vertical scale is the added perturbation value; printed RMS confirms amplitude matching. (B)~Autocorrelation versus lag: $1$ means the noise is identical to itself $k$ steps later; $0$ means unrelated. Independent noise falls to $\sim0$; AR(1) conditions follow $0.9^k$. (C)~Average absolute correlation between different hidden units: near zero for independent/temporal; elevated for topology.}
+\label{fig:validation}
+\end{figure}
+
+\section{Main behavioural result}
+
+At RMS $0.05$, response error increased with structure and delay (\figref{fig:hero}A; \tabref{tab:rms05}). At delay 80 the five-seed means were $6.49\pm1.93^\circ$ (clean), $7.47\pm1.68^\circ$ (independent), $16.33\pm2.71^\circ$ (temporal), and $32.43\pm4.75^\circ$ (topology). Dose--response at delay 80 preserves the same ordering (\figref{fig:hero}B). Fixation gating remained high (\figref{fig:hero}C): the model still mostly knew when to wait versus answer; what failed was the remembered angle.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figure_03_behavioural_hero.pdf}
+\caption{\textbf{Hero comparison.} (A)~Response error at RMS 0.05. Coloured points: five independently trained models; bars: five-seed mean; whiskers: 95\% bootstrap CI across those five models. (B)~Dose--response at delay 80. Solid curves: five-seed means; dashed curves and shaded bands: 95\% CI bounds (no individual-seed spaghetti). (C)~Fixation accuracy at the same primary point: bars = means, black points = models, whiskers = 95\% CI.}
+\label{fig:hero}
+\end{figure*}
+
+\begin{table}[t]
+\centering
+\caption{Response angular error ($^\circ$) at RMS 0.05. Mean $\pm$ SD across five seed-level means.}
+\label{tab:rms05}
+\begin{tabular}{lcccc}
+\toprule
+Delay & Clean & Independent & Temporal & Topology \\
+\midrule
+20  & $4.34\pm1.54$ & $4.91\pm1.45$ & $8.14\pm1.28$ & $14.11\pm1.48$ \\
+80  & $6.49\pm1.93$ & $7.47\pm1.68$ & $16.33\pm2.71$ & $32.43\pm4.75$ \\
+160 & $9.03\pm2.50$ & $10.44\pm2.24$ & $23.16\pm3.86$ & $45.70\pm5.82$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Maintenance failure and geometry}
+
+A decoder trained only on clean delay states loses the angle progressively during the hold under structured noise (\figref{fig:timecourse}). End-of-delay geometry explains why: same-angle clouds spread out and different-angle centroids move closer together, most under topology noise (\figref{fig:geometry}).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figure_04_delay_timecourse.pdf}
+\caption{\textbf{Time-resolved decoding at delay 80, RMS 0.05.} Solid: five-seed mean decoder error. Dashed: 95\% CI bounds; light fill between bounds. Coloured bands mark cue, delay, and response.}
+\label{fig:timecourse}
+\end{figure}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figure_05_ring_geometry.pdf}
+\caption{\textbf{Circular memory geometry at delay 80, RMS 0.05.} Top: each panel is one noise condition in the clean-fitted PC1--PC2 plane; coloured points are angle centroids, grey is the clean reference. Bottom: two summary scores across the same four \emph{categorical} conditions (not a continuous left--right axis). Left: within-angle spread. Right: between-angle spacing relative to clean ($1$ = preserved).}
+\label{fig:geometry}
+\end{figure*}
+
+\section{Task-phase sensitivity}
+
+Restricting topology-correlated noise to cue, delay, or response shows that maintenance is the vulnerable epoch (\figref{fig:epoch}). At RMS $0.05$ and delay 80, response errors were $7.43\pm1.65^\circ$ (cue), $32.12\pm4.49^\circ$ (delay), and $11.60\pm1.64^\circ$ (response).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\linewidth]{figure_06_epoch_sensitivity.pdf}
+\caption{\textbf{Epoch sensitivity for topology AR(1) at delay 80, RMS 0.05.} Bars: five-seed means; black points: individual models; whiskers: 95\% CI. Delay-only noise dominates.}
+\label{fig:epoch}
+\end{figure}
+
+\section{Interpretation boundary}
+
+Equal energy does not imply equal functional impact. In this frozen working-memory RNN, sticky and topology-aligned variability were substantially more damaging than matched independent noise. That constrains candidate psilocybin-informed perturbation designs for this model class; it is not evidence that psilocybin itself is representation-destroying cortical noise.
+
+\section*{Data and code}
+
+Metrics: \path{outputs/.../noise_structure/full/} and \path{epoch_timing_full/}.
+
+Figures: \path{figures/} and \path{figure_data/}.
+
+Regenerate: \path{python -m wm_rnn.noise_structure_dissertation_figures}.
+
+\begin{thebibliography}{9}
+
+\bibitem{kilpatrick2013}
+Z.~P. Kilpatrick, B. Ermentrout, and B. Doiron,
+``Optimizing working memory with heterogeneity of recurrent cortical excitation,''
+J. Neurosci. \textbf{33}, 18999--19011 (2013),
+\href{https://doi.org/10.1523/JNEUROSCI.1641-13.2013}{doi:10.1523/JNEUROSCI.1641-13.2013}.
+
+\bibitem{ghazizadeh2021}
+E. Ghazizadeh and S. Ching,
+``Slow manifolds within network dynamics encode working memory efficiently and robustly,''
+PLoS Comput. Biol. \textbf{17}, e1009366 (2021),
+\href{https://doi.org/10.1371/journal.pcbi.1009366}{doi:10.1371/journal.pcbi.1009366}.
+
+\bibitem{carhartharris2014}
+R.~L. Carhart-Harris \emph{et al.},
+``The entropic brain: a theory of conscious states informed by neuroimaging research with psychedelic drugs,''
+Front. Hum. Neurosci. \textbf{8}, 20 (2014),
+\href{https://doi.org/10.3389/fnhum.2014.00020}{doi:10.3389/fnhum.2014.00020}.
+
+\bibitem{schartner2017}
+M.~M. Schartner, R.~L. Carhart-Harris, A.~B. Barrett, A.~K. Seth, and S.~D. Muthukumaraswamy,
+``Increased spontaneous MEG signal diversity for psychoactive doses of ketamine, LSD and psilocybin,''
+Sci. Rep. \textbf{7}, 46421 (2017),
+\href{https://doi.org/10.1038/srep46421}{doi:10.1038/srep46421}.
+
+\bibitem{herzog2023}
+R. Herzog \emph{et al.},
+``A whole-brain model of the neural entropy increase elicited by psychedelic drugs,''
+Sci. Rep. \textbf{13}, 6244 (2023),
+\href{https://doi.org/10.1038/s41598-023-32649-7}{doi:10.1038/s41598-023-32649-7}.
+
+\bibitem{stoliker2026}
+D. Stoliker \emph{et al.},
+``Psychedelics align brain activity with context,''
+bioRxiv 2025.03.09.642197, version posted 5 May 2026,
+\href{https://doi.org/10.1101/2025.03.09.642197}{doi:10.1101/2025.03.09.642197} (preprint).
+
+\bibitem{bredenberg2026}
+C. Bredenberg, F. Normandin, B. Richards, and G. Lajoie,
+``Modeling the hallucinatory effects of classical psychedelics in terms of replay-dependent plasticity mechanisms,''
+eLife \textbf{14}, RP105968 (2026),
+\href{https://doi.org/10.7554/eLife.105968.3}{doi:10.7554/eLife.105968.3}.
+
+\end{thebibliography}
+
+\end{document}

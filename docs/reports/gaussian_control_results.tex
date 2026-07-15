@@ -1,0 +1,172 @@
+\documentclass[aps,reprint,amsmath,amssymb,nofootinbib,floatfix]{revtex4-2}
+
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\usepackage{float}
+
+\graphicspath{{../../outputs/yang_fixation_circular_working_memory/perturbation_experiments/noise_structure/gaussian_control/figures/}}
+
+\begin{document}
+
+\section{Independent Gaussian noise as a control perturbation}
+
+\subsection{Rationale}
+
+Psilocybin has been associated with increased neural signal diversity and has
+motivated accounts of psychedelic states in terms of increased entropy or
+variability~\cite{carhartharris2014,schartner2017}. These findings motivate
+testing whether a working-memory network is sensitive to stochastic
+perturbation, but they do not imply that psilocybin acts as additive Gaussian
+noise. We therefore used independent Gaussian noise as a deliberately
+non-specific control rather than as a mechanistic model of the drug. This
+choice also has a direct computational rationale: stochastic fluctuations can
+drive diffusion of maintained representations, and the extent of this drift
+depends on the stability and geometry of the recurrent memory
+dynamics~\cite{kilpatrick2013,ghazizadeh2021}. The control consequently asks a
+restricted question: how much degradation follows from adding unstructured
+variability of a known magnitude to an otherwise unchanged trained network?
+
+\subsection{Implementation}
+
+Noise was added to the hidden-state update only during the memory delay. For
+each active time step $t$, trial $b$, and hidden unit $i$, an independent sample
+$\eta_{tbi}\sim\mathcal{N}(0,1)$ was drawn. The realised perturbation was
+
+\begin{equation}
+\varepsilon_{tbi}=
+\sigma\frac{\eta_{tbi}}
+{\left(|\mathcal{A}|^{-1}\sum_{(t,b,i)\in\mathcal{A}}
+\eta_{tbi}^{2}\right)^{1/2}},
+\label{eq:gaussian-control}
+\end{equation}
+
+where $\mathcal{A}$ denotes all delay-active entries and $\sigma$ is the target
+root-mean-square (RMS) perturbation strength. This normalisation matched the
+realised RMS exactly within each evaluated batch. Noise was independent across
+time, trials, and units; no temporal autocorrelation or population covariance
+was imposed. Five independently trained frozen models were evaluated at delay
+lengths of 20, 80, and 160 steps and at RMS strengths $0$, $0.01$, $0.025$,
+$0.05$, and $0.10$. Each model--delay condition comprised five stochastic
+replicates of 20 paired 64-trial batches. A linear decoder fitted to 512 clean
+trials per model and delay quantified maintenance error, and the trained model
+seed was treated as the replication unit ($n=5$). RMS is an intervention
+parameter and should not be interpreted as a pharmacological dose.
+
+\subsection{Results}
+
+Gaussian noise produced a graded, delay-dependent impairment
+(Fig.~\ref{fig:gaussian-behaviour}). At RMS $0.05$, mean response error increased
+from $4.34\pm1.54^{\circ}$ to $4.91\pm1.45^{\circ}$ at delay 20, from
+$6.49\pm1.93^{\circ}$ to $7.47\pm1.68^{\circ}$ at delay 80, and from
+$9.03\pm2.50^{\circ}$ to $10.44\pm2.24^{\circ}$ at delay 160 (mean $\pm$ SD
+across five model seeds). The impairment became clearer at RMS $0.10$, where
+the corresponding response errors were $6.42\pm1.35^{\circ}$,
+$10.48\pm1.92^{\circ}$, and $14.68\pm2.57^{\circ}$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figure_g1_dose_delay_behaviour.pdf}
+\caption{\textbf{Behavioural response to independent Gaussian perturbation.}
+Absolute response error is shown across perturbation strengths and delay
+lengths. Solid lines are five-model means; dashed lines and shading denote 95\%
+bootstrap confidence intervals across models.}
+\label{fig:gaussian-behaviour}
+\end{figure}
+
+The maintenance measures showed a larger relative effect than the final
+behavioural readout (Fig.~\ref{fig:gaussian-maintenance}). At delay 80 and RMS
+$0.05$, clean-decoder error increased from $1.29\pm0.82^{\circ}$ to
+$3.71\pm1.53^{\circ}$, while decoded angular drift increased from
+$2.60\pm1.84^{\circ}$ to $5.20\pm2.11^{\circ}$. Fixation/wait--go accuracy was
+effectively preserved ($0.98\pm0.00$ in both conditions), indicating that the
+perturbation primarily affected the maintained angle rather than task-phase
+gating. The decoder was fitted to clean hidden states and then evaluated on
+the corresponding perturbed states, so clean-decoder error measures
+representational distortion rather than a refitted noisy readout.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figure_g2_maintenance_metrics.pdf}
+\caption{\textbf{Maintenance effects at delay 80.} Clean-decoder error and
+decoded drift increased with Gaussian-noise RMS, whereas fixation/wait--go
+accuracy remained stable. Lines and intervals are defined as in
+Fig.~\ref{fig:gaussian-behaviour}.}
+\label{fig:gaussian-maintenance}
+\end{figure}
+
+The geometry analysis was consistent with mild blurring rather than collapse
+of the circular representation (Fig.~\ref{fig:gaussian-geometry}). At delay 80
+and RMS $0.05$, within-angle dispersion increased from $0.550$ to $0.732$,
+whereas normalised between-angle centroid spacing was $0.990$ relative to the
+clean value of $1$. Thus, trial-to-trial states for the same remembered angle
+became more dispersed while the global separation of different angles was
+largely retained.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figure_g3_geometry.pdf}
+\caption{\textbf{Overlay of clean and Gaussian memory geometry at delay 80 and
+RMS 0.05.} Angle centroids and uncertainty ellipses are shown in the
+clean-fitted PC1--PC2 plane. The Gaussian ring is overlaid on the clean
+baseline so that its mild within-angle broadening and small centroid changes
+can be read directly.}
+\label{fig:gaussian-geometry}
+\end{figure}
+
+Response settling was close to its measurement floor at the primary RMS
+(Fig.~\ref{fig:gaussian-settling}). At delay 80, the mean first response step
+within $20^{\circ}$ of the target increased only from $5.02$ in the clean
+condition to $5.19$ at RMS $0.05$; $99.2\%$ of trials settled. At RMS $0.10$,
+settling increased to $6.55$ steps and the settled fraction fell to $93.6\%$.
+Final response error in this focused analysis increased from $5.94^{\circ}$
+clean to $6.75^{\circ}$ at RMS $0.05$ and $10.40^{\circ}$ at RMS $0.10$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figure_g4_settling.pdf}
+\caption{\textbf{Response settling after the response cue at delay 80.}
+Settling was defined as the first counted response step with absolute circular
+error below $20^{\circ}$; the first five transition steps were excluded. Points
+denote trained models and lines denote five-model means.}
+\label{fig:gaussian-settling}
+\end{figure}
+
+Together, these results show that independent Gaussian noise is useful as a
+weak, non-specific degradation control. Its effects scale with perturbation
+strength and maintenance duration, and are expressed most clearly as increased
+decoder error, drift, and within-angle dispersion. The result establishes a
+reference against which more targeted perturbations can be judged; it does not
+provide evidence that Gaussian noise itself recreates psilocybin's neural or
+behavioural effects.
+
+\begin{thebibliography}{4}
+
+\bibitem{carhartharris2014}
+R.~L. Carhart-Harris \emph{et al.},
+``The entropic brain: a theory of conscious states informed by neuroimaging
+research with psychedelic drugs,'' Front. Hum. Neurosci. \textbf{8}, 20 (2014),
+\href{https://doi.org/10.3389/fnhum.2014.00020}{doi:10.3389/fnhum.2014.00020}.
+
+\bibitem{schartner2017}
+M.~M. Schartner, R.~L. Carhart-Harris, A.~B. Barrett, A.~K. Seth, and
+S.~D. Muthukumaraswamy, ``Increased spontaneous MEG signal diversity for
+psychoactive doses of ketamine, LSD and psilocybin,'' Sci. Rep. \textbf{7},
+46421 (2017),
+\href{https://doi.org/10.1038/srep46421}{doi:10.1038/srep46421}.
+
+\bibitem{kilpatrick2013}
+Z.~P. Kilpatrick, B. Ermentrout, and B. Doiron, ``Optimizing working memory with
+heterogeneity of recurrent cortical excitation,'' J. Neurosci. \textbf{33},
+18999--19011 (2013),
+\href{https://doi.org/10.1523/JNEUROSCI.1641-13.2013}{doi:10.1523/JNEUROSCI.1641-13.2013}.
+
+\bibitem{ghazizadeh2021}
+E. Ghazizadeh and S. Ching, ``Slow manifolds within network dynamics encode
+working memory efficiently and robustly,'' PLoS Comput. Biol. \textbf{17},
+e1009366 (2021),
+\href{https://doi.org/10.1371/journal.pcbi.1009366}{doi:10.1371/journal.pcbi.1009366}.
+
+\end{thebibliography}
+
+\end{document}
