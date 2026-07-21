@@ -26,8 +26,14 @@ import torch.nn.functional as F
 
 from wm_rnn.config import load_config
 from wm_rnn.device import select_device
+from wm_rnn.hidden_angle_decoder import (
+    angle_error_degrees,
+    decode_angles_from_hidden,
+    fit_hidden_angle_decoder,
+    resolve_angle_decode_method,
+)
 from wm_rnn.io import ensure_run_dirs, write_json
-from wm_rnn.tuned_task import circular_angular_error, decode_population_angle
+from wm_rnn.tuned_task import decode_population_angle
 from wm_rnn.training_utils import batch_to_tensors, fresh_model, generate_batch_for_task, task_config_from_dict
 
 
@@ -106,12 +112,32 @@ def run_fixed_point_analysis(
         initial_distances = torch.linalg.norm(fixed_points - initial_hidden, dim=-1).detach().cpu().numpy()
         fixed_outputs = model.readout(fixed_points).detach().cpu().numpy()
 
-    decoded_angles = decode_population_angle(fixed_outputs, batch.preferred_angles)
     target_angles = batch.angles
-    fixed_point_error_degrees = np.degrees(circular_angular_error(decoded_angles, target_angles))
-    initial_outputs = model.readout(initial_hidden).detach().cpu().numpy()
-    initial_angles = decode_population_angle(initial_outputs, batch.preferred_angles)
-    drift_from_late_delay_degrees = np.degrees(circular_angular_error(decoded_angles, initial_angles))
+    decode_method = resolve_angle_decode_method(config)
+    ridge_alpha = float(config.get("decoder", {}).get("ridge_alpha", 1.0))
+    if decode_method == "hidden_ridge":
+        # Fit on a held-out delay batch so fixed-point angle is not readout-silent.
+        decoder_trials = int(config.get("decoder", {}).get("n_trials", 512))
+        decoder_task = task_config_from_dict(config, seed_offset=61000, batch_size=decoder_trials)
+        decoder_batch = generate_batch_for_task(decoder_task)
+        decoder_inputs, _, _ = batch_to_tensors(decoder_batch, device_info.device)
+        with torch.no_grad():
+            _, decoder_hidden = model(decoder_inputs)
+            delay_slice = decoder_batch.phase_index["delay"]
+            train_hidden = decoder_hidden[delay_slice].detach()
+        decoder_weights = fit_hidden_angle_decoder(
+            train_hidden, decoder_batch.angles, ridge_alpha=ridge_alpha
+        )
+        decoded_angles = decode_angles_from_hidden(fixed_points, decoder_weights)
+        initial_angles = decode_angles_from_hidden(initial_hidden, decoder_weights)
+    else:
+        decoder_weights = None
+        decoded_angles = decode_population_angle(fixed_outputs, batch.preferred_angles)
+        initial_outputs = model.readout(initial_hidden).detach().cpu().numpy()
+        initial_angles = decode_population_angle(initial_outputs, batch.preferred_angles)
+
+    fixed_point_error_degrees = angle_error_degrees(decoded_angles, target_angles)
+    drift_from_late_delay_degrees = angle_error_degrees(decoded_angles, initial_angles)
 
     jacobian_metrics, eigenvalues, leading_vectors, tangent_alignment = _analyze_jacobians(
         model=model,
@@ -168,7 +194,15 @@ def run_fixed_point_analysis(
             np.mean([row["num_abs_eigenvalues_gt_1"] for row in jacobian_metrics])
         ),
         "mean_tangent_alignment_with_leading_eigenvector": float(np.nanmean(tangent_alignment)),
+        "angle_decode_method": decode_method,
         "interpretation_note": (
+            "Low residuals mean the optimizer found approximate fixed points under blank-delay input. "
+            "For a continuous memory attractor, expect preserved decoded angle, a leading eigenvalue "
+            "near 1 along the circular manifold, and remaining eigenvalues below 1. "
+            "For fixation-gated models, angle is decoded from hidden states with a ridge decoder "
+            "because the circular readout is silent during delay."
+            if decode_method == "hidden_ridge"
+            else
             "Low residuals mean the optimizer found approximate fixed points under blank-delay input. "
             "For a continuous memory attractor, expect preserved decoded angle, a leading eigenvalue "
             "near 1 along the circular manifold, and remaining eigenvalues below 1. This is stronger "
@@ -178,21 +212,24 @@ def run_fixed_point_analysis(
 
     run_name = config["paths"].get("run_name", "circular_working_memory")
     arrays_path = dirs["arrays"] / f"{run_name}_fixed_point_analysis.npz"
-    np.savez_compressed(
-        arrays_path,
-        initial_hidden=initial_hidden.detach().cpu().numpy(),
-        fixed_points=fixed_points.detach().cpu().numpy(),
-        residual_history=np.asarray(residual_history, dtype=np.float64),
-        residuals=residuals,
-        target_angles=target_angles,
-        initial_angles=initial_angles,
-        decoded_angles=decoded_angles,
-        fixed_point_error_degrees=fixed_point_error_degrees,
-        drift_from_late_delay_degrees=drift_from_late_delay_degrees,
-        eigenvalues=eigenvalues,
-        leading_eigenvectors=leading_vectors,
-        tangent_alignment=tangent_alignment,
-    )
+    array_payload = {
+        "initial_hidden": initial_hidden.detach().cpu().numpy(),
+        "fixed_points": fixed_points.detach().cpu().numpy(),
+        "residual_history": np.asarray(residual_history, dtype=np.float64),
+        "residuals": residuals,
+        "target_angles": target_angles,
+        "initial_angles": initial_angles,
+        "decoded_angles": decoded_angles,
+        "fixed_point_error_degrees": fixed_point_error_degrees,
+        "drift_from_late_delay_degrees": drift_from_late_delay_degrees,
+        "eigenvalues": eigenvalues,
+        "leading_eigenvectors": leading_vectors,
+        "tangent_alignment": tangent_alignment,
+        "angle_decode_method": np.asarray(decode_method),
+    }
+    if decoder_weights is not None:
+        array_payload["hidden_decoder_weights"] = decoder_weights
+    np.savez_compressed(arrays_path, **array_payload)
     csv_path = _write_csv(dirs["metrics"] / f"{run_name}_fixed_point_analysis_trials.csv", per_trial_rows)
     figure_path = _plot_fixed_point_analysis(
         dirs["figures"] / f"{run_name}_fixed_point_analysis.png",

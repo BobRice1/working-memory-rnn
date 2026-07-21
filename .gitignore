@@ -11,12 +11,16 @@ venv/
 env/
 
 outputs/
+tmp/
 *.pt
 *.pth
 *.ckpt
 docs/build-log.md
 
 *.log
+*.aux
+*.out
+*Notes.bib
 *.tmp
 .DS_Store
 Thumbs.db

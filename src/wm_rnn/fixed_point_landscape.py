@@ -26,8 +26,14 @@ from sklearn.decomposition import PCA
 from wm_rnn.config import load_config
 from wm_rnn.device import select_device
 from wm_rnn.fixed_point_analysis import _optimize_fixed_points
+from wm_rnn.hidden_angle_decoder import (
+    angle_error_degrees,
+    decode_angles_from_hidden,
+    fit_hidden_angle_decoder,
+    resolve_angle_decode_method,
+)
 from wm_rnn.io import ensure_run_dirs, write_json
-from wm_rnn.tuned_task import circular_angular_error, decode_population_angle
+from wm_rnn.tuned_task import decode_population_angle
 from wm_rnn.training_utils import batch_to_tensors, fresh_model, generate_batch_for_task, task_config_from_dict
 
 
@@ -123,12 +129,30 @@ def run_fixed_point_landscape(
     start_pc = pca.transform(start_hidden.detach().cpu().numpy())
     fixed_pc = pca.transform(fixed_points.detach().cpu().numpy())
 
-    decoded_angles = decode_population_angle(fixed_outputs, batch.preferred_angles)
+    decode_method = resolve_angle_decode_method(config)
+    ridge_alpha = float(config.get("decoder", {}).get("ridge_alpha", 1.0))
+    if decode_method == "hidden_ridge":
+        decoder_trials = int(config.get("decoder", {}).get("n_trials", 512))
+        decoder_task = task_config_from_dict(config, seed_offset=71000, batch_size=decoder_trials)
+        decoder_batch = generate_batch_for_task(decoder_task)
+        decoder_inputs, _, _ = batch_to_tensors(decoder_batch, device_info.device)
+        with torch.no_grad():
+            _, decoder_hidden = model(decoder_inputs)
+            delay_slice = decoder_batch.phase_index["delay"]
+            train_hidden = decoder_hidden[delay_slice].detach()
+        decoder_weights = fit_hidden_angle_decoder(
+            train_hidden, decoder_batch.angles, ridge_alpha=ridge_alpha
+        )
+        decoded_angles = decode_angles_from_hidden(fixed_points, decoder_weights)
+    else:
+        decoder_weights = None
+        decoded_angles = decode_population_angle(fixed_outputs, batch.preferred_angles)
+
     source_angles_array = np.asarray(source_angles, dtype=np.float32)
     angle_error = np.full_like(decoded_angles, fill_value=np.nan, dtype=np.float32)
     known_angle_mask = np.isfinite(source_angles_array)
-    angle_error[known_angle_mask] = np.degrees(
-        circular_angular_error(decoded_angles[known_angle_mask], source_angles_array[known_angle_mask])
+    angle_error[known_angle_mask] = angle_error_degrees(
+        decoded_angles[known_angle_mask], source_angles_array[known_angle_mask]
     )
     displacement_pc = np.linalg.norm(fixed_pc - start_pc, axis=-1)
     converged = residuals < residual_threshold
@@ -183,7 +207,15 @@ def run_fixed_point_landscape(
         "p95_known_angle_error_degrees": float(np.nanpercentile(angle_error, 95)),
         "mean_known_angle_error_degrees_by_source": source_known_angle_error,
         "mean_pc_displacement": float(displacement_pc.mean()),
+        "angle_decode_method": decode_method,
         "interpretation_note": (
+            "This analysis does not map the full 64D hidden-state cube. It samples task-reached, "
+            "locally perturbed, and random bounded starting states, then visualizes where fixed-point "
+            "search lands in the same PCA space as task trajectories. "
+            "For fixation-gated models, fixed-point angle is read out with a hidden-state ridge "
+            "decoder because the circular population output is silent during delay."
+            if decode_method == "hidden_ridge"
+            else
             "This analysis does not map the full 64D hidden-state cube. It samples task-reached, "
             "locally perturbed, and random bounded starting states, then visualizes where fixed-point "
             "search lands in the same PCA space as task trajectories."
@@ -192,26 +224,29 @@ def run_fixed_point_landscape(
 
     run_name = config["paths"].get("run_name", "circular_working_memory")
     arrays_path = dirs["arrays"] / f"{run_name}_fixed_point_landscape.npz"
-    np.savez_compressed(
-        arrays_path,
-        hidden_states=hidden_np,
-        trajectory_pc=trajectory_pc,
-        late_delay_hidden=late_delay_hidden.detach().cpu().numpy(),
-        start_hidden=start_hidden.detach().cpu().numpy(),
-        fixed_points=fixed_points.detach().cpu().numpy(),
-        start_pc=start_pc,
-        fixed_pc=fixed_pc,
-        start_source=start_source,
-        source_angles=source_angles_array,
-        decoded_angles=decoded_angles,
-        angle_error_degrees=angle_error,
-        residuals=residuals,
-        residual_history=np.asarray(residual_history, dtype=np.float64),
-        displacement_pc=displacement_pc,
-        target_angles=batch.angles,
-        preferred_angles=batch.preferred_angles,
-        explained_variance_ratio=pca.explained_variance_ratio_,
-    )
+    array_payload = {
+        "hidden_states": hidden_np,
+        "trajectory_pc": trajectory_pc,
+        "late_delay_hidden": late_delay_hidden.detach().cpu().numpy(),
+        "start_hidden": start_hidden.detach().cpu().numpy(),
+        "fixed_points": fixed_points.detach().cpu().numpy(),
+        "start_pc": start_pc,
+        "fixed_pc": fixed_pc,
+        "start_source": start_source,
+        "source_angles": source_angles_array,
+        "decoded_angles": decoded_angles,
+        "angle_error_degrees": angle_error,
+        "residuals": residuals,
+        "residual_history": np.asarray(residual_history, dtype=np.float64),
+        "displacement_pc": displacement_pc,
+        "target_angles": batch.angles,
+        "preferred_angles": batch.preferred_angles,
+        "explained_variance_ratio": pca.explained_variance_ratio_,
+        "angle_decode_method": np.asarray(decode_method),
+    }
+    if decoder_weights is not None:
+        array_payload["hidden_decoder_weights"] = decoder_weights
+    np.savez_compressed(arrays_path, **array_payload)
     csv_path = _write_csv(dirs["metrics"] / f"{run_name}_fixed_point_landscape_points.csv", rows)
     figure_path = _plot_landscape(
         dirs["figures"] / f"{run_name}_fixed_point_landscape.png",
