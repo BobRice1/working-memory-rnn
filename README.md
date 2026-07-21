@@ -106,6 +106,8 @@ publication-scale five-seed run has not yet been executed.
 ## Repository Structure
 
 - `src/wm_rnn/`: model, task generation, training, evaluation, and analysis code.
+- `notebooks/`: thin, model-specific walkthrough notebooks that call the
+  package code and inspect saved artifacts.
 - `configs/`: active progression configurations; superseded configurations are
   retained under `configs/archive/`.
 - `docs/model-architecture.md`: architecture and plain-English task explanation.

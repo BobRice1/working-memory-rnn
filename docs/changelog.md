@@ -3,6 +3,222 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-21 - Stimulus→delay PCA Manim animation (smoother, CUDA, 256 trials)</summary>
+
+Action:
+
+- Rebuilt Panel C animation: 256 trials, 12× linear interpolation between RNN
+  steps (~469 frames), 20 fps (~26 s), CUDA model forward + ManimGL OpenGL
+  draw, medium-quality MP4 master and compact palette GIF via ffmpeg.
+- Updated `notebooks/02_working_memory_task_schematic.ipynb` render cell
+  (`N_TRIALS=256`, `INTERP_PER_STEP=12`, `FPS=20`).
+
+Recorded outputs:
+
+- `outputs/figures/schematics/yang_stimulus_to_delay_pca_trajectories.npz`
+- `outputs/figures/schematics/yang_stimulus_to_delay_pca.mp4` (~0.4 MB)
+- `outputs/figures/schematics/yang_stimulus_to_delay_pca.gif` (~2.7 MB)
+
+</details>
+
+<details>
+<summary>2026-07-21 - Stimulus→delay PCA Manim animation in schematic notebook</summary>
+
+Action:
+
+- Added Panel C to `notebooks/02_working_memory_task_schematic.ipynb`: ManimGL
+  animation of Yang hidden-state PCA from stimulus onset through the last
+  delay step (48 trials; HSV = target angle; label refresh without
+  ManimGL `set_text`).
+- Built trajectory arrays and rendered GIF via
+  `tmp/_render_stimulus_delay_pca.py` / notebook cell (`RENDER_PCA_ANIM`).
+
+Recorded outputs:
+
+- `outputs/figures/schematics/yang_stimulus_to_delay_pca_trajectories.npz`
+- `outputs/figures/schematics/yang_stimulus_to_delay_pca.gif`
+- `tmp/stimulus_to_delay_pca_scene.py`
+
+</details>
+
+<details>
+<summary>2026-07-21 - Working-memory task schematic notebook</summary>
+
+Action:
+
+- Expanded `notebooks/02_working_memory_task_schematic.ipynb` with Panel B:
+  fixation input/output step traces plus 32-unit stimulus/output heatmaps
+  (HSV orientation × activity) for the same example trial as Panel A.
+- Panel A keeps larger frames, black matched fixation crosses, Stimulus
+  naming, and HSV ribbon bumps; epoch labels in simulated ms (`dt = 20`).
+
+Recorded outputs:
+
+- `outputs/figures/schematics/working_memory_task_schematic.png`
+- `outputs/figures/schematics/working_memory_task_schematic.pdf`
+
+</details>
+
+<details>
+<summary>2026-07-20 - Notebook PCA ring plot: Manim → matplotlib</summary>
+
+Action:
+
+- Replaced the ManimGL ring-outline cell in
+  `notebooks/01_yang_fixation_circular_working_memory.ipynb` with a matplotlib
+  scatter of late-delay/perturbed `start_pc`, colored by source angle.
+
+Recorded outputs:
+
+- notebook cells 16–17
+- figure path: `.../figures/{RUN_NAME}_pca_ring_outline.png`
+
+</details>
+
+<details>
+<summary>2026-07-20 - Hidden-state decode for Yang fixed-point angles</summary>
+
+Action:
+
+- Added `wm_rnn.hidden_angle_decoder` and switched fixation-gated fixed-point
+  analyses to ridge-decode angle from hidden states instead of the silent
+  circular population readout.
+- Re-ran Yang `fixed_point_analysis` and `fixed_point_landscape` (512×4).
+
+Recorded result:
+
+- Fixed-point analysis mean angle error: ~60° → **1.24°** (p95 ~3.8°).
+- Landscape known-angle error: ~56° → **6.9°** (late-delay ~2.8°, perturbed ~8.0°).
+- Confirms the prior poor decode was a readout metric mismatch, not absence of
+  angular structure in the hidden fixed points.
+
+Recorded outputs:
+
+- `src/wm_rnn/hidden_angle_decoder.py`
+- `src/wm_rnn/fixed_point_analysis.py`
+- `src/wm_rnn/fixed_point_landscape.py`
+- `tests/test_hidden_angle_decoder.py`
+- updated Yang fixed-point figures/metrics/arrays
+
+</details>
+
+<details>
+<summary>2026-07-20 - Yang fixed-point landscape at archive-matched 512×4</summary>
+
+Action:
+
+- Re-ran `wm_rnn.fixed_point_landscape` for the Yang checkpoint with
+  `--n-trajectory-trials 512 --perturbations-per-trial 4 --n-random-starts 0`
+  (2560 task-related starts; same trial×pert sampling as the archived
+  `tuned_delay_stable` landscape, without random starts).
+- Regenerated the notebook Manim ring figure from `start_pc`.
+
+Recorded result:
+
+- 512 late-delay + 2048 perturbed starts saved.
+- Converged fraction ≈ 0.557; mean known-angle error remains high (~56°),
+  consistent with Yang fixed-point decode differing from the archived model.
+
+Recorded outputs:
+
+- `outputs/.../arrays/yang_fixation_circular_working_memory_fixed_point_landscape.npz`
+- `outputs/.../figures/yang_fixation_circular_working_memory_fixed_point_landscape.png`
+- `outputs/.../figures/yang_fixation_circular_working_memory_manim_pca.png`
+
+</details>
+
+<details>
+<summary>2026-07-20 - Ring outline via late-delay starts (1000 task-related)</summary>
+
+Action:
+
+- Re-ran fixed-point landscape with 200 late-delay trials × 4 perturbations and
+  0 random starts (1000 task-related states).
+- Updated the notebook Manim cell to plot pre-optimization `start_pc` states
+  colored by source angle, instead of collapsed post-optimization fixed points.
+
+Recorded result:
+
+- Ring geometric coverage improved (max PCA arc gap ~4.9°; 0/36 empty bins)
+  versus the earlier fixed-point plot (gaps up to ~27°).
+
+Recorded outputs:
+
+- `outputs/.../arrays/yang_fixation_circular_working_memory_fixed_point_landscape.npz`
+- `outputs/.../figures/yang_fixation_circular_working_memory_manim_pca.png`
+- `notebooks/01_yang_fixation_circular_working_memory.ipynb`
+
+</details>
+
+<details>
+<summary>2026-07-20 - Denser Yang fixed-point landscape (~1000 starts)</summary>
+
+Action:
+
+- Re-ran `wm_rnn.fixed_point_landscape` for the single Yang checkpoint with
+  `--n-trajectory-trials 150 --perturbations-per-trial 4 --n-random-starts 250`
+  (1000 total starts).
+
+Recorded result:
+
+- Saved 1000 fixed-point endpoints in PCA space.
+- Converged fraction ≈ 0.647; mean residual ≈ 0.0010.
+
+Recorded outputs:
+
+- `outputs/.../arrays/yang_fixation_circular_working_memory_fixed_point_landscape.npz`
+- `outputs/.../figures/yang_fixation_circular_working_memory_fixed_point_landscape.png`
+- `outputs/.../metrics/yang_fixation_circular_working_memory_fixed_point_landscape_*.json/csv`
+
+Interpretation:
+
+- Use this denser sample for ring-outline visualization (e.g. notebook Manim
+  cell). Random starts inflate decoded-angle error; prefer low-residual points
+  for the cleanest ring.
+
+</details>
+
+<details>
+<summary>2026-07-20 - Fresh notebook Manim PCA cell</summary>
+
+Action:
+
+- Replaced the packaged/old Manim helpers with a self-contained notebook cell that
+  writes a tiny ManimGL scene for this Yang run's hidden-state PCA arrays and
+  renders a static PNG (`-w -s`, no MP4).
+
+Recorded outputs:
+
+- `notebooks/01_yang_fixation_circular_working_memory.ipynb`
+- `outputs/.../figures/yang_fixation_circular_working_memory_manim_pca.png`
+
+</details>
+
+<details>
+<summary>2026-07-20 - Added Yang model walkthrough notebook</summary>
+
+Action:
+
+- Added a model-specific notebook for the canonical Yang-style
+  fixation-gated circular working-memory RNN.
+- Kept the notebook as a thin orchestration layer that imports existing
+  package functions, reads cached metrics and figures, and leaves regeneration
+  behind explicit opt-in flags.
+- Added an opt-in static PCA-space hidden-state figure cell that renders from
+  saved PCA arrays using ManimGL mobjects rather than Matplotlib.
+
+Recorded outputs:
+
+- `notebooks/01_yang_fixation_circular_working_memory.ipynb`
+
+Interpretation:
+
+- The notebook supports dissertation-facing inspection of the latest model
+  without moving implementation logic out of the tested Python package.
+
+</details>
+
+<details>
 <summary>2026-07-15 - Gaussian-control report and figure refinement</summary>
 
 Action:
