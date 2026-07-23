@@ -3,6 +3,113 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-23 - Five-checkpoint gain-modulation perturbation sweeps</summary>
+
+Action:
+
+- Refactored `notebooks/03_gain_modulation_experiment.ipynb` into one compact
+  setup and one analysis cell for each of global response gain, fixed
+  heterogeneous response gain, and recurrent-drive gain.
+- Loaded all five frozen `fixation_circular_working_memory` seed checkpoints
+  and evaluated every condition on the same four deterministic 64-trial
+  batches (256 complete trials per checkpoint and condition).
+- Operationalized response gain as a scalar multiplier on the leaky recurrent
+  update immediately before activation; heterogeneous gain as one fixed
+  positive unit-level vector with exact population mean one; and recurrent
+  gain as a multiplier on only the weight-dependent `W_h h_(t-1)` drive.
+- Applied each operator at every timestep of the complete task and retained
+  neutral-condition invariants against the native model forward pass.
+- Added one figure per gain family combining paired checkpoint-level change in
+  mean angular error with baseline and perturbed full-trial trajectories in a
+  jointly fitted PCA space. PCA uses the checkpoint closest to the median
+  baseline because independently trained hidden-unit bases are not aligned.
+
+Recorded result:
+
+- The complete notebook executed successfully on CUDA for all five
+  checkpoints. Unperturbed mean angular error ranged from `2.914` to `7.047`
+  degrees across model seeds.
+- Global response gain produced a U-shaped cost around the trained value:
+  mean paired error changes were `+19.920 ± 7.778`, `+3.071 ± 1.226`, `0`,
+  `+1.596 ± 0.214`, and `+5.053 ± 0.552` degrees for gains `0.8` through
+  `1.2` (mean ± SEM across five checkpoints).
+- Mean-preserving heterogeneous response gain produced a monotonic cost:
+  `+0.734 ± 0.056`, `+2.511 ± 0.153`, `+7.270 ± 0.430`, and
+  `+12.267 ± 0.707` degrees at log-SDs `0.025`, `0.05`, `0.10`, and `0.15`.
+  Three fixed gain-vector seeds were averaged within each checkpoint.
+- Recurrent-drive gain also produced an asymmetric U-shaped cost:
+  `+15.384 ± 1.127`, `+5.130 ± 0.741`, approximately `0`,
+  `+0.477 ± 0.161`, and `+1.566 ± 0.466` degrees for gains `0.8` through
+  `1.2`.
+- At the moderate positive perturbations plotted above, all five checkpoints
+  showed worse angular error, so the effects are replicated model-level
+  sensitivities rather than a single-checkpoint accident.
+
+Recorded outputs:
+
+- `notebooks/03_gain_modulation_experiment.ipynb`
+- `outputs/fixation_circular_working_memory/perturbation_experiments/gain_modulation/metrics/global_response_gain_sweep.csv`
+- `outputs/fixation_circular_working_memory/perturbation_experiments/gain_modulation/metrics/heterogeneous_response_gain_sweep.csv`
+- `outputs/fixation_circular_working_memory/perturbation_experiments/gain_modulation/metrics/recurrent_gain_sweep.csv`
+- `outputs/fixation_circular_working_memory/perturbation_experiments/gain_modulation/figures/global_response_gain.png`
+- `outputs/fixation_circular_working_memory/perturbation_experiments/gain_modulation/figures/heterogeneous_response_gain.png`
+- `outputs/fixation_circular_working_memory/perturbation_experiments/gain_modulation/figures/recurrent_gain.png`
+
+Interpretation:
+
+- The trained checkpoints are consistently sensitive to all three gain
+  operators, and the paired sweeps establish interpretable dose-response
+  curves plus visible population-trajectory reorganization.
+- These are meaningful perturbation effects, but they are not yet evidence
+  that any operator recovers psilocybin dynamics. The strength values are
+  implementation coordinates rather than biological doses, PCA is descriptive
+  for one representative checkpoint, and mechanism comparison still requires
+  matched-cost calibration and held-out behavioural targets.
+- Input/distractor gain remains reserved for a distractor-capable task. Minimal
+  hybrid conditions should follow component calibration rather than being
+  inferred from clean-task impairment alone.
+
+</details>
+
+<details>
+<summary>2026-07-23 - Expanded psilocybin modelling dissertation draft</summary>
+
+Action:
+
+- Expanded the three-page literature summary into a structured dissertation
+  draft with an evidence-checked Introduction, reproducible fixation-gated
+  baseline Methods and Results, and an integrated independent-Gaussian control.
+- Reframed the argument around the central hypothesis that perturbing a trained
+  working-memory RNN may recover selective acute psilocybin behavioural
+  signatures reported in humans.
+- Removed project-management material, the gain evidence matrix, coding
+  specification, verification checklist, and explicit next-step language from
+  the dissertation prose.
+
+Recorded result:
+
+- Baseline and Gaussian numerical claims were traced to the current
+  `fixation_circular_working_memory` artifacts.
+- Gain remains a cautiously motivated candidate mechanism in the scientific
+  narrative, while its research audit and implementation details remain
+  outside the dissertation draft.
+
+Recorded outputs:
+
+- `docs/reports/psilocybin_modelling_summary.tex`
+- `docs/reports/psilocybin_modelling_summary.pdf`
+- `docs/reports/references.bib`
+
+Interpretation:
+
+- Response, input, and recurrent gain are retained as distinct candidate
+  computational mechanisms. None is presented as biologically equivalent to
+  psilocybin, and Gaussian RMS is retained as a non-pharmacological control
+  parameter.
+
+</details>
+
+<details>
 <summary>2026-07-23 - Current commit - Remove legacy prefix from fixation model paths</summary>
 
 Purpose: remove the legacy personal-name prefix from repository path names while preserving the fixation-gated circular working-memory model identity.
