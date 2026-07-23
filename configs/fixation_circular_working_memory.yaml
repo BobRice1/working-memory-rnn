@@ -46,5 +46,5 @@ decoder:
   ridge_alpha: 1.0
 
 paths:
-  output_dir: outputs/yang_fixation_circular_working_memory
-  run_name: yang_fixation_circular_working_memory
+  output_dir: outputs/fixation_circular_working_memory
+  run_name: fixation_circular_working_memory

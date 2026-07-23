@@ -3,6 +3,19 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-23 - Current commit - Remove legacy prefix from fixation model paths</summary>
+
+Purpose: remove the legacy personal-name prefix from repository path names while preserving the fixation-gated circular working-memory model identity.
+
+File changes:
+
+- `configs/fixation_circular_working_memory.yaml`: Renamed the active config and updated its output directory and run name to the neutral fixation model path.
+- `docs/fixation-circular-working-memory.md`: Renamed the model note file to match the neutral path naming.
+- `notebooks/01_fixation_circular_working_memory.ipynb`: Renamed the model walkthrough notebook to match the neutral path naming.
+
+</details>
+
+<details>
 <summary>2026-07-21 - Stimulus→delay PCA Manim animation (smoother, CUDA, 256 trials)</summary>
 
 Action:
