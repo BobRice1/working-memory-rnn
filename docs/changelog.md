@@ -3,7 +3,35 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Implement Family B distribution-loss rescue</summary>
+<summary>2026-07-26 - Current commit - Record distribution-loss rescue failure</summary>
+
+Purpose:
+
+- Enforce the R1 development stop rule after the first preregistered seed.
+
+Recorded result:
+
+- Seed `20260801` passed fixation (`0.966-0.968`) but failed every memory gate.
+- Pooled clean error was `42.14` degrees; load2 clean was `49.14-54.29`
+  degrees; distractor cells reached `46.49-70.28` degrees.
+- Resultant lengths of `0.37-0.61` show that probability outputs were not
+  uniform, so the loss rescue removed the raw-output loophole without restoring
+  correct joint retrieval.
+
+Recorded outputs:
+
+- `outputs/multicondition_working_memory_distribution_loss/seed_sweep/seed_20260801/`
+- `docs/preregistration/family_b_distribution_loss_rescue_audit.md`
+
+Interpretation:
+
+- R1 failed. Seeds `20260802-03` were stopped, final seeds remain untouched,
+  and no perturbation outcome was inspected.
+
+</details>
+
+<details>
+<summary>2026-07-26 - 23cb77b - Implement Family B distribution-loss rescue</summary>
 
 Purpose:
 
