@@ -3,6 +3,34 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-26 - Current commit - Pre-register actual N-back redesign</summary>
+
+Purpose:
+
+- Replace the failed synthetic two-slot Family B baseline with an actual
+  shared 0-back/2-back task grounded in human and RNN N-back literature.
+
+File changes:
+
+- `docs/nback_rnn_literature_and_architecture.md`: Recorded the human target,
+  published RNN precedents, retained CTRNN rationale, and claim boundary.
+- `docs/preregistration/nback_baseline_and_integration_preregistration.md`:
+  Froze the task, architecture, competence-gated curriculum, metrics,
+  development/final seeds, perturbation contrast, and stop rules.
+
+Interpretation:
+
+- The old R1-R3 failures concern baseline learnability, not perturbation
+  mechanisms.
+- The actual N-back baseline will supply the 0-back/2-back load dissociation;
+  the stable delayed-response family remains responsible for delay and
+  distractor signatures.
+- No N-back code, training result, or perturbation outcome is included in this
+  pre-registration commit.
+
+</details>
+
+<details>
 <summary>2026-07-26 - Current commit - Record 128-unit rescue failure</summary>
 
 Purpose:
