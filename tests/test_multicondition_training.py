@@ -29,6 +29,24 @@ EXPECTED_TYPES = {
 }
 
 
+def test_hidden128_rescue_config_changes_only_capacity_and_paths() -> None:
+    role = load_config(
+        "configs/multicondition_working_memory_distribution_role.yaml"
+    )
+    hidden128 = load_config(
+        "configs/multicondition_working_memory_distribution_role_h128.yaml"
+    )
+
+    assert role["model"]["hidden_size"] == 64
+    assert hidden128["model"]["hidden_size"] == 128
+    assert hidden128["paths"]["output_dir"].endswith("_h128")
+    assert hidden128["paths"]["run_name"].endswith("_h128")
+
+    role["model"]["hidden_size"] = hidden128["model"]["hidden_size"]
+    role["paths"] = hidden128["paths"]
+    assert role == hidden128
+
+
 def test_balanced_block_contains_every_trial_type_once() -> None:
     first_rng = np.random.default_rng(123)
     second_rng = np.random.default_rng(123)
@@ -286,4 +304,46 @@ def test_distribution_role_training_smoke_uses_extra_channel(tmp_path) -> None:
 
     assert checkpoint["model_state"]["rnn.input2h.weight"].shape[1] == 11
     assert all("response_cross_entropy" in row for row in result.history)
+    assert all(np.isfinite(row["loss"]) for row in result.history)
+
+
+def test_hidden128_rescue_training_smoke_preserves_dimensions(tmp_path) -> None:
+    config = load_config(
+        "configs/multicondition_working_memory_distribution_role_h128.yaml"
+    )
+    config["task"]["n_tuned_units"] = 8
+    config["task"]["batch_size"] = 4
+    config["task"]["pre_cue_steps_choices"] = [2]
+    config["task"]["delay_steps_choices"] = [4]
+    config["task"]["serial_item_cue_steps"] = 2
+    config["task"]["item_gap_steps"] = 1
+    config["task"]["response_steps"] = 4
+    config["model"]["recurrent_noise_std"] = 0.0
+    config["training"]["steps"] = 4
+    config["training"]["response_transition_steps"] = 1
+    config["training"]["curriculum"] = [
+        {
+            "until_step": 4,
+            "trial_type_counts": {
+                "load1_clean": 1,
+                "load1_distractor": 1,
+                "load2_clean": 1,
+                "load2_distractor": 1,
+            },
+        }
+    ]
+    config["training"]["log_every"] = 4
+    config["training"]["device"] = "cpu"
+    config["paths"]["output_dir"] = str(tmp_path / "hidden128")
+    config["paths"]["run_name"] = "hidden128_test"
+
+    result = train_model(config)
+    checkpoint = torch.load(
+        result.checkpoint_path,
+        map_location="cpu",
+        weights_only=False,
+    )
+
+    assert checkpoint["model_state"]["rnn.input2h.weight"].shape == (128, 11)
+    assert checkpoint["model_state"]["readout.weight"].shape == (9, 128)
     assert all(np.isfinite(row["loss"]) for row in result.history)

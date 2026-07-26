@@ -3,7 +3,30 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Pre-register 128-unit Family B rescue</summary>
+<summary>2026-07-26 - Current commit - Implement 128-unit Family B rescue</summary>
+
+Purpose:
+
+- Implement and verify the frozen R3 capacity rescue before training any
+  development seed.
+
+File changes:
+
+- `configs/multicondition_working_memory_distribution_role_h128.yaml`: Added
+  the exact R2 configuration with only hidden size and output paths changed.
+- `tests/test_multicondition_training.py`: Added an exact config-difference
+  guard and a 128-unit CPU training smoke test.
+
+Verification:
+
+- `.venv\Scripts\python.exe -m pytest -q` passed: 162 tests.
+- `git diff --check` passed.
+- No R3 development checkpoint or perturbation outcome was generated.
+
+</details>
+
+<details>
+<summary>2026-07-26 - 3c082ac - Pre-register 128-unit Family B rescue</summary>
 
 Purpose:
 
