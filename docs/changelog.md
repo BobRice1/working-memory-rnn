@@ -3,7 +3,38 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Implement 128-unit Family B rescue</summary>
+<summary>2026-07-26 - Current commit - Record 128-unit rescue failure</summary>
+
+Purpose:
+
+- Enforce the R3 development stop rule and close the planned baseline rescue
+  ladder.
+
+Recorded result:
+
+- Seed `20260807` passed fixation (`0.965-0.966`) but failed six of seven
+  memory checks.
+- Pooled clean error was `46.56` degrees; load2 clean was `46.83-73.12`
+  degrees; load2 distractor was `48.99-75.03` degrees.
+- Probability-output resultant lengths were `0.39-0.53`, again showing
+  structured but incorrect response distributions.
+
+Recorded outputs:
+
+- `outputs/multicondition_working_memory_distribution_role_h128/seed_sweep/seed_20260807/`
+- `docs/preregistration/family_b_hidden128_rescue_audit.md`
+
+Interpretation:
+
+- R3 failed. Seeds `20260808-09` were stopped, final seeds remain untouched,
+  and no perturbation outcome was inspected.
+- Distribution loss, role labelling, and doubled hidden capacity were each
+  insufficient. Further work requires a new training/task-design decision.
+
+</details>
+
+<details>
+<summary>2026-07-26 - fb85c49 - Implement 128-unit Family B rescue</summary>
 
 Purpose:
 
