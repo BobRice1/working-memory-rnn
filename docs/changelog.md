@@ -3,7 +3,31 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Record stimulus-role rescue failure</summary>
+<summary>2026-07-26 - Current commit - Pre-register 128-unit Family B rescue</summary>
+
+Purpose:
+
+- Freeze R3 before changing recurrent capacity or training its development
+  seeds.
+
+File changes:
+
+- `docs/preregistration/family_b_hidden128_rescue_preregistration.md`: Fixed
+  the sole hidden-size change, unchanged R2 components and competence gates,
+  required checks, development/final seed separation, and terminal stop rule.
+- `docs/changelog.md`: Recorded the R3 baseline-only pre-registration.
+
+Interpretation:
+
+- R3 tests whether 64-unit capacity caused the competence failure; it does not
+  test a perturbation mechanism.
+- Any failed development gate exhausts the planned rescue ladder before
+  final-family training.
+
+</details>
+
+<details>
+<summary>2026-07-26 - ac08bbe - Record stimulus-role rescue failure</summary>
 
 Purpose:
 
