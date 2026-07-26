@@ -3,7 +3,35 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Implement Family B stimulus-role rescue</summary>
+<summary>2026-07-26 - Current commit - Record stimulus-role rescue failure</summary>
+
+Purpose:
+
+- Enforce the R2 development stop rule after the first preregistered seed.
+
+Recorded result:
+
+- Seed `20260804` passed fixation (`0.967-0.969`) but failed all seven memory
+  checks.
+- Pooled clean error was `42.46` degrees; load2 clean was `62.79-65.81`
+  degrees; load2 distractor was `66.22-67.64` degrees.
+- Probability-output resultant lengths were `0.42-0.48`, showing structured
+  but incorrect response distributions.
+
+Recorded outputs:
+
+- `outputs/multicondition_working_memory_distribution_role/seed_sweep/seed_20260804/`
+- `docs/preregistration/family_b_stimulus_role_rescue_audit.md`
+
+Interpretation:
+
+- R2 failed. Seeds `20260805-06` were stopped, final seeds remain untouched,
+  and no perturbation outcome was inspected.
+
+</details>
+
+<details>
+<summary>2026-07-26 - cd031aa - Implement Family B stimulus-role rescue</summary>
 
 Purpose:
 
