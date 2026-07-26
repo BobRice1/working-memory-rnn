@@ -72,6 +72,21 @@ def task_config_from_dict(config: dict[str, Any], seed_offset: int = 0, batch_si
             batch_size=resolved_batch_size,
             seed=seed,
             fixation_gated=bool(task.get("fixation_gated", False)),
+            distractor_steps=int(task.get("distractor_steps", 0)),
+            distractor_onset_fraction=float(
+                task.get("distractor_onset_fraction", 0.5)
+            ),
+            distractor_angle_mode=str(
+                task.get("distractor_angle_mode", "random")
+            ),
+            distractor_offset=float(task.get("distractor_offset", np.pi / 2)),
+            n_items=int(task.get("n_items", 1)),
+            probe_gated=bool(task.get("probe_gated", False)),
+            serial_item_cue_steps=int(task.get("serial_item_cue_steps", 8)),
+            item_gap_steps=int(task.get("item_gap_steps", 2)),
+            min_item_separation=float(
+                task.get("min_item_separation", np.pi / 6)
+            ),
         )
     raise ValueError(f"unknown task_type: {task_type}")
 

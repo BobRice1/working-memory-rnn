@@ -14,6 +14,7 @@ from wm_rnn.config import load_config
 from wm_rnn.device import select_device
 from wm_rnn.io import ensure_run_dirs, write_history_csv, write_json
 from wm_rnn.training_utils import (
+    TaskConfig,
     batch_to_tensors,
     fresh_model,
     generate_batch_for_task,
@@ -23,6 +24,13 @@ from wm_rnn.training_utils import (
     task_config_from_dict,
     with_delay_steps,
     weighted_tuned_mse,
+)
+
+_FAMILY_B_TRIAL_TYPES = (
+    "load1_clean",
+    "load1_distractor",
+    "load2_clean",
+    "load2_distractor",
 )
 
 
@@ -41,6 +49,34 @@ class TrainResult:
     metrics_path: Path
     history_path: Path
     history: list[dict[str, Any]]
+
+
+def draw_balanced_trial_type_block(
+    rng: np.random.Generator,
+) -> list[str]:
+    """Shuffle one homogeneous batch of each Family B trial type."""
+    block = list(_FAMILY_B_TRIAL_TYPES)
+    rng.shuffle(block)
+    return block
+
+
+def apply_trial_type(
+    task_config: TaskConfig,
+    trial_type: str,
+    distractor_steps: int,
+) -> TaskConfig:
+    """Return a homogeneous Family B task config for one optimizer batch."""
+    if trial_type not in _FAMILY_B_TRIAL_TYPES:
+        raise ValueError(f"unknown trial_type: {trial_type}")
+    if not getattr(task_config, "probe_gated", False):
+        raise ValueError("balanced Family B trial types require probe_gated=True")
+    n_items = 2 if trial_type.startswith("load2") else 1
+    use_distractor = trial_type.endswith("distractor")
+    return replace(
+        task_config,
+        n_items=n_items,
+        distractor_steps=int(distractor_steps) if use_distractor else 0,
+    )
 
 
 def train_model(config: dict[str, Any]) -> TrainResult:
@@ -96,8 +132,29 @@ def train_model(config: dict[str, Any]) -> TrainResult:
     delay_choices = config["task"].get("delay_steps_choices")
     pre_cue_choices = config["task"].get("pre_cue_steps_choices")
     cue_choices = config["task"].get("cue_steps_choices")
+    trial_type_sampling = str(
+        config["training"].get("trial_type_sampling", "default")
+    )
+    balanced_trial_types = trial_type_sampling == "balanced_homogeneous_blocks"
+    if trial_type_sampling not in {"default", "balanced_homogeneous_blocks"}:
+        raise ValueError(
+            "training.trial_type_sampling must be 'default' or "
+            "'balanced_homogeneous_blocks'"
+        )
     randomize_delay = (delay_min is not None and delay_max is not None) or delay_choices is not None
-    delay_rng = np.random.default_rng(base_seed + 777777) if randomize_delay else None
+    needs_task_rng = (
+        randomize_delay
+        or pre_cue_choices is not None
+        or cue_choices is not None
+        or balanced_trial_types
+    )
+    delay_rng = (
+        np.random.default_rng(base_seed + 777777) if needs_task_rng else None
+    )
+    configured_distractor_steps = int(
+        config["task"].get("distractor_steps", 0)
+    )
+    trial_type_block: list[str] = []
 
     history: list[dict[str, Any]] = []
 
@@ -110,7 +167,10 @@ def train_model(config: dict[str, Any]) -> TrainResult:
                 else int(delay_rng.integers(int(delay_min), int(delay_max) + 1))
             )
             task_config = with_delay_steps(task_config, sampled_delay)
-        if pre_cue_choices is not None or cue_choices is not None:
+        if pre_cue_choices is not None or (
+            cue_choices is not None
+            and not getattr(task_config, "probe_gated", False)
+        ):
             task_config = replace(
                 task_config,
                 pre_cue_steps=(
@@ -120,9 +180,20 @@ def train_model(config: dict[str, Any]) -> TrainResult:
                 ),
                 cue_steps=(
                     int(delay_rng.choice(cue_choices))
-                    if cue_choices is not None
+                    if (
+                        cue_choices is not None
+                        and not getattr(task_config, "probe_gated", False)
+                    )
                     else task_config.cue_steps
                 ),
+            )
+        trial_type = "default"
+        if balanced_trial_types:
+            if not trial_type_block:
+                trial_type_block = draw_balanced_trial_type_block(delay_rng)
+            trial_type = trial_type_block.pop(0)
+            task_config = apply_trial_type(
+                task_config, trial_type, configured_distractor_steps
             )
         batch = generate_batch_for_task(task_config)
         inputs, targets, loss_mask = batch_to_tensors(batch, device_info.device)
@@ -172,6 +243,11 @@ def train_model(config: dict[str, Any]) -> TrainResult:
             "delay_steps": task_config.delay_steps,
             "pre_cue_steps": getattr(task_config, "pre_cue_steps", 0),
             "cue_steps": task_config.cue_steps,
+            "trial_type": trial_type,
+            "n_items": int(getattr(task_config, "n_items", 1)),
+            "distractor_steps": int(
+                getattr(task_config, "distractor_steps", 0)
+            ),
         }
         if task_type == "tuned":
             row["population_mse"] = row["loss"]
@@ -204,6 +280,7 @@ def train_model(config: dict[str, Any]) -> TrainResult:
             [int(delay_min), int(delay_max)] if delay_choices is None and randomize_delay else None
         ),
         "delay_steps_choices": [int(value) for value in delay_choices] if delay_choices is not None else None,
+        "trial_type_sampling": trial_type_sampling,
         "checkpoint": str(checkpoint_path),
     }
     if task_type == "tuned":

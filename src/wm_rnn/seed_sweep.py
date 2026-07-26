@@ -15,6 +15,7 @@ from wm_rnn.config import load_config
 from wm_rnn.cross_temporal_decoder import run_cross_temporal_decoder
 from wm_rnn.delay_sweep import run_delay_sweep
 from wm_rnn.evaluate import evaluate_model
+from wm_rnn.family_b_evaluation import evaluate_family_b_conditions
 from wm_rnn.io import ensure_run_dirs, write_json
 from wm_rnn.train import train_model
 from wm_rnn.training_utils import task_config_from_dict
@@ -90,12 +91,21 @@ def run_seed_sweep(config: dict[str, Any], seeds: list[int], delays: list[int] |
             "delay_sweep_metrics": "",
             "delay_sweep_csv": "",
             "delay_sweep_figure": "",
+            "family_b_acceptance_metrics": "",
+            "family_b_acceptance_csv": "",
+            "family_b_acceptance_passed": "",
         }
 
         if task_type == "tuned":
             decoder_result = run_cross_temporal_decoder(seed_config, train_result.checkpoint_path)
             decoder_task = task_config_from_dict(seed_config)
-            delay_start = int(getattr(decoder_task, "pre_cue_steps", 0)) + int(decoder_task.cue_steps)
+            cue_block_steps = (
+                2 * int(decoder_task.serial_item_cue_steps)
+                + int(decoder_task.item_gap_steps)
+                if getattr(decoder_task, "probe_gated", False)
+                else int(decoder_task.cue_steps)
+            )
+            delay_start = int(getattr(decoder_task, "pre_cue_steps", 0)) + cue_block_steps
             delay_end = delay_start + int(decoder_task.delay_steps)
             diagonal = np.diag(decoder_result.mean_error_degrees)
             row.update(
@@ -107,6 +117,23 @@ def run_seed_sweep(config: dict[str, Any], seeds: list[int], delays: list[int] |
                     ),
                 }
             )
+            if bool(seed_config["task"].get("probe_gated", False)):
+                acceptance_result = evaluate_family_b_conditions(
+                    seed_config, train_result.checkpoint_path
+                )
+                row.update(
+                    {
+                        "family_b_acceptance_metrics": str(
+                            acceptance_result.metrics_path
+                        ),
+                        "family_b_acceptance_csv": str(
+                            acceptance_result.csv_path
+                        ),
+                        "family_b_acceptance_passed": bool(
+                            acceptance_result.acceptance["passed"]
+                        ),
+                    }
+                )
 
         if delays:
             delay_result = run_delay_sweep(seed_config, train_result.checkpoint_path, delays)
@@ -163,6 +190,9 @@ def _write_seed_sweep_csv(path: str | Path, results: list[dict[str, Any]]) -> Pa
         "delay_sweep_metrics",
         "delay_sweep_csv",
         "delay_sweep_figure",
+        "family_b_acceptance_metrics",
+        "family_b_acceptance_csv",
+        "family_b_acceptance_passed",
     ]
     with target.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)

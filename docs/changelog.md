@@ -3,7 +3,64 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Freeze psilocybin-signature experiment pre-registration</summary>
+<summary>2026-07-26 - Current commit - Implement psilocybin-signature experiment</summary>
+
+Purpose:
+
+- Implement and verify the frozen experiment before training Family B or
+  inspecting any perturbation outcome.
+
+File changes:
+
+- `src/wm_rnn/perturbation_metrics.py`: Added pure NumPy functions for
+  amplitude-gated settling, D9 settling validity, hidden-state circular
+  decoding error, distractor drift and recovery, exploratory response geometry,
+  signed circular error, activation slope and saturation, and fixed-bin
+  marginal state entropy.
+- `tests/test_perturbation_metrics.py`: Added synthetic tests for every Phase 1
+  metric, including silent-output rejection, restricted-mean conditioning
+  bias, response-failure versus latency classification, fixation failure,
+  non-finite-input rejection, bounded-state checks, and circular wrap/sign
+  behaviour.
+- `src/wm_rnn/tuned_task.py` and `src/wm_rnn/training_utils.py`: Added
+  byte-regression-protected distractor and matched-timing two-slot retro-cue
+  tasks with explicit per-item retention metadata.
+- `src/wm_rnn/perturbation_operators.py`: Added the eight explicit perturbation
+  operators, neutral invariants, the P6/P7 distinction, and the result-contingent
+  Phase 9 hybrid.
+- `configs/multicondition_working_memory.yaml`, `src/wm_rnn/train.py`,
+  `src/wm_rnn/family_b_evaluation.py`, and `src/wm_rnn/seed_sweep.py`: Added
+  balanced homogeneous Family B training and all-condition acceptance checks.
+- `src/wm_rnn/perturbation_calibration.py` and
+  `src/wm_rnn/perturbation_experiment.py`: Added proportional matched-cost
+  calibration, deterministic D8 separation, high-precision cost/P5 gates,
+  decoder reuse, exact grid schemas, metadata hashes, and smoke/full CLIs.
+- `src/wm_rnn/perturbation_signature_scoring.py` and
+  `src/wm_rnn/perturbation_signature_figures.py`: Added pre-outcome IUT/Holm
+  scoring, D10 taxonomy, distinguishability and the frozen figure set.
+- `src/wm_rnn/perturbation_assignment_sensitivity.py`: Added the
+  result-contingent Phase 8 permutation and alignment utilities.
+- `tests/`: Added focused task, operator, calibration, harness, scoring,
+  assignment and training tests.
+- `docs/changelog.md`: Recorded the verified implementation and the hash of the
+  preceding pre-registration commit.
+
+Verification:
+
+- `.venv\Scripts\python.exe -m pytest tests -q` passed: 146 tests.
+- `git diff --check` passed.
+
+Interpretation:
+
+- This commit constructs the pre-registered task, perturbation and outcome
+  space; it contains no Family B training result or perturbation outcome.
+- Restricted-mean settling is interpreted as a latency analogue only after
+  fixation and response-failure validity gates pass.
+
+</details>
+
+<details>
+<summary>2026-07-26 - 5f888be - Freeze psilocybin-signature experiment pre-registration</summary>
 
 Purpose:
 
