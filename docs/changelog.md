@@ -3,7 +3,28 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Record distribution-loss rescue failure</summary>
+<summary>2026-07-26 - Current commit - Pre-register Family B stimulus-role rescue</summary>
+
+Purpose:
+
+- Freeze R2 before adding a task-role input or training its development seeds.
+
+File changes:
+
+- `docs/preregistration/family_b_stimulus_role_rescue_preregistration.md`:
+  Fixed the role-channel semantics, unchanged R1 components and competence
+  gates, required tests, development/final seed separation, and stop rule.
+- `docs/changelog.md`: Recorded the R2 baseline-only pre-registration.
+
+Interpretation:
+
+- R2 tests task-role ambiguity, not a perturbation mechanism.
+- Any failed development gate stops R2 before final-family training.
+
+</details>
+
+<details>
+<summary>2026-07-26 - de45f30 - Record distribution-loss rescue failure</summary>
 
 Purpose:
 
