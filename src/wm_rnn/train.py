@@ -53,11 +53,77 @@ class TrainResult:
 
 def draw_balanced_trial_type_block(
     rng: np.random.Generator,
+    trial_types: tuple[str, ...] = _FAMILY_B_TRIAL_TYPES,
 ) -> list[str]:
     """Shuffle one homogeneous batch of each Family B trial type."""
-    block = list(_FAMILY_B_TRIAL_TYPES)
+    if not trial_types or any(
+        trial_type not in _FAMILY_B_TRIAL_TYPES
+        for trial_type in trial_types
+    ):
+        raise ValueError("trial_types must be a non-empty Family B subset")
+    block = list(trial_types)
     rng.shuffle(block)
     return block
+
+
+def _family_b_curriculum(
+    training_config: dict[str, Any],
+    steps: int,
+) -> list[tuple[int, tuple[str, ...], float | None]]:
+    """Validate and return cumulative deterministic Family B stages."""
+    raw_stages = training_config.get("curriculum")
+    if raw_stages is None:
+        return [(steps, _FAMILY_B_TRIAL_TYPES, None)]
+    if not isinstance(raw_stages, list) or not raw_stages:
+        raise ValueError("training.curriculum must be a non-empty list")
+    stages: list[tuple[int, tuple[str, ...], float | None]] = []
+    previous = 0
+    for raw_stage in raw_stages:
+        if not isinstance(raw_stage, dict):
+            raise ValueError("each curriculum stage must be a mapping")
+        until_step = int(raw_stage["until_step"])
+        if "trial_type_counts" in raw_stage:
+            counts = raw_stage["trial_type_counts"]
+            if not isinstance(counts, dict) or not counts:
+                raise ValueError(
+                    "curriculum trial_type_counts must be a non-empty mapping"
+                )
+            trial_types = tuple(
+                str(trial_type)
+                for trial_type, count in counts.items()
+                for _ in range(int(count))
+            )
+            if any(int(count) <= 0 for count in counts.values()):
+                raise ValueError(
+                    "curriculum trial-type counts must be positive"
+                )
+        else:
+            trial_types = tuple(
+                str(value) for value in raw_stage["trial_types"]
+            )
+        if until_step <= previous:
+            raise ValueError("curriculum until_step values must increase")
+        draw_balanced_trial_type_block(
+            np.random.default_rng(0), trial_types
+        )
+        learning_rate = (
+            float(raw_stage["learning_rate"])
+            if "learning_rate" in raw_stage
+            else None
+        )
+        if learning_rate is not None and learning_rate <= 0.0:
+            raise ValueError("curriculum learning rates must be positive")
+        stages.append((until_step, trial_types, learning_rate))
+        previous = until_step
+    if stages[-1][0] != steps:
+        raise ValueError(
+            "the final curriculum until_step must equal training.steps"
+        )
+    if set(stages[-1][1]) != set(_FAMILY_B_TRIAL_TYPES):
+        raise ValueError(
+            "the final curriculum stage must represent every 2 x 2 cell"
+        )
+    return stages
 
 
 def apply_trial_type(
@@ -116,7 +182,10 @@ def train_model(config: dict[str, Any]) -> TrainResult:
     torch.manual_seed(base_seed)
     dirs = ensure_run_dirs(config["paths"]["output_dir"])
     model = fresh_model(config, device_info.device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=float(config["training"]["learning_rate"]))
+    base_learning_rate = float(config["training"]["learning_rate"])
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=base_learning_rate
+    )
 
     steps = int(config["training"]["steps"])
     log_every = int(config["training"].get("log_every", 50))
@@ -154,6 +223,12 @@ def train_model(config: dict[str, Any]) -> TrainResult:
     configured_distractor_steps = int(
         config["task"].get("distractor_steps", 0)
     )
+    curriculum = (
+        _family_b_curriculum(config["training"], steps)
+        if balanced_trial_types
+        else []
+    )
+    curriculum_stage = -1
     trial_type_block: list[str] = []
 
     history: list[dict[str, Any]] = []
@@ -189,8 +264,29 @@ def train_model(config: dict[str, Any]) -> TrainResult:
             )
         trial_type = "default"
         if balanced_trial_types:
+            resolved_stage = next(
+                index
+                for index, (
+                    until_step,
+                    _trial_types,
+                    _learning_rate,
+                ) in enumerate(curriculum)
+                if step <= until_step
+            )
+            if resolved_stage != curriculum_stage:
+                curriculum_stage = resolved_stage
+                trial_type_block = []
+                stage_learning_rate = (
+                    curriculum[curriculum_stage][2]
+                    or base_learning_rate
+                )
+                for parameter_group in optimizer.param_groups:
+                    parameter_group["lr"] = stage_learning_rate
+            stage_trial_types = curriculum[curriculum_stage][1]
             if not trial_type_block:
-                trial_type_block = draw_balanced_trial_type_block(delay_rng)
+                trial_type_block = draw_balanced_trial_type_block(
+                    delay_rng, stage_trial_types
+                )
             trial_type = trial_type_block.pop(0)
             task_config = apply_trial_type(
                 task_config, trial_type, configured_distractor_steps
@@ -244,6 +340,10 @@ def train_model(config: dict[str, Any]) -> TrainResult:
             "pre_cue_steps": getattr(task_config, "pre_cue_steps", 0),
             "cue_steps": task_config.cue_steps,
             "trial_type": trial_type,
+            "curriculum_stage": (
+                curriculum_stage + 1 if balanced_trial_types else 0
+            ),
+            "learning_rate": float(optimizer.param_groups[0]["lr"]),
             "n_items": int(getattr(task_config, "n_items", 1)),
             "distractor_steps": int(
                 getattr(task_config, "distractor_steps", 0)
@@ -281,6 +381,7 @@ def train_model(config: dict[str, Any]) -> TrainResult:
         ),
         "delay_steps_choices": [int(value) for value in delay_choices] if delay_choices is not None else None,
         "trial_type_sampling": trial_type_sampling,
+        "curriculum": config["training"].get("curriculum"),
         "checkpoint": str(checkpoint_path),
     }
     if task_type == "tuned":

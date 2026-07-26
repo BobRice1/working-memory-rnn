@@ -3,7 +3,48 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Implement psilocybin-signature experiment</summary>
+<summary>2026-07-26 - Current commit - Record Family B competence failure</summary>
+
+Purpose:
+
+- Execute the Phase 4 baseline-only competence gate before inspecting any
+  perturbation outcome.
+- Exercise the frozen training contingencies without weakening any acceptance
+  threshold.
+
+File changes:
+
+- `src/wm_rnn/train.py`: Added a deterministic competence curriculum with
+  explicit trial-type counts and optional stage-specific learning rates.
+- `configs/multicondition_working_memory.yaml`: Recorded the final tested
+  fallback schedule: clean pretraining, balanced clean load training, then all
+  four task cells at balanced load, 0.35 distractor prevalence, and a `0.0001`
+  final-stage learning rate.
+- `tests/test_multicondition_training.py`: Added curriculum, weighted-block,
+  and learning-rate transition tests.
+- `docs/preregistration/family_b_phase4_competence_audit.md`: Recorded every
+  baseline-only attempt, component diagnostic, held-out gate value, and the
+  decision to stop before perturbation outcomes.
+
+Verification:
+
+- `.venv\Scripts\python.exe -m pytest tests -q` passed: 148 tests.
+- The final held-out Family B evaluation passed fixation (`0.966`) but failed
+  seven of eight competence checks; only second-position `load2_clean` passed.
+- No perturbation calibration, grid, signature score, or result-contingent
+  analysis was run.
+
+Interpretation:
+
+- The component tasks are learnable in isolation, but the frozen 64-unit RNN
+  did not jointly retain clean, load, distractor, and probe-dependent behavior.
+- Phases 5-10 are upstream-blocked by the Phase 4 stop rule. Proceeding would
+  turn baseline task failure into uninterpretable perturbation deficits.
+
+</details>
+
+<details>
+<summary>2026-07-26 - 5fa38fc - Implement psilocybin-signature experiment</summary>
 
 Purpose:
 

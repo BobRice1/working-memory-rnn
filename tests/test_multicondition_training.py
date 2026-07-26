@@ -41,6 +41,19 @@ def test_balanced_block_contains_every_trial_type_once() -> None:
     assert first == repeat
 
 
+def test_balanced_block_accepts_deterministic_curriculum_subset() -> None:
+    first_rng = np.random.default_rng(321)
+    second_rng = np.random.default_rng(321)
+    subset = ("load1_clean", "load2_clean")
+
+    assert draw_balanced_trial_type_block(first_rng, subset) == (
+        draw_balanced_trial_type_block(second_rng, subset)
+    )
+    assert set(draw_balanced_trial_type_block(first_rng, subset)) == set(
+        subset
+    )
+
+
 def test_trial_type_maps_to_homogeneous_task_config() -> None:
     base = TunedDelayTaskConfig(
         probe_gated=True,
@@ -76,6 +89,23 @@ def test_training_uses_balanced_four_batch_blocks(tmp_path) -> None:
     config["model"]["hidden_size"] = 8
     config["model"]["recurrent_noise_std"] = 0.0
     config["training"]["steps"] = 8
+    config["training"]["curriculum"] = [
+        {"until_step": 2, "trial_types": ["load1_clean"]},
+        {
+            "until_step": 4,
+            "trial_types": ["load1_clean", "load2_clean"],
+        },
+        {
+            "until_step": 8,
+            "learning_rate": 0.0001,
+            "trial_type_counts": {
+                "load1_clean": 1,
+                "load1_distractor": 1,
+                "load2_clean": 1,
+                "load2_distractor": 1,
+            },
+        },
+    ]
     config["training"]["log_every"] = 8
     config["training"]["device"] = "cpu"
     config["paths"]["output_dir"] = str(tmp_path / "family_b")
@@ -84,8 +114,29 @@ def test_training_uses_balanced_four_batch_blocks(tmp_path) -> None:
     result = train_model(config)
 
     trial_types = [row["trial_type"] for row in result.history]
-    assert set(trial_types[:4]) == EXPECTED_TYPES
+    assert trial_types[:2] == ["load1_clean", "load1_clean"]
+    assert set(trial_types[2:4]) == {"load1_clean", "load2_clean"}
     assert set(trial_types[4:8]) == EXPECTED_TYPES
+    assert [row["curriculum_stage"] for row in result.history] == [
+        1,
+        1,
+        2,
+        2,
+        3,
+        3,
+        3,
+        3,
+    ]
+    assert [row["learning_rate"] for row in result.history] == [
+        0.001,
+        0.001,
+        0.001,
+        0.001,
+        0.0001,
+        0.0001,
+        0.0001,
+        0.0001,
+    ]
     for row in result.history:
         assert row["n_items"] == (
             2 if row["trial_type"].startswith("load2") else 1
@@ -94,6 +145,22 @@ def test_training_uses_balanced_four_batch_blocks(tmp_path) -> None:
             5 if row["trial_type"].endswith("distractor") else 0
         )
         assert row["cue_steps"] == 20
+
+
+def test_weighted_block_encodes_35_percent_distractor_rate() -> None:
+    block = draw_balanced_trial_type_block(
+        np.random.default_rng(99),
+        (
+            *("load1_clean",) * 13,
+            *("load1_distractor",) * 7,
+            *("load2_clean",) * 13,
+            *("load2_distractor",) * 7,
+        ),
+    )
+
+    assert len(block) == 40
+    assert sum(value.endswith("distractor") for value in block) == 14
+    assert sum(value.startswith("load2") for value in block) == 20
 
 
 def test_family_b_evaluation_reports_every_condition_and_position(

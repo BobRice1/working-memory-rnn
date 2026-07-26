@@ -30,7 +30,7 @@ model:
   recurrent_noise_std: 0.05
 
 training:
-  steps: 6000
+  steps: 12000
   learning_rate: 0.001
   log_every: 100
   yang_weighted_loss: true
@@ -41,6 +41,18 @@ training:
   input_noise_std: 0.01
   gradient_clip_value: 1.0
   trial_type_sampling: balanced_homogeneous_blocks
+  curriculum:
+    - until_step: 2000
+      trial_types: [load1_clean]
+    - until_step: 6000
+      trial_types: [load1_clean, load2_clean]
+    - until_step: 12000
+      learning_rate: 0.0001
+      trial_type_counts:
+        load1_clean: 13
+        load1_distractor: 7
+        load2_clean: 13
+        load2_distractor: 7
   device: auto
 
 evaluation:
