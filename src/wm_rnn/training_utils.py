@@ -10,6 +10,11 @@ import torch
 import torch.nn.functional as F
 
 from wm_rnn.model import RNNConfig, WorkingMemoryRNN
+from wm_rnn.nback_task import (
+    NBackBatch,
+    NBackTaskConfig,
+    generate_nback_batch,
+)
 from wm_rnn.task import DelayBatch, DelayTaskConfig, generate_delay_batch
 from wm_rnn.tuned_task import (
     TunedDelayBatch,
@@ -21,14 +26,16 @@ from wm_rnn.tuned_task import (
 )
 
 
-TaskConfig = DelayTaskConfig | TunedDelayTaskConfig
-TaskBatch = DelayBatch | TunedDelayBatch
+TaskConfig = DelayTaskConfig | TunedDelayTaskConfig | NBackTaskConfig
+TaskBatch = DelayBatch | TunedDelayBatch | NBackBatch
 
 
 def generate_batch_for_task(task_config: TaskConfig) -> TaskBatch:
     """Generate the appropriate batch type for a task config."""
     if isinstance(task_config, TunedDelayTaskConfig):
         return generate_tuned_delay_batch(task_config)
+    if isinstance(task_config, NBackTaskConfig):
+        return generate_nback_batch(task_config)
     if isinstance(task_config, DelayTaskConfig):
         return generate_delay_batch(task_config)
     raise TypeError(f"unsupported task config type: {type(task_config).__name__}")
@@ -92,6 +99,20 @@ def task_config_from_dict(config: dict[str, Any], seed_offset: int = 0, batch_si
                 task.get("min_item_separation", np.pi / 6)
             ),
         )
+    if task_type == "n_back":
+        return NBackTaskConfig(
+            n_stimuli=int(task["n_stimuli"]),
+            n_back=int(task.get("n_back", 0)),
+            sequence_items=int(task["sequence_items"]),
+            stimulus_steps=int(task["stimulus_steps"]),
+            interstimulus_steps=int(task["interstimulus_steps"]),
+            scored_start_item=int(task.get("scored_start_item", 2)),
+            target_identity=int(task.get("target_identity", 0)),
+            matches_per_sequence=int(task["matches_per_sequence"]),
+            min_one_back_lures=int(task.get("min_one_back_lures", 3)),
+            batch_size=resolved_batch_size,
+            seed=seed,
+        )
     raise ValueError(f"unknown task_type: {task_type}")
 
 
@@ -102,7 +123,13 @@ def model_config_from_dict(config: dict[str, Any]) -> RNNConfig:
     return RNNConfig(
         input_size=task_config.input_size,
         hidden_size=int(model["hidden_size"]),
-        output_size=task_config.output_size if isinstance(task_config, TunedDelayTaskConfig) else task_config.n_classes,
+        output_size=(
+            task_config.output_size
+            if isinstance(
+                task_config, (TunedDelayTaskConfig, NBackTaskConfig)
+            )
+            else task_config.n_classes
+        ),
         dt=float(model["dt"]),
         tau=float(model["tau"]),
         activation=str(model.get("activation", "tanh")),

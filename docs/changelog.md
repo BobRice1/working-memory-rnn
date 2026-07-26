@@ -3,7 +3,41 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Pre-register actual N-back redesign</summary>
+<summary>2026-07-26 - Current commit - Implement competence-gated N-back baseline</summary>
+
+Purpose:
+
+- Implement Phase 1 of the frozen actual 0-back/2-back redesign without
+  training a development seed.
+
+File changes:
+
+- `src/wm_rnn/nback_task.py`: Added deterministic exact-balance homogeneous
+  N-back sequences with rule context, matched warm-up, and one-back lures.
+- `src/wm_rnn/nback_metrics.py`: Added item-level Barrett metrics, corrected
+  d-prime, per-sequence cross-entropy, and guarded settling metrics.
+- `src/wm_rnn/train_nback.py`: Added the two-stage competence-gated trainer.
+- `src/wm_rnn/nback_evaluation.py`: Added held-out 0-back/2-back competence
+  evaluation and exact acceptance checks.
+- `src/wm_rnn/training_utils.py`: Registered the N-back task and its 8-input,
+  2-output model dimensions.
+- `configs/nback_working_memory.yaml`: Added the frozen development
+  configuration.
+- `tests/test_nback_*.py`: Added generator, metrics, CPU training, and CUDA
+  device coverage.
+
+Verification:
+
+- Focused N-back tests passed: 18 tests.
+- Full suite passed: 180 tests.
+- CUDA smoke test placed model, inputs, targets, states, logits, and loss on
+  the NVIDIA GPU.
+- No development seed or perturbation outcome was run.
+
+</details>
+
+<details>
+<summary>2026-07-26 - ec6ad30 - Pre-register actual N-back redesign</summary>
 
 Purpose:
 
