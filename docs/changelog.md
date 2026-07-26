@@ -3,7 +3,30 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Record Family B competence failure</summary>
+<summary>2026-07-26 - Current commit - Pre-register Family B distribution-loss rescue</summary>
+
+Purpose:
+
+- Freeze a baseline-only response-loss rescue before implementing it or
+  training its development seeds.
+
+File changes:
+
+- `docs/preregistration/family_b_distribution_loss_rescue_preregistration.md`:
+  Fixed the circular-distribution objective, probability decoding, unchanged
+  competence gates, three development seeds, untouched ten-seed final family,
+  required tests, and stop/proceed rules.
+- `docs/changelog.md`: Recorded the new baseline-rescue pre-registration.
+
+Interpretation:
+
+- The rescue changes no perturbation and cannot test a psilocybin mechanism.
+- Any development-seed failure stops R1 before final-family training.
+
+</details>
+
+<details>
+<summary>2026-07-26 - fa00964 - Record Family B competence failure</summary>
 
 Purpose:
 
