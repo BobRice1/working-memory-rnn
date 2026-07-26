@@ -3,6 +3,72 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-26 - Current commit - Freeze psilocybin-signature experiment pre-registration</summary>
+
+Purpose:
+
+- Freeze the outcome space, matched-cost comparison, validity gates, and
+  confirmatory decision rule before implementing the experiment or inspecting
+  any perturbation outcome grid.
+
+File changes:
+
+- `docs/preregistration/psilocybin_signature_preregistration.md`: Added the
+  commit-stamped Phase 0 pre-registration with an empty descriptive score
+  matrix, D1-D10, six primary Family B profiles, explicit descriptive-only
+  exclusions, P5-referenced C1-C3 constraints, IUT/Holm inference, power
+  boundaries, and the baseline-only cost-precision pilot.
+- `docs/changelog.md`: Recorded the permitted baseline-only precision pilot and
+  this scoped pre-registration commit.
+
+Interpretation:
+
+- The pre-registration tests whether an RNN perturbation reproduces selected
+  psilocybin-related behavioural signatures beyond matched generic Gaussian
+  degradation. A match demonstrates computational sufficiency in these task
+  analogues, not biological equivalence to psilocybin.
+
+</details>
+
+<details>
+<summary>2026-07-26 - Cost-match precision pilot on five frozen checkpoints</summary>
+
+Action:
+
+- Evaluated each of the five frozen fixation-gated checkpoints on 1,024
+  deterministic clean delay-20 trials using pilot batch seeds
+  `202607050`-`202607065`.
+- Computed one response-phase mean angular error per trial, then measured its
+  checkpoint-specific mean and standard deviation.
+- Used the conservative independent-means formula
+  `n = 2 * (1.96 * SD / (0.10 * mean))^2` to assess whether a held-out
+  proportional-cost band with half-width 0.10 is estimable precisely.
+
+Recorded result:
+
+- Response-mean error SDs were `6.144`, `1.632`, `1.382`, `2.015`, and
+  `1.971` degrees for seeds `20260714`-`20260718`; corresponding means were
+  `7.013`, `3.869`, `2.853`, `3.951`, and `3.936` degrees.
+- The worst checkpoint required 590 trials, or 640 after rounding to complete
+  64-trial batches, for a conservative 95% half-width of 0.10 proportional
+  cost. The earlier 256-trial cost gate was under-precise for that checkpoint.
+
+Recorded outputs:
+
+- No persistent analysis artifact; this was a read-only pre-registration
+  precision diagnostic recorded here and in the experiment specification.
+
+Interpretation:
+
+- The main outcome grid may remain at 256 trials per cell, but matched-cost
+  validation will use at least 1,024 dedicated held-out trials per checkpoint.
+- Family B will use a pre-registered baseline-only precision rule to increase
+  that count if its trial-level variability exceeds the existing-checkpoint
+  pilot.
+
+</details>
+
+<details>
 <summary>2026-07-23 - Five-checkpoint gain-modulation perturbation sweeps</summary>
 
 Action:
