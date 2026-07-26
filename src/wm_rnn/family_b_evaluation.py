@@ -17,10 +17,15 @@ from wm_rnn.training_utils import (
     batch_to_tensors,
     fresh_model,
     generate_batch_for_task,
+    population_normalization_from_config,
     task_config_from_dict,
     tuned_response_metrics,
 )
-from wm_rnn.tuned_task import circular_angular_error, decode_population_angle
+from wm_rnn.tuned_task import (
+    circular_angular_error,
+    decode_population_angle,
+    normalize_population_output,
+)
 
 
 CONDITIONS = (
@@ -71,10 +76,19 @@ def evaluate_family_b_conditions(
     model.eval()
 
     batches = int(config["evaluation"]["batches"])
+    population_normalization = population_normalization_from_config(config)
     rows: list[dict[str, Any]] = []
     with torch.no_grad():
         for condition_index, condition in enumerate(CONDITIONS):
             errors_by_position: dict[int, list[float]] = {0: [], 1: []}
+            cross_entropies_by_position: dict[int, list[float]] = {
+                0: [],
+                1: [],
+            }
+            resultant_lengths_by_position: dict[int, list[float]] = {
+                0: [],
+                1: [],
+            }
             fixation_accuracies: list[float] = []
             for batch_index in range(batches):
                 task_config = _condition_config(
@@ -93,6 +107,7 @@ def evaluate_family_b_conditions(
                     loss_mask,
                     batch.preferred_angles,
                     batch.angles,
+                    population_normalization=population_normalization,
                 )
                 fixation_accuracies.append(float(metrics["fixation_accuracy"]))
                 response = batch.phase_index["response"]
@@ -104,12 +119,48 @@ def evaluate_family_b_conditions(
                     .cpu()
                     .numpy()
                 )
+                probabilities = normalize_population_output(
+                    populations, normalization="softmax"
+                )
                 decoded = decode_population_angle(
-                    populations, batch.preferred_angles
+                    populations,
+                    batch.preferred_angles,
+                    normalization=population_normalization,
                 )
                 errors = np.degrees(
                     circular_angular_error(
                         decoded, batch.angles[np.newaxis, :]
+                    )
+                )
+                target_populations = (
+                    targets[
+                        response, :, : len(batch.preferred_angles)
+                    ]
+                    .detach()
+                    .cpu()
+                    .numpy()
+                )
+                target_probabilities = target_populations / np.sum(
+                    target_populations, axis=-1, keepdims=True
+                )
+                cross_entropies = -np.sum(
+                    target_probabilities
+                    * np.log(
+                        np.clip(
+                            probabilities,
+                            np.finfo(np.float32).tiny,
+                            1.0,
+                        )
+                    ),
+                    axis=-1,
+                )
+                preferred_complex = np.exp(
+                    1j * np.asarray(batch.preferred_angles)
+                )
+                resultant_lengths = np.abs(
+                    np.sum(
+                        probabilities * preferred_complex,
+                        axis=-1,
                     )
                 )
                 for position in (0, 1):
@@ -117,13 +168,48 @@ def evaluate_family_b_conditions(
                     errors_by_position[position].extend(
                         errors[:, selected].reshape(-1).astype(float).tolist()
                     )
+                    cross_entropies_by_position[position].extend(
+                        cross_entropies[:, selected]
+                        .reshape(-1)
+                        .astype(float)
+                        .tolist()
+                    )
+                    resultant_lengths_by_position[position].extend(
+                        resultant_lengths[:, selected]
+                        .reshape(-1)
+                        .astype(float)
+                        .tolist()
+                    )
 
             pooled = errors_by_position[0] + errors_by_position[1]
+            pooled_cross_entropies = (
+                cross_entropies_by_position[0]
+                + cross_entropies_by_position[1]
+            )
+            pooled_resultant_lengths = (
+                resultant_lengths_by_position[0]
+                + resultant_lengths_by_position[1]
+            )
             fixation_accuracy = float(np.mean(fixation_accuracies))
-            for position, values in (
-                ("pooled", pooled),
-                ("first", errors_by_position[0]),
-                ("second", errors_by_position[1]),
+            for position, values, cross_entropy_values, resultant_values in (
+                (
+                    "pooled",
+                    pooled,
+                    pooled_cross_entropies,
+                    pooled_resultant_lengths,
+                ),
+                (
+                    "first",
+                    errors_by_position[0],
+                    cross_entropies_by_position[0],
+                    resultant_lengths_by_position[0],
+                ),
+                (
+                    "second",
+                    errors_by_position[1],
+                    cross_entropies_by_position[1],
+                    resultant_lengths_by_position[1],
+                ),
             ):
                 error_array = np.asarray(values, dtype=np.float64)
                 rows.append(
@@ -138,6 +224,13 @@ def evaluate_family_b_conditions(
                             np.median(error_array)
                         ),
                         "fixation_accuracy": fixation_accuracy,
+                        "mean_response_cross_entropy": float(
+                            np.mean(cross_entropy_values)
+                        ),
+                        "mean_population_resultant_length": float(
+                            np.mean(resultant_values)
+                        ),
+                        "population_normalization": population_normalization,
                         "n_response_samples": int(error_array.size),
                     }
                 )

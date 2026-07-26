@@ -18,6 +18,7 @@ from wm_rnn.training_utils import (
     confusion_matrix,
     fresh_model,
     generate_batch_for_task,
+    population_normalization_from_config,
     response_accuracy,
     task_config_from_dict,
     tuned_response_metrics,
@@ -61,6 +62,25 @@ def aggregate_tuned_metrics(batch_metrics: list[dict[str, Any]]) -> dict[str, fl
         "median_angular_error_degrees": float(np.median(angular_errors)),
         "population_mse": float(np.mean(population_errors)),
     }
+    if batch_metrics and "response_cross_entropies" in batch_metrics[0]:
+        metrics["mean_response_cross_entropy"] = float(
+            np.mean(
+                [
+                    value
+                    for item in batch_metrics
+                    for value in item["response_cross_entropies"]
+                ]
+            )
+        )
+        metrics["mean_population_resultant_length"] = float(
+            np.mean(
+                [
+                    value
+                    for item in batch_metrics
+                    for value in item["population_resultant_lengths"]
+                ]
+            )
+        )
     if batch_metrics and "fixation_mse" in batch_metrics[0]:
         metrics["fixation_mse"] = float(np.mean([item["fixation_mse"] for item in batch_metrics]))
         metrics["fixation_accuracy"] = float(
@@ -91,6 +111,7 @@ def evaluate_model(config: dict[str, Any], checkpoint_path: str | Path) -> EvalR
     run_name = config["paths"].get("run_name", "working_memory_model")
 
     if task_type == "tuned":
+        population_normalization = population_normalization_from_config(config)
         tuned_metrics = []
         with torch.no_grad():
             for batch_idx in range(batches):
@@ -104,11 +125,13 @@ def evaluate_model(config: dict[str, Any], checkpoint_path: str | Path) -> EvalR
                     loss_mask,
                     batch.preferred_angles,
                     batch.angles,
+                    population_normalization=population_normalization,
                 )
                 tuned_metrics.append(batch_metrics)
 
         metrics = {
             "device": device_info.description,
+            "population_normalization": population_normalization,
             **aggregate_tuned_metrics(tuned_metrics),
             "batches": batches,
             "checkpoint": str(checkpoint_path),

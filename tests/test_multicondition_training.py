@@ -195,3 +195,52 @@ def test_family_b_evaluation_reports_every_condition_and_position(
     assert result.metrics_path.exists()
     assert result.csv_path.exists()
     assert set(result.acceptance) == {"passed", "checks"}
+
+
+def test_distribution_loss_training_smoke_records_components(
+    tmp_path,
+) -> None:
+    config = load_config(
+        "configs/multicondition_working_memory_distribution_loss.yaml"
+    )
+    config["task"]["n_tuned_units"] = 8
+    config["task"]["batch_size"] = 4
+    config["task"]["pre_cue_steps_choices"] = [2]
+    config["task"]["delay_steps_choices"] = [4]
+    config["task"]["serial_item_cue_steps"] = 2
+    config["task"]["item_gap_steps"] = 1
+    config["task"]["response_steps"] = 4
+    config["model"]["hidden_size"] = 8
+    config["model"]["recurrent_noise_std"] = 0.0
+    config["training"]["steps"] = 8
+    config["training"]["response_transition_steps"] = 1
+    config["training"]["curriculum"] = [
+        {"until_step": 2, "trial_types": ["load1_clean"]},
+        {
+            "until_step": 4,
+            "trial_types": ["load1_clean", "load2_clean"],
+        },
+        {
+            "until_step": 8,
+            "learning_rate": 0.0001,
+            "trial_type_counts": {
+                "load1_clean": 1,
+                "load1_distractor": 1,
+                "load2_clean": 1,
+                "load2_distractor": 1,
+            },
+        },
+    ]
+    config["training"]["log_every"] = 8
+    config["training"]["device"] = "cpu"
+    config["paths"]["output_dir"] = str(tmp_path / "distribution_loss")
+    config["paths"]["run_name"] = "distribution_loss_test"
+
+    result = train_model(config)
+
+    assert all("response_cross_entropy" in row for row in result.history)
+    assert all("fixation_loss" in row for row in result.history)
+    assert all(np.isfinite(row["loss"]) for row in result.history)
+    metrics = result.metrics_path.read_text(encoding="utf-8")
+    assert '"tuned_loss": "circular_distribution"' in metrics
+    assert '"population_normalization": "softmax"' in metrics

@@ -24,6 +24,7 @@ from wm_rnn.training_utils import (
     batch_to_tensors,
     fresh_model,
     generate_batch_for_task,
+    population_normalization_from_config,
     response_accuracy,
     task_config_from_dict,
     tuned_response_metrics,
@@ -74,6 +75,7 @@ def run_delay_sweep(config: dict[str, Any], checkpoint_path: str | Path, delays:
     model.eval()
 
     task_type = str(config["task"].get("task_type", "categorical"))
+    population_normalization = population_normalization_from_config(config)
     batches = int(config["evaluation"]["batches"])
     results: list[dict[str, float | int]] = []
 
@@ -96,6 +98,7 @@ def run_delay_sweep(config: dict[str, Any], checkpoint_path: str | Path, delays:
                         loss_mask,
                         batch.preferred_angles,
                         batch.angles,
+                        population_normalization=population_normalization,
                     )
                     angular_errors.extend(metrics["angular_errors_degrees"])
                     population_errors.extend(metrics["population_squared_errors"])

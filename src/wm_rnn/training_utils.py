@@ -17,6 +17,7 @@ from wm_rnn.tuned_task import (
     circular_angular_error,
     decode_population_angle,
     generate_tuned_delay_batch,
+    normalize_population_output,
 )
 
 
@@ -146,12 +147,89 @@ def weighted_tuned_mse(
     return (squared_error * weights).sum() / weights.sum().clamp_min(1.0)
 
 
+def circular_distribution_loss(
+    predictions: torch.Tensor,
+    targets: torch.Tensor,
+    response_mask: torch.Tensor,
+    fixation_mask: torch.Tensor,
+    *,
+    n_tuned_units: int,
+    fixation_weight: float = 2.0,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Return total, circular cross-entropy, and separate fixation MSE."""
+    if predictions.shape != targets.shape or predictions.ndim != 3:
+        raise ValueError(
+            "predictions and targets must be shape-matched (time, batch, output)"
+        )
+    expected_mask_shape = predictions.shape[:2]
+    if (
+        response_mask.shape != expected_mask_shape
+        or fixation_mask.shape != expected_mask_shape
+    ):
+        raise ValueError("loss masks must match the time and batch dimensions")
+    if not 0 < n_tuned_units < predictions.size(-1):
+        raise ValueError(
+            "circular-distribution loss requires tuned and fixation outputs"
+        )
+    if fixation_weight < 0.0:
+        raise ValueError("fixation_weight must be non-negative")
+    if not (
+        torch.isfinite(predictions).all()
+        and torch.isfinite(targets).all()
+        and torch.isfinite(response_mask).all()
+        and torch.isfinite(fixation_mask).all()
+    ):
+        raise ValueError("loss inputs must be finite")
+
+    target_activity = targets[..., :n_tuned_units]
+    target_mass = target_activity.sum(dim=-1)
+    scored_response = response_mask > 0.0
+    if not torch.any(scored_response):
+        raise ValueError("response_mask must score at least one sample")
+    if torch.any(target_mass[scored_response] <= 0.0):
+        raise ValueError(
+            "every scored circular target must have positive mass"
+        )
+    target_probabilities = target_activity / target_mass.unsqueeze(-1).clamp_min(
+        torch.finfo(target_activity.dtype).tiny
+    )
+    log_probabilities = F.log_softmax(
+        predictions[..., :n_tuned_units], dim=-1
+    )
+    per_sample_cross_entropy = -torch.sum(
+        target_probabilities * log_probabilities, dim=-1
+    )
+    circular_loss = (
+        per_sample_cross_entropy * response_mask
+    ).sum() / response_mask.sum().clamp_min(1.0)
+
+    if not torch.any(fixation_mask > 0.0):
+        raise ValueError("fixation_mask must score at least one sample")
+    fixation_squared_error = (
+        predictions[..., n_tuned_units] - targets[..., n_tuned_units]
+    ).square()
+    fixation_loss = (
+        fixation_squared_error * fixation_mask
+    ).sum() / fixation_mask.sum().clamp_min(1.0)
+    total_loss = circular_loss + float(fixation_weight) * fixation_loss
+    if not torch.isfinite(total_loss):
+        raise ValueError("circular-distribution loss must be finite")
+    return total_loss, circular_loss, fixation_loss
+
+
+def population_normalization_from_config(config: dict[str, Any]) -> str:
+    """Resolve tuned-output decoding without changing legacy configurations."""
+    tuned_loss = str(config["training"].get("tuned_loss", "legacy"))
+    return "softmax" if tuned_loss == "circular_distribution" else "none"
+
+
 def tuned_response_metrics(
     predictions: torch.Tensor,
     targets: torch.Tensor,
     loss_mask: torch.Tensor,
     preferred_angles: np.ndarray,
     target_angles: np.ndarray,
+    population_normalization: str = "none",
 ) -> dict[str, Any]:
     """Return circular decoding and population-error metrics for tuned outputs."""
     mask_np = loss_mask.detach().cpu().numpy().astype(bool)
@@ -162,6 +240,8 @@ def tuned_response_metrics(
             "population_mse": 0.0,
             "angular_errors_degrees": [],
             "population_squared_errors": [],
+            "response_cross_entropies": [],
+            "population_resultant_lengths": [],
         }
 
     pred_np = predictions.detach().cpu().numpy()
@@ -169,18 +249,78 @@ def tuned_response_metrics(
     n_tuned_units = len(preferred_angles)
     population_predictions = pred_np[..., :n_tuned_units]
     population_targets = target_np[..., :n_tuned_units]
-    decoded_angles = decode_population_angle(population_predictions, preferred_angles)
+    normalized_predictions = normalize_population_output(
+        population_predictions, normalization=population_normalization
+    )
+    decoded_angles = decode_population_angle(
+        normalized_predictions, preferred_angles
+    )
     target_angle_values = np.asarray(target_angles, dtype=np.float32).reshape(1, -1)
     repeated_targets = np.broadcast_to(target_angle_values, mask_np.shape)
     angular_errors = circular_angular_error(decoded_angles, repeated_targets)[mask_np]
     angular_error_degrees = np.degrees(angular_errors)
-    population_squared_errors = ((population_predictions - population_targets) ** 2).mean(axis=-1)[mask_np]
+    if population_normalization == "softmax":
+        target_mass = population_targets.sum(axis=-1, keepdims=True)
+        normalized_targets = np.divide(
+            population_targets,
+            target_mass,
+            out=np.zeros_like(population_targets),
+            where=target_mass > 0.0,
+        )
+        comparison_predictions = normalized_predictions
+        comparison_targets = normalized_targets
+    else:
+        comparison_predictions = population_predictions
+        comparison_targets = population_targets
+    population_squared_errors = (
+        (comparison_predictions - comparison_targets) ** 2
+    ).mean(axis=-1)[mask_np]
+    clipped_probabilities = np.clip(
+        normalize_population_output(
+            population_predictions, normalization="softmax"
+        ),
+        np.finfo(np.float32).tiny,
+        1.0,
+    )
+    target_mass = population_targets.sum(axis=-1, keepdims=True)
+    target_probabilities = np.divide(
+        population_targets,
+        target_mass,
+        out=np.zeros_like(population_targets),
+        where=target_mass > 0.0,
+    )
+    response_cross_entropies = -np.sum(
+        target_probabilities * np.log(clipped_probabilities), axis=-1
+    )[mask_np]
+    preferred_complex = np.exp(1j * np.asarray(preferred_angles))
+    population_resultant_lengths = np.abs(
+        np.sum(
+            normalize_population_output(
+                population_predictions, normalization="softmax"
+            )
+            * preferred_complex,
+            axis=-1,
+        )
+    )[mask_np]
     metrics = {
         "mean_angular_error_degrees": float(np.nan_to_num(angular_error_degrees.mean(), nan=0.0)),
         "median_angular_error_degrees": float(np.nan_to_num(np.median(angular_error_degrees), nan=0.0)),
         "population_mse": float(np.nan_to_num(population_squared_errors.mean(), nan=0.0, posinf=0.0, neginf=0.0)),
         "angular_errors_degrees": [float(x) for x in angular_error_degrees],
         "population_squared_errors": [float(x) for x in population_squared_errors],
+        "mean_response_cross_entropy": float(
+            np.mean(response_cross_entropies)
+        ),
+        "response_cross_entropies": [
+            float(x) for x in response_cross_entropies
+        ],
+        "mean_population_resultant_length": float(
+            np.mean(population_resultant_lengths)
+        ),
+        "population_resultant_lengths": [
+            float(x) for x in population_resultant_lengths
+        ],
+        "population_normalization": population_normalization,
     }
     if pred_np.shape[-1] > n_tuned_units:
         gate_predictions = pred_np[..., n_tuned_units]

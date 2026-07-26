@@ -3,7 +3,40 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Pre-register Family B distribution-loss rescue</summary>
+<summary>2026-07-26 - Current commit - Implement Family B distribution-loss rescue</summary>
+
+Purpose:
+
+- Implement and verify the frozen R1 baseline rescue before training any
+  development seed.
+
+File changes:
+
+- `src/wm_rnn/training_utils.py`: Added normalized circular-distribution
+  cross-entropy, separately normalized fixation loss, probability-confidence
+  metrics, and config-resolved legacy versus softmax decoding.
+- `src/wm_rnn/tuned_task.py`: Added stable opt-in softmax normalization while
+  preserving raw-activity decoding by default.
+- `src/wm_rnn/train.py`: Added the `circular_distribution` tuned-loss route and
+  separate component logging.
+- `src/wm_rnn/evaluate.py`, `src/wm_rnn/delay_sweep.py`, and
+  `src/wm_rnn/family_b_evaluation.py`: Propagated config-selected normalization
+  and reported cross-entropy plus circular resultant length.
+- `configs/multicondition_working_memory_distribution_loss.yaml`: Added the
+  exact preregistered R1 task, curriculum, objective, and output path.
+- `tests/`: Added gradient, aligned-versus-uniform, rotation, loss-separation,
+  softmax decoding, confidence-metric, and short training-smoke tests.
+
+Verification:
+
+- `.venv\Scripts\python.exe -m pytest tests -q` passed: 155 tests.
+- `git diff --check` passed.
+- No development checkpoint or perturbation outcome was generated.
+
+</details>
+
+<details>
+<summary>2026-07-26 - 5cc18af - Pre-register Family B distribution-loss rescue</summary>
 
 Purpose:
 

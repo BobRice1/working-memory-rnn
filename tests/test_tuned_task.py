@@ -160,6 +160,20 @@ def test_decode_population_angle_recovers_known_preferred_angle():
     np.testing.assert_allclose(decoded, [0.0, math.pi / 2], atol=1e-6)
 
 
+def test_softmax_decode_recovers_between_unit_angle_from_logits():
+    preferred = circular_preferred_angles(32)
+    target = math.pi / 7
+    logits = 8.0 * np.cos(preferred - target)
+
+    decoded = decode_population_angle(
+        logits[np.newaxis, :],
+        preferred,
+        normalization="softmax",
+    )
+
+    np.testing.assert_allclose(decoded, [target], atol=1e-5)
+
+
 def test_circular_angular_error_uses_shortest_wrapped_distance():
     predicted = np.array([0.01])
     target = np.array([2 * math.pi - 0.01])

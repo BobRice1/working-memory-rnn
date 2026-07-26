@@ -97,9 +97,37 @@ def encode_circular_population(
     return encoded.astype(np.float32, copy=False)
 
 
-def decode_population_angle(populations: np.ndarray, preferred_angles: np.ndarray) -> np.ndarray:
-    """Decode circular population activity with vector averaging."""
+def normalize_population_output(
+    populations: np.ndarray,
+    normalization: str = "none",
+) -> np.ndarray:
+    """Return raw activity or stable softmax probabilities."""
     population_values = np.asarray(populations, dtype=np.float32)
+    if not np.all(np.isfinite(population_values)):
+        raise ValueError("population output must be finite")
+    if normalization == "none":
+        return population_values
+    if normalization != "softmax":
+        raise ValueError("normalization must be 'none' or 'softmax'")
+    shifted = population_values - np.max(
+        population_values, axis=-1, keepdims=True
+    )
+    exponentiated = np.exp(shifted)
+    return (
+        exponentiated
+        / np.sum(exponentiated, axis=-1, keepdims=True)
+    ).astype(np.float32, copy=False)
+
+
+def decode_population_angle(
+    populations: np.ndarray,
+    preferred_angles: np.ndarray,
+    normalization: str = "none",
+) -> np.ndarray:
+    """Decode circular population activity with vector averaging."""
+    population_values = normalize_population_output(
+        populations, normalization=normalization
+    )
     preferred_values = np.asarray(preferred_angles, dtype=np.float32)
     if population_values.shape[-1] < preferred_values.size:
         raise ValueError("population has fewer channels than preferred angles")

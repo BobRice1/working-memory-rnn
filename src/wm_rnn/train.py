@@ -16,6 +16,7 @@ from wm_rnn.io import ensure_run_dirs, write_history_csv, write_json
 from wm_rnn.training_utils import (
     TaskConfig,
     batch_to_tensors,
+    circular_distribution_loss,
     fresh_model,
     generate_batch_for_task,
     masked_cross_entropy,
@@ -193,6 +194,21 @@ def train_model(config: dict[str, Any]) -> TrainResult:
     score_delay_period = bool(config["training"].get("score_delay_period", False))
     score_all_periods = bool(config["training"].get("score_all_periods", False))
     yang_weighted_loss = bool(config["training"].get("yang_weighted_loss", False))
+    tuned_loss = str(
+        config["training"].get(
+            "tuned_loss",
+            "weighted_mse" if yang_weighted_loss else "masked_mse",
+        )
+    )
+    if tuned_loss not in {
+        "masked_mse",
+        "weighted_mse",
+        "circular_distribution",
+    }:
+        raise ValueError(
+            "training.tuned_loss must be masked_mse, weighted_mse, "
+            "or circular_distribution"
+        )
     input_noise_std = float(config["training"].get("input_noise_std", 0.0))
     gradient_clip_value = float(config["training"].get("gradient_clip_value", 0.0))
 
@@ -297,7 +313,29 @@ def train_model(config: dict[str, Any]) -> TrainResult:
         if input_noise_std > 0:
             inputs = inputs + torch.randn_like(inputs) * input_noise_std
 
-        if yang_weighted_loss:
+        circular_loss_value: torch.Tensor | None = None
+        fixation_loss_value: torch.Tensor | None = None
+        if tuned_loss == "circular_distribution":
+            response_slice = batch.phase_index["response"]
+            ignore_initial = int(
+                config["training"].get("ignore_initial_steps", 5)
+            )
+            transition_steps = int(
+                config["training"].get("response_transition_steps", 5)
+            )
+            response_mask = torch.zeros_like(loss_mask)
+            response_mask[
+                response_slice.start + transition_steps : response_slice.stop,
+                :,
+            ] = 1.0
+            fixation_mask = torch.zeros_like(loss_mask)
+            fixation_mask[ignore_initial : response_slice.start, :] = 1.0
+            fixation_mask[
+                response_slice.start + transition_steps : response_slice.stop,
+                :,
+            ] = 1.0
+            training_mask = response_mask
+        elif yang_weighted_loss:
             training_mask = torch.zeros_like(loss_mask)
             response_slice = batch.phase_index["response"]
             ignore_initial = int(config["training"].get("ignore_initial_steps", 5))
@@ -317,7 +355,22 @@ def train_model(config: dict[str, Any]) -> TrainResult:
         optimizer.zero_grad(set_to_none=True)
         logits, _ = model(inputs)
         if task_type == "tuned":
-            if yang_weighted_loss:
+            if tuned_loss == "circular_distribution":
+                (
+                    loss,
+                    circular_loss_value,
+                    fixation_loss_value,
+                ) = circular_distribution_loss(
+                    logits,
+                    targets,
+                    response_mask,
+                    fixation_mask,
+                    n_tuned_units=int(config["task"]["n_tuned_units"]),
+                    fixation_weight=float(
+                        config["training"].get("fixation_weight", 2.0)
+                    ),
+                )
+            elif yang_weighted_loss:
                 loss = weighted_tuned_mse(
                     logits,
                     targets,
@@ -350,8 +403,19 @@ def train_model(config: dict[str, Any]) -> TrainResult:
             ),
         }
         if task_type == "tuned":
-            row["population_mse"] = row["loss"]
-            metric_text = f"population_mse={row['population_mse']:.4f}"
+            if tuned_loss == "circular_distribution":
+                row["response_cross_entropy"] = float(
+                    circular_loss_value.item()
+                )
+                row["fixation_loss"] = float(fixation_loss_value.item())
+                metric_text = (
+                    f"response_cross_entropy="
+                    f"{row['response_cross_entropy']:.4f} "
+                    f"fixation_loss={row['fixation_loss']:.4f}"
+                )
+            else:
+                row["population_mse"] = row["loss"]
+                metric_text = f"population_mse={row['population_mse']:.4f}"
         else:
             row["accuracy"] = response_accuracy(logits.detach(), targets, loss_mask)
             metric_text = f"accuracy={row['accuracy']:.3f}"
@@ -373,6 +437,12 @@ def train_model(config: dict[str, Any]) -> TrainResult:
         "score_delay_period": score_delay_period,
         "score_all_periods": score_all_periods,
         "yang_weighted_loss": yang_weighted_loss,
+        "tuned_loss": tuned_loss,
+        "population_normalization": (
+            "softmax"
+            if tuned_loss == "circular_distribution"
+            else "none"
+        ),
         "input_noise_std": input_noise_std,
         "gradient_clip_value": gradient_clip_value,
         "randomize_delay": randomize_delay,
@@ -385,7 +455,13 @@ def train_model(config: dict[str, Any]) -> TrainResult:
         "checkpoint": str(checkpoint_path),
     }
     if task_type == "tuned":
-        metrics["final_population_mse"] = history[-1]["population_mse"]
+        if tuned_loss == "circular_distribution":
+            metrics["final_response_cross_entropy"] = history[-1][
+                "response_cross_entropy"
+            ]
+            metrics["final_fixation_loss"] = history[-1]["fixation_loss"]
+        else:
+            metrics["final_population_mse"] = history[-1]["population_mse"]
     else:
         metrics["final_accuracy"] = history[-1]["accuracy"]
     write_json(metrics_path, metrics)
