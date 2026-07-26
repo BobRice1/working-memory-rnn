@@ -83,6 +83,9 @@ def task_config_from_dict(config: dict[str, Any], seed_offset: int = 0, batch_si
             distractor_offset=float(task.get("distractor_offset", np.pi / 2)),
             n_items=int(task.get("n_items", 1)),
             probe_gated=bool(task.get("probe_gated", False)),
+            stimulus_role_channel=bool(
+                task.get("stimulus_role_channel", False)
+            ),
             serial_item_cue_steps=int(task.get("serial_item_cue_steps", 8)),
             item_gap_steps=int(task.get("item_gap_steps", 2)),
             min_item_separation=float(

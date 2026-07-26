@@ -26,13 +26,36 @@ class TunedDelayTaskConfig:
     distractor_offset: float = np.pi / 2
     n_items: int = 1
     probe_gated: bool = False
+    stimulus_role_channel: bool = False
     serial_item_cue_steps: int = 8
     item_gap_steps: int = 2
     min_item_separation: float = np.pi / 6
 
     @property
     def input_size(self) -> int:
-        """Return tuned, fixation/context, and optional probe channels."""
+        """Return tuned, fixation, and optional probe/role channels."""
+        return (
+            self.n_tuned_units
+            + 1
+            + int(self.probe_gated)
+            + int(self.stimulus_role_channel)
+        )
+
+    @property
+    def fixation_input_index(self) -> int:
+        """Return the fixed location of the fixation/context input."""
+        return self.n_tuned_units
+
+    @property
+    def probe_input_index(self) -> int | None:
+        """Return the probe-channel index when probe gating is enabled."""
+        return self.n_tuned_units + 1 if self.probe_gated else None
+
+    @property
+    def stimulus_role_input_index(self) -> int | None:
+        """Return the role-channel index when the channel is enabled."""
+        if not self.stimulus_role_channel:
+            return None
         return self.n_tuned_units + 1 + int(self.probe_gated)
 
     @property
@@ -272,6 +295,10 @@ def generate_tuned_delay_batch(config: TunedDelayTaskConfig) -> TunedDelayBatch:
             encoded_items[np.newaxis, :, 1, :]
             * second_present[np.newaxis, :, np.newaxis]
         )
+        if config.stimulus_role_channel:
+            role_channel = config.stimulus_role_input_index
+            inputs[first_item_slice, :, role_channel] = first_present[np.newaxis, :]
+            inputs[second_item_slice, :, role_channel] = second_present[np.newaxis, :]
         item_retention_steps = np.full(
             (config.batch_size, 2), np.nan, dtype=np.float32
         )
@@ -311,8 +338,10 @@ def generate_tuned_delay_batch(config: TunedDelayTaskConfig) -> TunedDelayBatch:
         inputs[distractor_slice, :, : config.n_tuned_units] += (
             encoded_distractors[np.newaxis, :, :]
         )
+        if config.stimulus_role_channel:
+            inputs[distractor_slice, :, config.stimulus_role_input_index] = -1.0
 
-    fixation_channel = config.n_tuned_units
+    fixation_channel = config.fixation_input_index
     if config.fixation_gated:
         inputs[: response_slice.start, :, fixation_channel] = 1.0
         targets = np.concatenate(
@@ -328,7 +357,7 @@ def generate_tuned_delay_batch(config: TunedDelayTaskConfig) -> TunedDelayBatch:
         inputs[:, :, fixation_channel] = 1.0
     if config.probe_gated:
         probe_values = np.where(probed_index == 0, -1.0, 1.0).astype(np.float32)
-        inputs[response_slice, :, -1] = probe_values[np.newaxis, :]
+        inputs[response_slice, :, config.probe_input_index] = probe_values[np.newaxis, :]
     loss_mask[response_slice, :] = 1.0
 
     phase_index = {

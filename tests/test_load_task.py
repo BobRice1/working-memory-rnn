@@ -11,7 +11,7 @@ from wm_rnn.tuned_task import (
     decode_population_angle,
     generate_tuned_delay_batch,
 )
-from wm_rnn.training_utils import task_config_from_dict
+from wm_rnn.training_utils import model_config_from_dict, task_config_from_dict
 
 
 def _probe_config(n_items: int, *, delay_steps: int = 20) -> TunedDelayTaskConfig:
@@ -41,6 +41,75 @@ def test_probe_flag_controls_input_size_without_changing_output_size() -> None:
     assert ordinary.input_size == 33
     assert probed.input_size == 34
     assert probed.output_size == 33
+
+
+def test_role_flag_adds_exactly_one_distinct_input_channel() -> None:
+    legacy = _probe_config(2)
+    role_enabled = TunedDelayTaskConfig(
+        **{
+            **legacy.__dict__,
+            "stimulus_role_channel": True,
+        }
+    )
+
+    assert role_enabled.input_size == legacy.input_size + 1
+    assert role_enabled.fixation_input_index == 32
+    assert role_enabled.probe_input_index == 33
+    assert role_enabled.stimulus_role_input_index == 34
+    assert role_enabled.output_size == legacy.output_size
+
+
+@pytest.mark.parametrize("n_items", [1, 2])
+def test_role_channel_marks_present_items_and_distractors_only(
+    n_items: int,
+) -> None:
+    base = _probe_config(n_items)
+    config = TunedDelayTaskConfig(
+        **{
+            **base.__dict__,
+            "stimulus_role_channel": True,
+            "distractor_steps": 5,
+        }
+    )
+    batch = generate_tuned_delay_batch(config)
+    role = batch.inputs[:, :, config.stimulus_role_input_index]
+    item1 = batch.phase_index["item1"]
+    item2 = batch.phase_index["item2"]
+    distractor = batch.phase_index["distractor"]
+    response = batch.phase_index["response"]
+
+    np.testing.assert_array_equal(
+        role[item1],
+        np.broadcast_to(
+            batch.item_present_mask[:, 0].astype(np.float32),
+            role[item1].shape,
+        ),
+    )
+    np.testing.assert_array_equal(
+        role[item2],
+        np.broadcast_to(
+            batch.item_present_mask[:, 1].astype(np.float32),
+            role[item2].shape,
+        ),
+    )
+    np.testing.assert_array_equal(role[distractor], -1.0)
+
+    expected = np.zeros_like(role)
+    expected[item1] = batch.item_present_mask[:, 0].astype(np.float32)
+    expected[item2] = batch.item_present_mask[:, 1].astype(np.float32)
+    expected[distractor] = -1.0
+    np.testing.assert_array_equal(role, expected)
+
+    probe = batch.inputs[:, :, config.probe_input_index]
+    np.testing.assert_array_equal(probe[: response.start], 0.0)
+    np.testing.assert_array_equal(
+        probe[response],
+        np.broadcast_to(
+            np.where(batch.probed_index == 0, -1.0, 1.0),
+            probe[response].shape,
+        ),
+    )
+    np.testing.assert_array_equal(role[response], 0.0)
 
 
 def test_load_levels_share_two_slot_timeline_and_sequence_length() -> None:
@@ -154,6 +223,7 @@ def test_training_config_passes_new_task_options() -> None:
             "distractor_offset": 1.0,
             "n_items": 2,
             "probe_gated": True,
+            "stimulus_role_channel": True,
             "serial_item_cue_steps": 8,
             "item_gap_steps": 2,
             "min_item_separation": 0.4,
@@ -169,6 +239,31 @@ def test_training_config_passes_new_task_options() -> None:
     assert resolved.distractor_offset == 1.0
     assert resolved.n_items == 2
     assert resolved.probe_gated is True
+    assert resolved.stimulus_role_channel is True
     assert resolved.serial_item_cue_steps == 8
     assert resolved.item_gap_steps == 2
     assert resolved.min_item_separation == 0.4
+
+
+def test_model_input_size_follows_role_enabled_task_config() -> None:
+    config = {
+        "task": {
+            "task_type": "tuned",
+            "n_tuned_units": 32,
+            "tuning_kappa": 8.0,
+            "cue_steps": 20,
+            "delay_steps": 20,
+            "response_steps": 25,
+            "batch_size": 64,
+            "fixation_gated": True,
+            "probe_gated": True,
+            "stimulus_role_channel": True,
+        },
+        "model": {
+            "hidden_size": 64,
+            "dt": 20.0,
+            "tau": 100.0,
+        },
+    }
+
+    assert model_config_from_dict(config).input_size == 35

@@ -3,7 +3,34 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Pre-register Family B stimulus-role rescue</summary>
+<summary>2026-07-26 - Current commit - Implement Family B stimulus-role rescue</summary>
+
+Purpose:
+
+- Implement and verify the frozen R2 task-interface rescue before training any
+  development seed.
+
+File changes:
+
+- `src/wm_rnn/tuned_task.py`: Added an opt-in stimulus-role channel after the
+  existing fixation and probe inputs, with explicit stable channel indices.
+- `src/wm_rnn/training_utils.py`: Resolved the role-channel option from task
+  configuration.
+- `configs/multicondition_working_memory_distribution_role.yaml`: Added the
+  exact preregistered R2 configuration.
+- `tests/`: Added role timing, occupied-slot, distractor, probe-separation,
+  input-dimension, and CPU training-smoke coverage.
+
+Verification:
+
+- `.venv\Scripts\python.exe -m pytest -q` passed: 160 tests.
+- `git diff --check` passed.
+- No development checkpoint or perturbation outcome was generated.
+
+</details>
+
+<details>
+<summary>2026-07-26 - cb8cf9a - Pre-register Family B stimulus-role rescue</summary>
 
 Purpose:
 

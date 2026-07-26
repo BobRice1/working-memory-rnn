@@ -244,3 +244,46 @@ def test_distribution_loss_training_smoke_records_components(
     metrics = result.metrics_path.read_text(encoding="utf-8")
     assert '"tuned_loss": "circular_distribution"' in metrics
     assert '"population_normalization": "softmax"' in metrics
+
+
+def test_distribution_role_training_smoke_uses_extra_channel(tmp_path) -> None:
+    config = load_config(
+        "configs/multicondition_working_memory_distribution_role.yaml"
+    )
+    config["task"]["n_tuned_units"] = 8
+    config["task"]["batch_size"] = 4
+    config["task"]["pre_cue_steps_choices"] = [2]
+    config["task"]["delay_steps_choices"] = [4]
+    config["task"]["serial_item_cue_steps"] = 2
+    config["task"]["item_gap_steps"] = 1
+    config["task"]["response_steps"] = 4
+    config["model"]["hidden_size"] = 8
+    config["model"]["recurrent_noise_std"] = 0.0
+    config["training"]["steps"] = 4
+    config["training"]["response_transition_steps"] = 1
+    config["training"]["curriculum"] = [
+        {
+            "until_step": 4,
+            "trial_type_counts": {
+                "load1_clean": 1,
+                "load1_distractor": 1,
+                "load2_clean": 1,
+                "load2_distractor": 1,
+            },
+        }
+    ]
+    config["training"]["log_every"] = 4
+    config["training"]["device"] = "cpu"
+    config["paths"]["output_dir"] = str(tmp_path / "distribution_role")
+    config["paths"]["run_name"] = "distribution_role_test"
+
+    result = train_model(config)
+    checkpoint = torch.load(
+        result.checkpoint_path,
+        map_location="cpu",
+        weights_only=False,
+    )
+
+    assert checkpoint["model_state"]["rnn.input2h.weight"].shape[1] == 11
+    assert all("response_cross_entropy" in row for row in result.history)
+    assert all(np.isfinite(row["loss"]) for row in result.history)
