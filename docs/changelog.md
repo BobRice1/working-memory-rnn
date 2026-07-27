@@ -32,6 +32,20 @@ Implementation:
 - Added 14 focused pilot tests. The complete repository suite passes with
   313 tests passed and one skipped before checkpoint evaluation.
 
+Outcome:
+
+- Both pilots completed on CUDA without retraining. The circular sweep took
+  135.6 seconds and N-back took 75.6 seconds.
+- State persistence `0.95` was the only setting to meet the formal complete
+  pilot pattern: slowing/preservation, delay selectivity, distractor
+  selectivity, and N-back load selectivity were each positive in 3/3 seeds.
+- The independent audit found that native distractor performance was already
+  weak (31.5–53.7 degree mean error; about 26% settled), making that component
+  provisional and unsuitable for a strong recovery claim.
+- Added a reproducible cross-task summary, seed-point figure, and concise
+  tomorrow-ready results report. After summary integration, the full suite
+  passes with 315 tests.
+
 Claim boundary:
 
 - This is an exploratory three-checkpoint screen. It can nominate perturbation
