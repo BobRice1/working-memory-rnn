@@ -13,7 +13,8 @@ Purpose:
 
 Changes:
 
-- Rewrote `README.md` around the current two-task perturbation study.
+- Simplified `README.md` to a high-level account of the project title, model,
+  task families, perturbations, and scientific claim boundary.
 - Added `docs/repository-map.md` and `configs/README.md` as current navigation
   and configuration-status indexes.
 - Replaced the stale categorical `docs/model-architecture.md` with a concise

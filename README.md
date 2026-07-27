@@ -1,133 +1,70 @@
-# Working-Memory RNN
+# Psilocybin-Related Working-Memory Signatures in Recurrent Neural Networks
 
-This repository contains the executable modelling work for a dissertation on
-working memory and psilocybin-related behavioural signatures. The project asks
-whether controlled perturbations of trained recurrent neural networks can
-reproduce selected human behavioural dissociations. It tests computational
-sufficiency; it is not a literal pharmacological model of psilocybin.
+This dissertation project asks whether controlled changes to a recurrent
+neural network can reproduce selected behavioural patterns reported in humans
+performing working-memory tasks under acute psilocybin. The aim is to test the
+computational sufficiency of candidate mechanisms, not to model psilocybin's
+pharmacology or claim that an artificial network is biologically equivalent to
+the human brain.
 
-## Current Experiment
+## Model
 
-The current task battery has two trained model families:
+The project uses a leaky continuous-time recurrent neural network with `tanh`
+units. The network receives a sequence of task inputs, maintains relevant
+information in its recurrent hidden state, and produces a response when
+prompted.
 
-1. **Fixation-gated circular working memory** tests response settling,
-   angular accuracy, and delay-length dependence.
-2. **N-back working memory** tests the difference between a low-memory 0-back
-   condition and a working-memory-dependent 2-back condition.
+Separate networks are trained for each task and evaluated across independently
+trained checkpoints. Perturbations are applied only after training, with the
+learned weights held fixed. This makes it possible to ask how changing a
+particular aspect of the network's dynamics alters otherwise competent
+working-memory performance.
 
-The completed 1,024-trial candidate screen applies synaptic-drive gain,
-heterogeneous drive gain, sensory and distractor input gain, recurrent gain,
-state persistence, and effective time-constant perturbations to frozen
-checkpoints from both families. These are competing computational operators,
-not biological claims about receptor action.
+## Tasks
 
-The present circular distractor condition was introduced only during
-evaluation, so it is an exploratory out-of-distribution robustness test. A
-separately trained, single-item distractor-capable circular family is the
-planned route for a stronger distractor-filtering comparison.
+### Circular delayed-response working memory
 
-## Canonical Files
+The network fixates, observes a cue at an angle on a circle, retains that angle
+across a blank delay, and reports it after a response cue. This task supports
+measurement of:
 
-| Purpose | Path |
-|---|---|
-| Circular baseline configuration | `configs/fixation_circular_working_memory.yaml` |
-| N-back checkpoint-pool configuration | `configs/nback_working_memory_screened_final.yaml` |
-| Completed 1,024-trial perturbation screen | `configs/full_candidate_perturbation_1024.yaml` |
-| Circular task and training | `src/wm_rnn/tuned_task.py`, `src/wm_rnn/train.py` |
-| N-back task and training | `src/wm_rnn/nback_task.py`, `src/wm_rnn/train_nback.py` |
-| Perturbation operators | `src/wm_rnn/perturbation_operators.py`, `src/wm_rnn/nback_perturbation.py` |
-| Full candidate runner | `src/wm_rnn/full_candidate_perturbation_run.py` |
-| Current scientific write-up | `docs/reports/full_candidate_perturbation_scientific_writeup.tex` |
-| Repository history and run log | `docs/changelog.md` |
+- angular recall accuracy;
+- response-settling time as a computational analogue of reaction time;
+- sensitivity to longer retention delays; and
+- sensitivity to an irrelevant cue presented during the delay.
 
-See `docs/repository-map.md` for the active, supporting, historical, generated,
-and local-only areas of the repository. See `configs/README.md` before choosing
-a configuration: several root-level YAML files are frozen development or
-preregistration records and are not current recommendations.
+The current distractor condition is added only at evaluation, so it is treated
+as an exploratory out-of-distribution robustness test rather than a definitive
+test of learned distractor filtering.
 
-## Installation
+### N-back working memory
 
-Create an environment and install the package dependencies:
+The network performs both 0-back and 2-back judgements using the same trained
+weights. The 0-back condition provides a low-memory comparison, whereas the
+2-back condition requires the network to maintain and update recent
+information. The contrast tests whether a perturbation disproportionately
+affects performance under higher working-memory demand.
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-```
+## Perturbations
 
-CUDA-specific installation notes are recorded in `requirements-cuda.txt`.
-The local `.venv/` is intentionally ignored by Git.
+The candidate perturbations alter distinct components of the trained network:
 
-For module commands run from the repository root:
+- **Synaptic-drive gain** scales the combined input and recurrent drive entering
+  the recurrent nonlinearity.
+- **Heterogeneous synaptic-drive gain** applies stable unit-to-unit variation
+  in that gain.
+- **Sensory-input gain** changes the influence of task stimuli on the recurrent
+  network.
+- **Distractor-input gain** changes only the influence of the irrelevant
+  delay-period cue in the circular task.
+- **Recurrent gain** changes the contribution of recurrent connectivity to the
+  network's next state.
+- **State persistence** changes how strongly the previous hidden state is
+  carried forward.
+- **Effective time constant** changes the rate at which the recurrent state is
+  updated.
 
-```powershell
-$env:PYTHONPATH = "src"
-```
-
-## Common Commands
-
-Run the test suite:
-
-```powershell
-$env:PYTHONPATH = "src"
-python -m pytest
-```
-
-Train the circular baseline:
-
-```powershell
-python -m wm_rnn.train --config configs/fixation_circular_working_memory.yaml
-```
-
-Inspect or rebuild the screened N-back checkpoint pool:
-
-```powershell
-python -m wm_rnn.nback_screened_pool `
-  --config configs/nback_working_memory_screened_final.yaml
-```
-
-Run the frozen full candidate screen:
-
-```powershell
-python -m wm_rnn.full_candidate_perturbation_run
-```
-
-The full screen is expensive and normally should not be rerun merely to inspect
-the saved results.
-
-## Repository Layout
-
-- `src/wm_rnn/`: model, task, training, evaluation, analysis, and experiment
-  code for the current task and candidate-evaluation path. Historical one-off
-  runners are recovered from Git rather than retained in the active package.
-- `tests/`: unit and integration tests.
-- `configs/`: active and frozen experiment configurations, classified in
-  `configs/README.md`.
-- `docs/preregistration/`: preregistrations and outcome-independent audit
-  records. These are retained at their original paths for provenance.
-- `docs/reports/`: scientific reports, LaTeX sources, final figures, and PDFs.
-- `docs/archive/`: explicitly superseded explanatory documents.
-- `notebooks/`: thin interactive walkthroughs and figure-generation notebooks.
-- `outputs/`: ignored checkpoints, metrics, arrays, and generated figures.
-- `tmp/`: ignored disposable scratch space; safe to remove when no process is
-  using it.
-
-## Reproducibility Rules
-
-- Treat independently trained checkpoints, rather than trials, as the
-  inferential unit.
-- Preserve preregistrations, audit records, checkpoint manifests, and hashes.
-- Keep circular delay-memory analysis on hidden states because the circular
-  output is intentionally silent before response.
-- Keep generic disruption controls and candidate gain/persistence mechanisms
-  conceptually separate from psilocybin.
-- Record model changes, experiment runs, generated reports, and interpretation
-  changes in `docs/changelog.md`.
-
-## Generated Data
-
-`outputs/`, `tmp/`, `.pytest_cache/`, and `.venv/` are ignored by Git. Their
-presence can make the workspace appear much larger than the tracked
-repository. Do not delete checkpoint or metric directories solely because they
-are ignored: use `docs/repository-map.md` and the relevant run record to
-determine whether an output is authoritative, reproducible, or disposable.
+These are competing computational interventions rather than direct
+representations of receptor-level drug action. Gaussian state noise is retained
+as a generic disruption control where a non-specific comparison is required,
+but it is not treated as a candidate psilocybin mechanism.
