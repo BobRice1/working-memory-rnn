@@ -3,7 +3,31 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Implement frozen final N-back configuration</summary>
+<summary>2026-07-27 - Current commit - Add outcome-free N-back perturbation adapters</summary>
+
+Purpose:
+
+- Fit the competent N-back task into the registered generic-noise-controlled
+  perturbation regime without running a checkpoint outcome.
+
+File changes:
+
+- `src/wm_rnn/nback_perturbation.py`: Reuses applicable registered operators,
+  fixes P3a to six stimulus channels, exposes one log-loss calibration unit per
+  sequence, and defines normalized candidate-versus-P5 `C2_NBACK`.
+- `tests/test_nback_perturbation.py`: Covers neutral operators, exclusion of
+  rule-context channels from sensory gain, sequence-level costs, architecture
+  guards, and the synthetic load-contrast sign.
+
+Claim boundary:
+
+- No checkpoint loading, strength calibration, perturbation outcome, or
+  confirmatory score is included.
+
+</details>
+
+<details>
+<summary>2026-07-27 - a4191b9 - Implement frozen final N-back configuration</summary>
 
 Purpose:
 
