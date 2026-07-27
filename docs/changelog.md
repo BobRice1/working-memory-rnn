@@ -3,7 +3,29 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Preregister disjoint N-back bank seeds</summary>
+<summary>2026-07-27 - Current commit - Implement competence-screened N-back pool</summary>
+
+Purpose:
+
+- Implement the frozen perturbation-blind selection procedure without
+  changing task, model, training, metrics, or competence criteria.
+
+File changes:
+
+- `configs/nback_working_memory_screened_final.yaml`: Encodes the candidate
+  pool, target of ten, disjoint data-bank seed stride, and isolated outputs.
+- `src/wm_rnn/nback_screened_pool.py`: Trains candidates in frozen order,
+  persists progress after every seed, resumes without rerunning completed
+  candidates, records failures, and stops at the target or when impossible.
+- `src/wm_rnn/nback_evaluation.py` and `train_nback.py`: Resolve the registered
+  checkpoint seed stride while preserving historical configurations.
+- Tests cover continuation, termination, training failures, invalid pools,
+  disjoint banks, and exact config differences.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 060a1c8 - Preregister disjoint N-back bank seeds</summary>
 
 Purpose:
 

@@ -31,6 +31,19 @@ class NBackEvalResult:
     passed: bool
 
 
+def resolve_nback_bank_seed(
+    config: dict[str, Any],
+    section: str,
+) -> int:
+    """Resolve a checkpoint-specific base seed for a frozen data bank."""
+    bank = config[section]
+    checkpoint_seed = int(config["task"]["seed"])
+    stride = int(bank.get("checkpoint_seed_stride", 1))
+    if stride < 1:
+        raise ValueError("checkpoint_seed_stride must be at least one")
+    return int(bank.get("seed_offset", 0)) + stride * checkpoint_seed
+
+
 def _metric_without_sequences(metrics: dict[str, Any]) -> dict[str, Any]:
     result = deepcopy(metrics)
     result.pop("sequence_cross_entropies", None)
@@ -135,8 +148,7 @@ def evaluate_nback_checkpoint(
     resolved_seed = int(
         seed
         if seed is not None
-        else int(config["task"]["seed"])
-        + int(evaluation.get("seed_offset", 200000))
+        else resolve_nback_bank_seed(config, "evaluation")
     )
     metrics_by_condition = evaluate_nback_conditions(
         model,

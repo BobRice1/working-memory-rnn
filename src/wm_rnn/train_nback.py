@@ -17,6 +17,7 @@ from wm_rnn.io import ensure_run_dirs, write_history_csv, write_json
 from wm_rnn.nback_evaluation import (
     competence_checks,
     evaluate_nback_conditions,
+    resolve_nback_bank_seed,
     stage_one_checks,
 )
 from wm_rnn.nback_task import NBackTaskConfig, generate_nback_batch
@@ -87,8 +88,7 @@ def _run_validation(
     metrics = evaluate_nback_conditions(
         model,
         config,
-        seed=int(config["task"]["seed"])
-        + int(validation.get("seed_offset", 100000)),
+        seed=resolve_nback_bank_seed(config, "validation"),
         sequences_per_condition=int(
             validation["sequences_per_condition"]
         ),

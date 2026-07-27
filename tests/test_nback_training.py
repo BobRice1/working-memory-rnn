@@ -251,3 +251,34 @@ def test_budget_final_changes_only_frozen_seed_banks_and_paths() -> None:
         config["evaluation"]["seed_offset"] = 0
         config["paths"] = {}
     assert final == budget
+
+
+def test_screened_final_changes_only_registered_pool_fields() -> None:
+    budget = load_config(
+        "configs/nback_working_memory_budget_rescue.yaml"
+    )
+    screened = load_config(
+        "configs/nback_working_memory_screened_final.yaml"
+    )
+
+    assert screened["task"]["seed"] == 20260912
+    assert screened["validation"]["seed_offset"] == 1100000
+    assert screened["validation"]["checkpoint_seed_stride"] == 2
+    assert screened["evaluation"]["seed_offset"] == 1200000
+    assert screened["evaluation"]["checkpoint_seed_stride"] == 2
+    assert screened["screening"]["candidate_seeds"] == list(
+        range(20260912, 20260927)
+    )
+    assert screened["screening"]["target_count"] == 10
+    assert screened["paths"]["output_dir"].endswith("_screened_final")
+
+    screening = screened.pop("screening")
+    assert screening["target_count"] == 10
+    screened["validation"].pop("checkpoint_seed_stride")
+    screened["evaluation"].pop("checkpoint_seed_stride")
+    for config in (budget, screened):
+        config["task"]["seed"] = 0
+        config["validation"]["seed_offset"] = 0
+        config["evaluation"]["seed_offset"] = 0
+        config["paths"] = {}
+    assert screened == budget
