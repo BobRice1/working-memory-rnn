@@ -3,7 +3,32 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Complete gated N-back confirmatory phase</summary>
+<summary>2026-07-27 - Current commit - Complete gated N-back dose phase</summary>
+
+Purpose:
+
+- Enforce the rule that stronger-dose ordering is evaluated only after a
+  profile passes the complete confirmatory validity chain.
+
+Result:
+
+- All 150 profile/checkpoint dose cells were explicitly recorded as skipped
+  with `global_confirmatory_validity_failure`.
+- Zero dose cells were valid, and zero dose-array artifacts were generated.
+- No stronger candidate or Gaussian-P5 perturbation was evaluated.
+- The phase completed in one CUDA-synchronized attempt with 468.7234 seconds
+  of active execution time, spent on atomic validity-record persistence rather
+  than perturbation inference.
+
+Interpretive boundary:
+
+- Dose ordering is NA, not failed or reversed. It cannot be used to rescue the
+  untestable matched-cost C2 comparison.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 2cdcaa8 - Complete gated N-back confirmatory phase</summary>
 
 Purpose:
 
