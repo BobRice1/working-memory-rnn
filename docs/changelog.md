@@ -3,7 +3,33 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Record additive N-back precision pass</summary>
+<summary>2026-07-27 - Current commit - Preregister additive N-back perturbations</summary>
+
+Purpose:
+
+- Freeze the exact matched-cost N-back candidate-versus-Gaussian experiment
+  after baseline precision passed and before constructing a non-neutral
+  operator.
+
+Frozen decisions:
+
+- Fifteen stable operator/profile IDs, including six confirmatory profiles
+  and P5 as comparator.
+- 512 calibration, 1,024 held-out cost-check, and 1,024 confirmatory
+  sequences per condition and checkpoint.
+- Additive `0.050`-nat calibration with explicit monotonicity, bisection,
+  no-extrapolation, precision, and P5-gap gates.
+- Collision-free task and stochastic stream maps with nested P2/P5
+  replicate averaging.
+- N-back C2 as excess normalized load selectivity versus matched P5.
+- Cross-task IUT integration with Family A C1/C3, fixed six-profile Holm
+  family, validity/NA rules, dose-ordering, and claim boundaries.
+- Hash-validated phased persistence and resume.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 8b69b8e - Record additive N-back precision pass</summary>
 
 Purpose:
 
