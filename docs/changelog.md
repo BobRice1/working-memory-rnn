@@ -3,7 +3,39 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Complete gated N-back dose phase</summary>
+<summary>2026-07-27 - Current commit - Finalize additive N-back experiment</summary>
+
+Purpose:
+
+- Close the seven-phase registered run, verify every persisted artifact, and
+  state the scientific result without converting a validity failure into a
+  null effect.
+
+Result:
+
+- All seven phases completed in one uninterrupted, CUDA-synchronized attempt
+  per phase, totalling 4498.9199 seconds of active execution time.
+- The final checkpoint C2 table is header-only. All 14 non-P5 profile rows have
+  `n_checkpoints = 0` and `not_testable_validity`.
+- The dose summary contains no valid profile and the P5 registered-strength
+  curve is empty because no non-neutral confirmatory or dose outcome was
+  authorized.
+- Every state-recorded artifact passed an independent SHA-256 recheck.
+- Added `docs/reports/nback_additive_perturbation_results.md` with the
+  literature/architecture rationale, complete phase audit, claim boundary,
+  and clean next-experiment recommendation.
+
+Conclusion:
+
+- The trained N-back CTRNN remains a valid model of the Barrett-style task
+  contrast, but this run neither recovers nor rejects the psilocybin-like
+  load-selective signature. C2 is not testable because the frozen common-cost
+  comparator support failed.
+
+</details>
+
+<details>
+<summary>2026-07-27 - ec6a631 - Complete gated N-back dose phase</summary>
 
 Purpose:
 
