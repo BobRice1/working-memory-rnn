@@ -3,7 +3,30 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Implement phased additive N-back perturbation runner</summary>
+<summary>2026-07-27 - Current commit - Pass N-back neutral-calibration firewall</summary>
+
+Purpose:
+
+- Execute the first registered additive N-back phase and verify that every
+  operator implementation is exactly neutral before permitting any
+  non-neutral calibration.
+
+Result:
+
+- Evaluated all 15 registered profiles across all 10 retained checkpoints.
+- All 150 cells passed exact equality for logits and hidden states, with zero
+  maximum absolute difference and zero additive sequence-loss cost.
+- Profiles with stochastic streams were checked across all three registered
+  replicates; deterministic profiles used the registered single stream.
+- The phase completed on the NVIDIA GeForce RTX 3060 Laptop GPU in one
+  uninterrupted, CUDA-synchronized attempt with 201.8215 seconds of active
+  execution time.
+- No non-neutral calibration artifact existed before the firewall passed.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 38f45d8 - Implement phased additive N-back perturbation runner</summary>
 
 Purpose:
 
