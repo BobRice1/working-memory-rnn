@@ -3,7 +3,29 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Record budget-rescue development pass</summary>
+<summary>2026-07-27 - Current commit - Preregister replacement final N-back family</summary>
+
+Purpose:
+
+- Freeze an entirely new ten-seed final family after the budget-rescue
+  development pass.
+
+Frozen decisions:
+
+- Training seeds `20260911-20`.
+- Validation offset `900000`.
+- Untouched competence offset `1000000`.
+- Exact budget-rescue task, CTRNN, training, metrics, gates, and
+  stop-on-first-failure rule.
+
+Interpretation:
+
+- All ten checkpoints must pass before calibration or perturbation outcomes.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 8866701 - Record budget-rescue development pass</summary>
 
 Purpose:
 
