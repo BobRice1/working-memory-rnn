@@ -3,7 +3,26 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Record replacement final-family failure</summary>
+<summary>2026-07-27 - Current commit - Preregister competence-screened N-back pool</summary>
+
+Purpose:
+
+- Replace the brittle ten-of-ten seed-family rule with a perturbation-blind
+  competence-screened pool grounded in the exact Wan et al. N-back precedent.
+
+Frozen decisions:
+
+- Attempt seeds `20260912-20260926` once and in numerical order.
+- Use validation offset `1100000` and untouched competence offset `1200000`.
+- Retain the first ten checkpoints passing every unchanged competence gate.
+- Continue after failures and stop when ten pass or ten passes become
+  impossible.
+- Inspect no perturbation outcome during checkpoint selection.
+
+</details>
+
+<details>
+<summary>2026-07-27 - f225c2b - Record replacement final-family failure</summary>
 
 Purpose:
 
