@@ -3,7 +3,29 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Implement N-back training-balance rescue</summary>
+<summary>2026-07-27 - Current commit - Add gated N-back seed-family runner</summary>
+
+Purpose:
+
+- Make remaining development and final N-back training reproducible and
+  enforce stop-on-first-failure automatically.
+
+File changes:
+
+- `src/wm_rnn/nback_seed_sweep.py`: Added isolated per-seed output paths,
+  competence evaluation, CSV/JSON summaries, and early stopping.
+- `tests/test_nback_training.py`: Added per-seed configuration isolation
+  coverage.
+
+Context:
+
+- Rescue seed `20260824` passed its two validation checks and untouched
+  competence bank before this runner was added.
+
+</details>
+
+<details>
+<summary>2026-07-27 - ca74be7 - Implement N-back training-balance rescue</summary>
 
 Purpose:
 

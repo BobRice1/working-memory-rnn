@@ -6,6 +6,7 @@ import torch
 
 from wm_rnn.config import load_config
 from wm_rnn.nback_evaluation import evaluate_nback_checkpoint
+from wm_rnn.nback_seed_sweep import config_for_nback_seed
 from wm_rnn.nback_task import NBackTaskConfig, generate_nback_batch
 from wm_rnn.train_nback import (
     draw_balanced_nback_block,
@@ -169,3 +170,20 @@ def test_rescue_config_changes_only_registered_training_fields() -> None:
     rescue["training"].pop("stage2_rule_block")
     rescue["training"].pop("stage2_class_weights")
     assert rescue == base
+
+
+def test_per_seed_config_isolates_outputs_without_mutating_base() -> None:
+    config = load_config(
+        "configs/nback_working_memory_balance_rescue.yaml"
+    )
+    original_seed = config["task"]["seed"]
+    seeded = config_for_nback_seed(config, 20260825)
+
+    assert config["task"]["seed"] == original_seed
+    assert seeded["task"]["seed"] == 20260825
+    assert seeded["paths"]["output_dir"].endswith(
+        "seed_sweep\\seed_20260825"
+    ) or seeded["paths"]["output_dir"].endswith(
+        "seed_sweep/seed_20260825"
+    )
+    assert seeded["paths"]["run_name"].endswith("_seed_20260825")
