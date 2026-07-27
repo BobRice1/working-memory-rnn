@@ -3,6 +3,36 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-27 - Pending - Freeze full 1,024-sample candidate-only run</summary>
+
+Purpose:
+
+- Expand the exploratory screen to all five circular checkpoints and all ten
+  competent N-back checkpoints with 1,024 trials or sequences per cell.
+
+Design:
+
+- Retain the pilot's fixed candidate grids while omitting Gaussian noise,
+  cost matching, calibration, hybrids, and confirmatory inference.
+- Compare every candidate directly with its checkpoint's native baseline on
+  identical task samples.
+- Preserve the existing settling, delay, distractor, and N-back load
+  contrasts. The weak out-of-distribution distractor baseline remains an
+  explicit validity limitation.
+
+Implementation:
+
+- Added a separate full-run config, preregistration, and CUDA orchestration
+  entry point.
+- Generalized the pilot evaluators without changing their frozen default
+  designs.
+- Verified all five circular checkpoint hashes, all ten retained N-back
+  checkpoints, exact candidate grids, and 1,024-sample task-bank dimensions
+  before outcome evaluation. Fourteen focused evaluator tests pass.
+
+</details>
+
+<details>
 <summary>2026-07-27 - Pending - Freeze exploratory two-task signature pilot</summary>
 
 Purpose:

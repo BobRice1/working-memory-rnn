@@ -89,14 +89,17 @@ class PilotDesign:
     probability_threshold: float = 0.80
     margin_threshold: float = 0.60
     consecutive_steps: int = 3
+    expected_sequences_per_cell: int | None = 256
 
     @property
     def sequences_per_cell(self) -> int:
         return self.batch_size * self.n_batches
 
     def validate(self) -> None:
-        if self.checkpoint_seeds != PILOT_CHECKPOINT_SEEDS:
-            raise ValueError("pilot requires seeds 20260912-20260914")
+        if not self.checkpoint_seeds or len(set(self.checkpoint_seeds)) != len(
+            self.checkpoint_seeds
+        ):
+            raise ValueError("checkpoint_seeds must be non-empty and unique")
         if (
             not self.profile_ids
             or len(set(self.profile_ids)) != len(self.profile_ids)
@@ -111,8 +114,16 @@ class PilotDesign:
             self.consecutive_steps,
         ) <= 0:
             raise ValueError("pilot counts and seed bases must be positive")
-        if self.sequences_per_cell != 256:
-            raise ValueError("pilot requires exactly 256 sequences per cell")
+        if self.sequences_per_cell <= 0:
+            raise ValueError("sequences_per_cell must be positive")
+        if (
+            self.expected_sequences_per_cell is not None
+            and self.sequences_per_cell != self.expected_sequences_per_cell
+        ):
+            raise ValueError(
+                f"pilot requires exactly {self.expected_sequences_per_cell} "
+                "sequences per cell"
+            )
         if self.task_seed_base == self.noise_seed_base:
             raise ValueError("task and noise seed namespaces must differ")
         if not 0.0 <= self.probability_threshold <= 1.0:
@@ -168,6 +179,7 @@ def load_pilot_operator_grids(
     config_path: str | Path = DEFAULT_CONFIG,
     *,
     repo_root: str | Path = ".",
+    design: PilotDesign = FROZEN_PILOT_DESIGN,
 ) -> dict[str, tuple[float, ...]]:
     """Load the exact frozen N-back grids from the shared pilot config."""
     root = Path(repo_root).resolve()
@@ -178,9 +190,10 @@ def load_pilot_operator_grids(
     pilot = config.get("pilot", {})
     if (
         tuple(int(seed) for seed in pilot.get("nback_seeds", ()))
-        != PILOT_CHECKPOINT_SEEDS
-        or int(pilot.get("nback_sequences_per_cell", -1)) != 256
-        or int(pilot.get("batch_size", -1)) != 128
+        != design.checkpoint_seeds
+        or int(pilot.get("nback_sequences_per_cell", -1))
+        != design.sequences_per_cell
+        or int(pilot.get("batch_size", -1)) != design.batch_size
         or int(pilot.get("stochastic_replicates", -1)) != 3
     ):
         raise ValueError("shared pilot config does not match frozen N-back scope")
@@ -188,7 +201,10 @@ def load_pilot_operator_grids(
     if not isinstance(raw_operators, Mapping):
         raise ValueError("shared pilot config lacks operators")
     grids: dict[str, tuple[float, ...]] = {}
-    for operator in PILOT_OPERATOR_NAMES:
+    operator_names = tuple(
+        PROFILE_BY_ID[profile_id].operator for profile_id in design.profile_ids
+    )
+    for operator in operator_names:
         raw_grid = raw_operators.get(operator)
         if (
             isinstance(raw_grid, (str, bytes))
@@ -246,8 +262,11 @@ def select_pilot_checkpoints(
     if missing:
         raise ValueError(f"pilot checkpoints are missing: {missing}")
     selected = tuple(by_seed[seed] for seed in design.checkpoint_seeds)
-    if tuple(checkpoint.ordinal for checkpoint in selected) != (0, 1, 2):
-        raise ValueError("pilot checkpoints must retain frozen ordinals 0, 1, 2")
+    expected_ordinals = tuple(range(len(selected)))
+    if tuple(checkpoint.ordinal for checkpoint in selected) != expected_ordinals:
+        raise ValueError(
+            "selected checkpoints must retain consecutive frozen ordinals"
+        )
     return selected
 
 
@@ -688,7 +707,7 @@ def run_pilot(
         _load_pilot_source_paths(config_path, repo_root=root)
     )
     operator_grids = load_pilot_operator_grids(
-        pilot_config_file, repo_root=root
+        pilot_config_file, repo_root=root, design=design
     )
     config = load_config(config_file)
     selected: SelectedDevice = select_device(
@@ -719,8 +738,8 @@ def run_pilot(
     payload = {
         "status": "exploratory_descriptive_only",
         "claim_boundary": (
-            "fixed strengths are not cost matched; three checkpoints are not "
-            "a confirmatory inferential family"
+            "fixed strengths are not cost matched; this is a descriptive "
+            "candidate-versus-native evaluation"
         ),
         "design": asdict(design),
         "operator_grids": {

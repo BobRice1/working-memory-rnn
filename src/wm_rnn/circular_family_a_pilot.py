@@ -97,6 +97,23 @@ FROZEN_CHECKPOINTS = (
     ),
 )
 
+FULL_CHECKPOINTS = FROZEN_CHECKPOINTS + (
+    FrozenCheckpoint(
+        20260717,
+        "outputs/fixation_circular_working_memory/seed_sweep/"
+        "seed_20260717/checkpoints/"
+        "fixation_circular_working_memory_seed_20260717.pt",
+        "8421AE02CFC8000EFD0771ABD5B3968DEED3866F9598AF728BBB8E2A9BB3D3BF",
+    ),
+    FrozenCheckpoint(
+        20260718,
+        "outputs/fixation_circular_working_memory/seed_sweep/"
+        "seed_20260718/checkpoints/"
+        "fixation_circular_working_memory_seed_20260718.pt",
+        "B91AC1D26B6F28C7BB3B51B4E982505D2BD23D81D3B86F4EF614F72066F3601E",
+    ),
+)
+
 PILOT_CELLS = tuple(PilotCell("clean", delay) for delay in DELAYS) + (
     PilotCell("distractor", DISTRACTOR_DELAY),
 )
@@ -121,14 +138,20 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest().upper()
 
 
-def load_pilot_config(path: str | Path) -> dict[str, Any]:
+def load_pilot_config(
+    path: str | Path,
+    *,
+    checkpoint_seeds: tuple[int, ...] = PILOT_SEEDS,
+    trials_per_cell: int = TRIALS_PER_CELL,
+    required_operators: set[str] | None = None,
+) -> dict[str, Any]:
     """Load and validate the fixed exploratory circular-pilot design."""
     with Path(path).open("r", encoding="utf-8") as handle:
         config = yaml.safe_load(handle) or {}
     pilot = config.get("pilot", {})
     expected = {
-        "circular_seeds": list(PILOT_SEEDS),
-        "circular_trials_per_cell": TRIALS_PER_CELL,
+        "circular_seeds": list(checkpoint_seeds),
+        "circular_trials_per_cell": trials_per_cell,
         "circular_delays": list(DELAYS),
         "distractor_delay": DISTRACTOR_DELAY,
         "distractor_steps": DISTRACTOR_STEPS,
@@ -138,17 +161,22 @@ def load_pilot_config(path: str | Path) -> dict[str, Any]:
             raise ValueError(f"pilot.{key} must remain fixed at {value!r}")
     if int(pilot["batch_size"]) <= 0:
         raise ValueError("pilot.batch_size must be positive")
-    if TRIALS_PER_CELL % int(pilot["batch_size"]) != 0:
+    if trials_per_cell % int(pilot["batch_size"]) != 0:
         raise ValueError("circular_trials_per_cell must divide evenly by batch_size")
     operators = config.get("operators", {})
-    if set(operators) != set(OPERATOR_VARIANTS):
+    expected_operators = required_operators or set(OPERATOR_VARIANTS)
+    if set(operators) != expected_operators:
         raise ValueError("operator grids do not match the frozen circular pilot")
     if any(not values for values in operators.values()):
         raise ValueError("every circular pilot operator requires a non-empty grid")
     return config
 
 
-def verify_frozen_inputs(repo_root: str | Path) -> dict[str, Any]:
+def verify_frozen_inputs(
+    repo_root: str | Path,
+    *,
+    checkpoints: tuple[FrozenCheckpoint, ...] = FROZEN_CHECKPOINTS,
+) -> dict[str, Any]:
     """Verify exact config and checkpoint identities before any model loading."""
     root = Path(repo_root).resolve()
     config_path = root / CONFIG_PATH
@@ -158,7 +186,7 @@ def verify_frozen_inputs(repo_root: str | Path) -> dict[str, Any]:
             f"config hash mismatch: {observed_config_hash} != {CONFIG_SHA256}"
         )
     verified = []
-    for checkpoint in FROZEN_CHECKPOINTS:
+    for checkpoint in checkpoints:
         path = root / checkpoint.path
         observed_hash = _sha256(path)
         if observed_hash != checkpoint.sha256:
@@ -298,14 +326,23 @@ def run_pilot(
     pilot_config_path: str | Path = PILOT_CONFIG_PATH,
     output_dir: str | Path = DEFAULT_OUTPUT_DIR,
     device: str = "auto",
+    checkpoints: tuple[FrozenCheckpoint, ...] = FROZEN_CHECKPOINTS,
+    trials_per_cell: int = TRIALS_PER_CELL,
+    required_operators: set[str] | None = None,
 ) -> tuple[Path, Path]:
     """Run the fixed three-checkpoint Family A exploratory grid."""
     root = Path(repo_root).resolve()
-    frozen = verify_frozen_inputs(root)
+    frozen = verify_frozen_inputs(root, checkpoints=checkpoints)
     pilot_path = Path(pilot_config_path)
     if not pilot_path.is_absolute():
         pilot_path = root / pilot_path
-    pilot_config = load_pilot_config(pilot_path)
+    checkpoint_seeds = tuple(checkpoint.seed for checkpoint in checkpoints)
+    pilot_config = load_pilot_config(
+        pilot_path,
+        checkpoint_seeds=checkpoint_seeds,
+        trials_per_cell=trials_per_cell,
+        required_operators=required_operators,
+    )
     base_config = load_config(root / CONFIG_PATH)
     task_config = task_config_from_dict(base_config)
     if not isinstance(task_config, TunedDelayTaskConfig):
@@ -316,13 +353,13 @@ def run_pilot(
         batch_size=batch_size,
         distractor_steps=DISTRACTOR_STEPS,
     )
-    n_batches = TRIALS_PER_CELL // batch_size
+    n_batches = trials_per_cell // batch_size
     settings = build_operator_settings(pilot_config["operators"])
     selected = select_device(device)
     rows: list[dict[str, Any]] = []
     angle_hashes: dict[str, Any] = {}
 
-    for checkpoint in FROZEN_CHECKPOINTS:
+    for checkpoint in checkpoints:
         checkpoint_path = root / checkpoint.path
         model = _load_checkpoint_model(
             base_config, checkpoint_path, selected.device
@@ -405,8 +442,8 @@ def run_pilot(
         "frozen_inputs": frozen,
         "pilot_config_path": str(pilot_path),
         "pilot_config_sha256": _sha256(pilot_path),
-        "seeds": list(PILOT_SEEDS),
-        "trials_per_cell": TRIALS_PER_CELL,
+        "seeds": list(checkpoint_seeds),
+        "trials_per_cell": trials_per_cell,
         "batch_size": batch_size,
         "n_batches": n_batches,
         "cells": [asdict(cell) for cell in PILOT_CELLS],
