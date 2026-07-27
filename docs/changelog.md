@@ -3,6 +3,34 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-27 - Pending - Freeze exploratory two-task signature pilot</summary>
+
+Purpose:
+
+- Create a small, outcome-free first pass that can provide preliminary
+  dissertation-report material without retraining either model family.
+
+Design:
+
+- Reuse three competent original circular-task checkpoints and three competent
+  N-back checkpoints.
+- Screen every implemented single perturbation family on fixed strength grids
+  with 256 trials or sequences per cell.
+- Treat candidate-versus-native contrasts as primary and Gaussian state noise
+  as a secondary descriptive control.
+- Measure circular-task settling, delay, and distractor contrasts alongside the
+  N-back 2-back-versus-0-back contrast.
+
+Claim boundary:
+
+- This is an exploratory three-checkpoint screen. It can nominate perturbation
+  directions for a later independently banked run, but cannot establish
+  statistical signature recovery, biological equivalence, or mechanistic
+  uniqueness.
+
+</details>
+
+<details>
 <summary>2026-07-27 - Current commit - Finalize additive N-back experiment</summary>
 
 Purpose:
