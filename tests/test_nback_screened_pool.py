@@ -9,8 +9,10 @@ import pytest
 
 from wm_rnn.config import load_config
 from wm_rnn.nback_evaluation import resolve_nback_bank_seed
-from wm_rnn.nback_screened_pool import run_nback_screened_pool
-from wm_rnn.nback_seed_sweep import config_for_nback_seed
+from wm_rnn.nback_screened_pool import (
+    config_for_nback_seed,
+    run_nback_screened_pool,
+)
 
 
 def _train_result(tmp_path: Path, seed: int, passed: bool = True):

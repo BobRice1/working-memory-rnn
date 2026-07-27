@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import os
 import tempfile
@@ -23,16 +24,6 @@ import torch
 
 from wm_rnn.config import load_config
 from wm_rnn.device import SelectedDevice, select_device
-from wm_rnn.nback_additive_calibration import (
-    P2_VECTOR_SEEDS,
-    PROFILE_BY_ID,
-    OperatorProfile,
-)
-from wm_rnn.nback_additive_cost_precision import (
-    DEFAULT_MANIFEST,
-    RetainedCheckpoint,
-    load_retained_checkpoints,
-)
 from wm_rnn.nback_additive_outcomes import (
     aggregate_three_replicate_condition_metrics,
     pool_condition_batch_metrics,
@@ -42,7 +33,6 @@ from wm_rnn.nback_perturbation import (
     build_nback_operator,
     condition_normalized_discriminability_impairment,
 )
-from wm_rnn.nback_perturbation_state import atomic_write_json, sha256_file
 from wm_rnn.nback_task import (
     NBackBatch,
     NBackTaskConfig,
@@ -74,6 +64,175 @@ PILOT_OPERATOR_NAMES = (
     "state_persistence",
     "time_constant",
 )
+P2_VECTOR_SEEDS = (3101, 3102, 3103)
+DEFAULT_MANIFEST = Path(
+    "outputs/nback_working_memory_screened_final/metrics/"
+    "nback_working_memory_screened_final_screened_pool_summary.json"
+)
+RETAINED_CHECKPOINT_SEEDS = tuple(range(20260912, 20260922))
+
+
+@dataclass(frozen=True)
+class OperatorProfile:
+    """One operator branch required by the candidate-only evaluation."""
+
+    profile_id: int
+    operator: str
+    variant: str
+    branch: str
+    ordered_grid: tuple[float, ...]
+    profile_class: str
+
+
+_MULTIPLICATIVE_ABOVE = (1.0, 1.025, 1.05, 1.10, 1.15, 1.20)
+_MULTIPLICATIVE_BELOW = (1.0, 0.975, 0.95, 0.90)
+_P2_ABOVE = (0.0, 0.025, 0.05, 0.075, 0.10, 0.15)
+_P7_BELOW = (1.0, 0.95, 0.90, 0.80)
+_P5_ABOVE = (0.0, 0.01, 0.02, 0.035, 0.05, 0.075, 0.10)
+
+_PILOT_PROFILES = (
+    OperatorProfile(
+        1,
+        "synaptic_drive_gain",
+        "bias_outside",
+        "above",
+        _MULTIPLICATIVE_ABOVE,
+        "confirmatory",
+    ),
+    OperatorProfile(
+        4,
+        "heterogeneous_drive_gain",
+        "bias_outside",
+        "above",
+        _P2_ABOVE,
+        "confirmatory",
+    ),
+    OperatorProfile(
+        7,
+        "sensory_input_gain",
+        "six_sensory_channels",
+        "above",
+        _MULTIPLICATIVE_ABOVE,
+        "confirmatory",
+    ),
+    OperatorProfile(
+        9,
+        "recurrent_gain",
+        "weights_only",
+        "above",
+        _MULTIPLICATIVE_ABOVE,
+        "confirmatory",
+    ),
+    OperatorProfile(
+        10,
+        "state_persistence",
+        "carried_state_only",
+        "below",
+        _MULTIPLICATIVE_BELOW,
+        "confirmatory",
+    ),
+    OperatorProfile(
+        12,
+        "time_constant",
+        "conserved_integrator",
+        "below",
+        _P7_BELOW,
+        "confirmatory",
+    ),
+    OperatorProfile(
+        14,
+        "gaussian_state_noise",
+        "generic_control",
+        "above",
+        _P5_ABOVE,
+        "comparator",
+    ),
+)
+PROFILE_BY_ID = {profile.profile_id: profile for profile in _PILOT_PROFILES}
+
+
+@dataclass(frozen=True)
+class RetainedCheckpoint:
+    """One manifest-validated N-back checkpoint."""
+
+    ordinal: int
+    seed: int
+    path: Path
+
+
+def sha256_file(path: str | Path) -> str:
+    """Return the SHA-256 digest of one regular file."""
+    target = Path(path)
+    if not target.is_file():
+        raise FileNotFoundError(f"required file is missing: {target}")
+    digest = hashlib.sha256()
+    with target.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def atomic_write_json(path: str | Path, payload: Mapping[str, Any]) -> Path:
+    """Atomically write one finite JSON document."""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    encoded = json.dumps(
+        dict(payload),
+        indent=2,
+        sort_keys=True,
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{target.name}.", suffix=".tmp", dir=target.parent
+    )
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(encoded)
+            handle.write(b"\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_name, target)
+    except BaseException:
+        Path(temporary_name).unlink(missing_ok=True)
+        raise
+    return target
+
+
+def load_retained_checkpoints(
+    manifest_path: str | Path,
+    *,
+    repo_root: str | Path,
+) -> list[RetainedCheckpoint]:
+    """Load the frozen ten-checkpoint screened N-back family."""
+    manifest = Path(manifest_path)
+    with manifest.open(encoding="utf-8") as handle:
+        payload = json.load(handle)
+    expected = list(RETAINED_CHECKPOINT_SEEDS)
+    if (
+        payload.get("retained_seeds") != expected
+        or payload.get("attempted_seeds") != expected
+        or payload.get("failed_seeds") != []
+        or not bool(payload.get("passed"))
+        or payload.get("stop_reason") != "target_reached"
+    ):
+        raise ValueError("screened-pool manifest does not match retained family")
+    paths = payload.get("retained_checkpoints")
+    if not isinstance(paths, list) or len(paths) != len(expected):
+        raise ValueError("manifest checkpoint list is incomplete")
+    root = Path(repo_root).resolve()
+    records = []
+    for ordinal, (seed, raw_path) in enumerate(zip(expected, paths)):
+        checkpoint_path = Path(str(raw_path))
+        if not checkpoint_path.is_absolute():
+            checkpoint_path = root / checkpoint_path
+        checkpoint_path = checkpoint_path.resolve()
+        if not checkpoint_path.is_file():
+            raise FileNotFoundError(
+                f"retained checkpoint does not exist: {checkpoint_path}"
+            )
+        records.append(RetainedCheckpoint(ordinal, seed, checkpoint_path))
+    return records
 
 
 @dataclass(frozen=True)

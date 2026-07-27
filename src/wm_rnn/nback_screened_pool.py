@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -12,13 +13,28 @@ from typing import Any, Callable
 from wm_rnn.config import load_config
 from wm_rnn.io import ensure_run_dirs, write_json
 from wm_rnn.nback_evaluation import NBackEvalResult, evaluate_nback_checkpoint
-from wm_rnn.nback_seed_sweep import config_for_nback_seed
 from wm_rnn.train_nback import NBackTrainResult, train_nback_model
 
 TrainFunction = Callable[[dict[str, Any]], NBackTrainResult]
 EvaluateFunction = Callable[
     [dict[str, Any], str | Path], NBackEvalResult
 ]
+
+
+def config_for_nback_seed(
+    config: dict[str, Any],
+    seed: int,
+) -> dict[str, Any]:
+    """Return an isolated per-seed N-back configuration."""
+    resolved = deepcopy(config)
+    base_output = Path(config["paths"]["output_dir"])
+    base_name = str(config["paths"]["run_name"])
+    resolved["task"]["seed"] = int(seed)
+    resolved["paths"]["output_dir"] = str(
+        base_output / "seed_sweep" / f"seed_{seed}"
+    )
+    resolved["paths"]["run_name"] = f"{base_name}_seed_{seed}"
+    return resolved
 
 
 @dataclass(frozen=True)

@@ -1,11 +1,10 @@
-# Yang Fixation-Gated Circular Working-Memory RNN
+# Fixation-Gated Circular Working-Memory RNN
 
 ## Role
 
-`yang_fixation_circular_working_memory` is the canonical baseline for upcoming
-perturbation experiments. The name identifies the task interface (Yang-style
-fixation control), represented variable (circular angle), and model purpose
-(working memory).
+`fixation_circular_working_memory` is the canonical circular baseline for
+perturbation experiments. The task uses explicit fixation control and a
+circular remembered variable.
 
 ## Architecture and Training
 
@@ -18,8 +17,8 @@ fixation control), represented variable (circular angle), and model purpose
   gradient clipping.
 
 The active configuration is
-`configs/yang_fixation_circular_working_memory.yaml` and generated artifacts are
-stored under `outputs/yang_fixation_circular_working_memory/`.
+`configs/fixation_circular_working_memory.yaml` and generated artifacts are
+stored under `outputs/fixation_circular_working_memory/`.
 
 ## Hidden-State Decoder
 
@@ -48,21 +47,11 @@ At the untrained 160-step delay, seed-level mean response errors ranged from
 memory decoding are reproducible across independently initialized networks,
 while also quantifying meaningful between-seed variation.
 
-## Reproduction
+## Reproduction Status
 
-```powershell
-$env:PYTHONPATH = "src"
-python -m wm_rnn.cross_temporal_decoder `
-  --config configs\yang_fixation_circular_working_memory.yaml `
-  --checkpoint outputs\yang_fixation_circular_working_memory\checkpoints\yang_fixation_circular_working_memory.pt `
-  --device cpu
-
-python -m wm_rnn.seed_sweep `
-  --config configs\yang_fixation_circular_working_memory.yaml `
-  --seeds 20260714 20260715 20260716 20260717 20260718 `
-  --delays 10 20 40 80 160 `
-  --device cpu
-```
-
-The seed sweep writes one checkpoint and analysis set per seed plus aggregate
-CSV and JSON summaries in the canonical model's `metrics/` directory.
+The trained checkpoint family and its baseline analysis artifacts are retained
+under `outputs/fixation_circular_working_memory/`. The one-off PCA, delay-sweep,
+cross-temporal, and generic seed-sweep modules were retired from the active
+package during repository cleanup; their exact implementations remain
+recoverable from Git commit `d64b2cf`. Current evaluation is performed by the
+candidate perturbation runners documented in `docs/repository-map.md`.

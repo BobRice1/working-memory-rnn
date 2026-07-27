@@ -3,6 +3,93 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-27 - Pending - Clarify active repository structure and archive historical guidance</summary>
+
+Purpose:
+
+- Make the current circular-plus-N-back experiment easy to distinguish from
+  superseded baselines, failed task rescues, frozen preregistration records,
+  and ignored generated data.
+
+Changes:
+
+- Rewrote `README.md` around the current two-task perturbation study.
+- Added `docs/repository-map.md` and `configs/README.md` as current navigation
+  and configuration-status indexes.
+- Replaced the stale categorical `docs/model-architecture.md` with a concise
+  description of the current circular and N-back families, while preserving
+  the original document as
+  `docs/archive/categorical-model-architecture.md`.
+- Added an archive guide and corrected current circular-model names and paths
+  in explanatory documents.
+- Updated the two active baseline notebooks from the obsolete
+  `yang_fixation_circular_working_memory` paths to
+  `fixation_circular_working_memory`.
+- Removed ignored `tmp/` and `.pytest_cache/` directories after verifying both
+  targets were inside the repository.
+
+Preservation:
+
+- Did not remove or alter checkpoints, metrics, figures, other contents of
+  `outputs/`, the local `.venv/`, Git stashes, or the untracked manuscript
+  files in `docs/reports/`.
+- Left frozen and historically referenced configuration files at their
+  original paths; `configs/README.md` classifies them without breaking
+  preregistration or test references.
+
+Verification:
+
+- Parsed both edited notebooks as JSON.
+- Confirmed all canonical paths named by the new repository map exist.
+- `git diff --check` passed.
+- The complete repository suite passed: `316 passed`.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Pending - Reduce the active Python package to the current experiment</summary>
+
+Purpose:
+
+- Remove accumulated one-off development, rescue, analysis, and reporting
+  pipelines from the active package while preserving their outputs,
+  documentation, and Git history.
+
+Changes:
+
+- Reduced `src/wm_rnn/` from 51 Python files to 26 including `__init__.py`
+  (25 substantive modules).
+- Reduced active source from approximately 20,900 to 8,742 nonblank,
+  non-comment lines.
+- Removed retired fixed-point, stability, PCA, movie, structured-noise,
+  failed-Family-B, phased perturbation-scoring, and additive N-back execution
+  modules.
+- Removed tests dedicated exclusively to those retired implementations.
+- Made the current N-back candidate evaluator self-contained for its operator
+  profile, checkpoint-manifest, hashing, and atomic JSON needs.
+- Moved per-seed N-back configuration construction into the current screened
+  checkpoint-pool module.
+- Removed the failed Family B acceptance hook from the retained circular seed
+  sweep before retiring obsolete baseline-only evaluation utilities.
+- Updated the active notebook and repository map so they do not import or
+  advertise removed modules.
+
+Preservation:
+
+- All recorded checkpoints, metrics, arrays, figures, PDFs,
+  preregistrations, failure audits, and changelog history remain in place.
+- The removed executable implementations remain recoverable from Git commit
+  `d64b2cf`.
+
+Verification:
+
+- `python -m compileall -q src/wm_rnn` passed.
+- The remaining complete suite passed: `208 passed`.
+- The edited notebook parses as valid JSON.
+
+</details>
+
+<details>
 <summary>2026-07-27 - Pending - Create scientific LaTeX perturbation write-up</summary>
 
 Purpose:

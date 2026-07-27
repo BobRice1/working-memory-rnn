@@ -7,13 +7,13 @@ from pathlib import Path
 import pytest
 
 from wm_rnn.config import load_config
-from wm_rnn.nback_additive_calibration import PROFILE_BY_ID
-from wm_rnn.nback_additive_cost_precision import RetainedCheckpoint
 from wm_rnn.nback_exploratory_pilot import (
     FROZEN_PILOT_DESIGN,
     PILOT_CHECKPOINT_SEEDS,
     PILOT_PROFILE_IDS,
+    PROFILE_BY_ID,
     PilotDesign,
+    RetainedCheckpoint,
     load_pilot_operator_grids,
     pilot_profile_parameters,
     pilot_task_batches,

@@ -6,7 +6,7 @@ import torch
 
 from wm_rnn.config import load_config
 from wm_rnn.nback_evaluation import evaluate_nback_checkpoint
-from wm_rnn.nback_seed_sweep import config_for_nback_seed
+from wm_rnn.nback_screened_pool import config_for_nback_seed
 from wm_rnn.nback_task import NBackTaskConfig, generate_nback_batch
 from wm_rnn.train_nback import (
     draw_balanced_nback_block,

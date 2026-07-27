@@ -98,7 +98,8 @@ the saved results.
 ## Repository Layout
 
 - `src/wm_rnn/`: model, task, training, evaluation, analysis, and experiment
-  code.
+  code for the current task and candidate-evaluation path. Historical one-off
+  runners are recovered from Git rather than retained in the active package.
 - `tests/`: unit and integration tests.
 - `configs/`: active and frozen experiment configurations, classified in
   `configs/README.md`.

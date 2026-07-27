@@ -4,7 +4,7 @@
 
 The historical `tuned_delay_stable` model is an archived intermediate circular
 working-memory model. It is not the current perturbation baseline; the canonical
-model is `yang_fixation_circular_working_memory`.
+circular model is `fixation_circular_working_memory`.
 It extends the earlier categorical delayed-response task into a continuous
 circular memory task. Instead of remembering one of four discrete cue classes,
 the model remembers an angle on a circle.

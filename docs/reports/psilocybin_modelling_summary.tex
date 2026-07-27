@@ -1,0 +1,423 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{setspace}
+\usepackage{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage{csquotes}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{microtype}
+\microtypesetup{expansion=false}
+\usepackage{float}
+
+\setstretch{1.15}
+\raggedbottom
+\bibliographystyle{apalike}
+\graphicspath{
+  {../../outputs/fixation_circular_working_memory/figures/}
+  {../../outputs/fixation_circular_working_memory/perturbation_experiments/noise_structure/gaussian_control/figures/}
+}
+
+\title{Recovering Psilocybin-Related Working-Memory Signatures by Perturbing a Recurrent Neural Network}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Acute psilocybin produces heterogeneous effects across human working-memory and
+attention tasks, including response slowing, greater impairment at higher
+updating load, and vulnerability to competing information. This dissertation
+tests whether such a selective behavioural signature can be recovered by
+perturbing a recurrent neural network (RNN) trained to perform working-memory
+tasks. We first established a fixation-gated continuous-time RNN that
+maintained a circular stimulus through variable delays, replicated its
+performance across five independently trained models, and evaluated
+independent Gaussian hidden-state noise as a non-specific degradation control.
+Mean response error was
+$4.36\pm1.55^{\circ}$ and fixation accuracy was $0.9677\pm0.0016$ across
+models; hidden-state decoding recovered delay-period angle with
+$0.55\pm0.46^{\circ}$ error. Gaussian noise caused graded, delay-dependent
+impairment while largely preserving fixation and circular centroid spacing.
+These results establish a reproducible baseline and quantify generic
+stochastic disruption. Gaussian noise caused broad, delay-dependent
+degradation rather than recovering a selective human behavioural signature. It
+therefore provides a control for evaluating literature-motivated perturbations,
+without being interpreted as a biological model of psilocybin.
+\end{abstract}
+
+\section{Introduction}
+
+Working memory depends on retaining task-relevant information after its
+eliciting input has disappeared. Recurrent dynamics provide a natural
+computational substrate for this function: activity can settle onto an
+attractor or evolve along a slow manifold that preserves a decodable memory
+variable \citep{wang2013nmda,kilpatrick2013,ghazizadeh2021}. For a continuous
+circular variable, the relevant question is not only whether a network produces
+an accurate response, but whether its hidden population maintains ordered
+geometry, resists drift, and generalises beyond the delays encountered during
+training.
+
+The dissertation's central question is whether perturbing this recurrent
+system can reproduce the qualitative pattern of working-memory effects
+observed in humans during acute psilocybin administration. Human findings are
+mixed rather than uniformly impairing. Psilocybin has produced greater
+impairment under higher N-back updating load \citep{barrett2018}, while a small
+study found clearer impairment in multiple-object tracking than in spatial
+working-memory span \citep{carter2005}. The behavioural target is therefore a
+selective signature---including slowing, load sensitivity, and susceptibility
+to competing information---rather than an arbitrary reduction in accuracy.
+
+Psychedelic neuroscience motivates candidate dynamical explanations for this
+signature. The
+Entropic Brain hypothesis proposes that psychedelic states occupy a broader,
+less constrained repertoire of brain states \citep{carhartharris2014entropic}.
+Human MEG, EEG, and fMRI studies have reported increased signal diversity or
+altered network entropy under psilocybin and related compounds
+\citep{schartner2017increased,timmermann2019neural,viol2017shannon}. These
+measurements are direct evidence about recorded brain signals, but they do not
+imply that psilocybin is equivalent to additive noise in a task-trained RNN.
+Increased diversity could reflect structured changes in responsiveness,
+coupling, context dependence, or state-space exploration.
+
+REBUS (``relaxed beliefs under psychedelics'') places this change within
+predictive processing \citep{carhartharris2019rebus}. The theory proposes
+reduced precision of high-level priors and greater influence of bottom-up
+signals, relating precision to postsynaptic gain. A working-memory translation
+is plausible because a maintained representation must resist irrelevant input.
+However, scaling an RNN's input drive, recurrent drive, or activation slope is
+an implementation hypothesis; REBUS does not prescribe any of these equations.
+The distinction matters because the three manipulations can make different
+predictions about clean maintenance, distractor capture, and recovery.
+
+A more direct computational precedent comes from the receptor-informed
+whole-brain model of \citet{herzog2023mechanistic}. That study represented
+5-HT2A receptor activation as regionally heterogeneous modulation of the
+frequency--current response function. Response gain interacted with structural
+connectivity to produce non-uniform entropy changes. The study therefore
+supports response-gain modulation as a candidate modelling dimension and
+suggests that recurrent topology shapes its consequences. It did not study
+working memory, a trained RNN, or a pharmacological mapping for the abstract
+gain values used here.
+
+The direction and population specificity of gain changes cannot be inferred
+from that whole-brain result alone. In mouse visual cortex, the hallucinogenic
+5-HT2A agonist DOI reduced visually evoked response gain
+\citep{michaiel2019visualgain}; cell-type-specific manipulation of a
+5-HT2A-related pathway produced heterogeneous effects and divisive suppression
+through balanced excitation and inhibition \citep{barzan2024gaincontrol}.
+Separately, human EEG modelling linked perceptual precision to the synaptic
+gain of superficial pyramidal prediction-error units
+\citep{brown2012precision}. These studies support bidirectional,
+pathway-specific tests, not a presumption that a psychedelic-like manipulation
+is a uniform gain increase.
+
+We hypothesise that a literature-motivated perturbation of a trained
+working-memory RNN can recover the qualitative human signature more closely
+than generic stochastic disruption. This requires more than decreasing
+performance: a successful perturbation should reproduce a selective pattern
+across clean maintenance, delay duration, response dynamics, updating demand,
+and competing input. The present analysis establishes the unperturbed baseline
+and tests independent Gaussian noise as the generic control. Gain modulation
+is retained as a candidate mechanism because it can alter response sensitivity
+or the balance of external and recurrent drive, but any such manipulation is
+an abstract computational hypothesis rather than a biological equivalent of
+psilocybin.
+
+\section{Methods}
+
+\subsection{Fixation-gated circular task}
+
+Each stimulus angle $\theta\in[0,2\pi)$ was encoded over 32 evenly spaced
+preferred angles $\mu_j$ using
+\begin{equation}
+  c_j(\theta)=\exp\{\kappa[\cos(\theta-\mu_j)-1]\},\qquad \kappa=8.
+\end{equation}
+Trials comprised pre-cue fixation, cue, delay, and response periods. Pre-cue
+duration was sampled from 15, 25, or 35 steps; cue duration from 10, 20, or 30
+steps; and delay duration from 10, 20, 40, or 80 steps. The response lasted 25
+steps. A fixation input was one until response onset and zero thereafter. The
+target fixation output followed the same schedule; the 32 circular outputs
+were silent before response and reported the remembered angle during response.
+Thus delay-period memory was evaluated from hidden state rather than from the
+deliberately silent circular readout.
+
+\subsection{Network and implemented recurrence}
+
+The model contained 33 inputs, 64 recurrent units, and 33 outputs. With
+$\alpha=dt/\tau=20/100=0.2$, the code implemented
+\begin{align}
+  z_t &= W_{\mathrm{in}}x_t+b_{\mathrm{in}}
+       +W_{\mathrm{rec}}h_{t-1}+b_{\mathrm{rec}},\\
+  h_t &= \tanh\!\left[(1-\alpha)h_{t-1}+\alpha z_t+\varepsilon_t\right],\\
+  y_t &= W_{\mathrm{out}}h_t+b_{\mathrm{out}} .
+\end{align}
+This placement of the leak, perturbation, and non-linearity is the implemented
+update; it should not be replaced by a textbook continuous-time equation.
+During training only, independent recurrent noise with standard deviation
+0.05 was added after the leaky update and before $\tanh$.
+
+\subsection{Training and replication}
+
+We trained with Adam (learning rate $10^{-3}$) for 4,000 steps using batches of
+64 trials. Gaussian input noise had standard deviation 0.01. The weighted
+mean-squared error assigned weight 5 to circular response output and weight 2
+to fixation output. The first five trial steps and the first five response
+transition steps were unscored. Gradients were clipped to a maximum norm/value
+of 1.0 as implemented by the training utility. Five networks were trained from
+independent seeds 20260714--20260718. Model seed, rather than trial or
+stochastic batch, was the replication unit.
+
+\subsection{Baseline evaluation and dynamical analyses}
+
+Each network was evaluated over 20 batches. Response angle was decoded by
+population-vector averaging, and absolute circular error was the shortest
+wrapped angular distance from target. Fixation accuracy measured correct
+wait--go output state. Generalisation sweeps used delays of 10, 20, 40, 80, and
+160 steps.
+
+Delay-period content was decoded from hidden states by ridge regression to the
+two-dimensional target vector
+\[
+  \bigl[\cos(\theta),\,\sin(\theta)\bigr].
+\]
+The decoder used 512 trials, a 75:25
+train--test split, and ridge coefficient 1.0. Cross-temporal matrices fitted a
+decoder at each training time and tested it at each held-out time.
+
+For the canonical checkpoint only, late-delay states seeded blank-input
+autonomous probes and fixed-point optimisation. Local Jacobians were computed
+at the resulting approximate fixed points. We report residual, decoded angle,
+drift, eigenvalue magnitude, and alignment of the leading eigenvector with the
+sampled circular tangent. These sampled analyses are descriptive properties of
+one checkpoint, not five-model estimates or proof of a global attractor.
+
+\subsection{Independent Gaussian control}
+
+Frozen networks received perturbations only during the delay. For each active
+time $t$, trial $b$, and hidden unit $i$, an independent
+$\eta_{tbi}\sim\mathcal{N}(0,1)$ was drawn and normalised as
+\begin{equation}
+\varepsilon_{tbi}=
+\sigma\frac{\eta_{tbi}}
+{\left(|\mathcal{A}|^{-1}\sum_{(t,b,i)\in\mathcal{A}}\eta_{tbi}^{2}\right)^{1/2}},
+\label{eq:gaussian}
+\end{equation}
+where $\mathcal{A}$ contains all delay-active entries. The realised within-batch
+RMS therefore equalled target strength $\sigma$. We evaluated delays 20, 80,
+and 160 at
+\[
+  \sigma\in\{0,\ 0.01,\ 0.025,\ 0.05,\ 0.10\}.
+\]
+Each model--delay condition
+used five stochastic replicates of 20 paired 64-trial batches. Clean-fitted
+decoders quantified representational distortion without adapting to the noisy
+states. RMS is an intervention magnitude, not a pharmacological dose.
+
+Outcomes were response error, clean-decoder error, angular drift, fixation
+accuracy, circular-state geometry, and response settling. Geometry was
+measured in a clean-fitted principal-component plane using within-angle
+dispersion and between-angle centroid spacing. Settling was the first scored
+response step with error below $20^{\circ}$ after excluding the five transition
+steps.
+
+\section{Results}
+
+\subsection{The baseline replicated accurate circular working memory}
+
+Across five independently trained models, mean response angular error was
+$4.36\pm1.55^{\circ}$ (range $2.95$--$7.03^{\circ}$), response population MSE
+was $0.00957\pm0.00194$, and fixation accuracy was
+$0.9677\pm0.0016$ (mean $\pm$ SD across model seeds). Delay-period diagonal
+decoding error was $0.55\pm0.46^{\circ}$ (range
+$0.31$--$1.37^{\circ}$), showing that the remembered angle remained linearly
+recoverable despite the silent circular output.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=.92\linewidth,height=.68\textheight,keepaspectratio]{fixation_circular_working_memory_seed_sweep_delay_curves.png}
+\caption{\textbf{Baseline delay generalisation across five independently
+trained networks.} Response angular error is shown for trained delays
+10--80 steps and the untrained 160-step delay. Curves identify model seeds,
+which are the replication unit. Performance remains substantially above a
+random circular response at long delays, while between-seed variation increases.}
+\label{fig:baseline-delay}
+\end{figure}
+
+The five models generalised to the untrained 160-step delay, with seed-level
+mean response errors ranging from $5.14^{\circ}$ to $11.73^{\circ}$
+(Fig.~\ref{fig:baseline-delay}). This increase indicates accumulating
+delay-dependent error rather than perfect time invariance.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=.90\linewidth,height=.68\textheight,keepaspectratio]{fixation_circular_working_memory_cross_temporal_decoder.png}
+\caption{\textbf{Cross-temporal hidden-state decoding for the canonical
+checkpoint.} Ridge decoders predict sine and cosine of target angle from held-out
+hidden states. The low delay-period diagonal error
+($0.427^{\circ}$; maximum $0.474^{\circ}$) confirms precise maintenance; the
+full matrix describes how the representational code transfers across time.}
+\label{fig:baseline-decoder}
+\end{figure}
+
+\subsection{A canonical checkpoint showed sampled attractor-like geometry}
+
+For the canonical checkpoint, fixed-point optimisation produced a mean
+one-step residual of 0.00202, with 28.1\% of sampled endpoints below the
+pre-specified 0.001 residual threshold. Mean decoded fixed-point error was
+$1.24^{\circ}$ and mean drift from the corresponding late-delay state was
+$1.10^{\circ}$. The mean leading eigenvalue magnitude was 0.99975, the mean
+second-largest magnitude was 0.88742, and leading-eigenvector alignment with
+the sampled circular tangent was 0.978.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=.88\linewidth,height=.68\textheight,keepaspectratio]{fixation_circular_working_memory_fixed_point_analysis.png}
+\caption{\textbf{Sampled fixed-point and Jacobian analysis of one canonical
+checkpoint.} Optimisation residuals, hidden-decoder angle preservation, drift,
+and local eigenvalue magnitudes are shown for late-delay starts. A near-neutral
+leading direction with contracting secondary dynamics is consistent with a
+ring-like slow manifold. The finite sample and incomplete convergence preclude
+an exhaustive claim about the full state space.}
+\label{fig:baseline-dynamics}
+\end{figure}
+
+Together, preserved angle, low drift, and a near-neutral tangent direction
+support an attractor-like or slow-manifold account
+(Fig.~\ref{fig:baseline-dynamics}). They remain descriptive because the
+analysis used one checkpoint and sampled initial states.
+
+\subsection{Gaussian noise caused weak, delay-dependent degradation}
+
+Gaussian noise produced graded impairment (Fig.~\ref{fig:gaussian-behaviour}).
+At RMS 0.05, response error increased from
+$4.34\pm1.54^{\circ}$ to $4.91\pm1.45^{\circ}$ at delay 20, from
+$6.49\pm1.93^{\circ}$ to $7.47\pm1.68^{\circ}$ at delay 80, and from
+$9.03\pm2.50^{\circ}$ to $10.44\pm2.24^{\circ}$ at delay 160. At RMS 0.10,
+the corresponding errors were $6.42\pm1.35^{\circ}$,
+$10.48\pm1.92^{\circ}$, and $14.68\pm2.57^{\circ}$.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=.94\linewidth,height=.67\textheight,keepaspectratio]{figure_g1_dose_delay_behaviour.pdf}
+\caption{\textbf{Response error under independent Gaussian delay
+perturbation.} Absolute circular error is shown across RMS strengths and delay
+lengths. Solid lines are five-model means; dashed lines and shading are 95\%
+bootstrap intervals across models. RMS quantifies perturbation magnitude, not
+drug dose.}
+\label{fig:gaussian-behaviour}
+\end{figure}
+
+Maintenance measures were more sensitive than final response. At delay 80 and
+RMS 0.05, clean-decoder error increased from
+$1.29\pm0.82^{\circ}$ to $3.71\pm1.53^{\circ}$ and decoded drift from
+$2.60\pm1.84^{\circ}$ to $5.20\pm2.11^{\circ}$.
+Fixation accuracy remained $0.98\pm0.00$ in both conditions
+(Fig.~\ref{fig:gaussian-maintenance}).
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=.94\linewidth,height=.67\textheight,keepaspectratio]{figure_g2_maintenance_metrics.pdf}
+\caption{\textbf{Maintenance outcomes at delay 80.} Clean-fitted decoder error
+and decoded drift increase with perturbation RMS, whereas fixation accuracy is
+preserved. Lines and intervals are defined as in
+Fig.~\ref{fig:gaussian-behaviour}.}
+\label{fig:gaussian-maintenance}
+\end{figure}
+
+At delay 80 and RMS 0.05, within-angle dispersion increased from 0.550 to
+0.732, whereas normalised between-angle centroid spacing remained 0.990
+relative to the clean value of one (Fig.~\ref{fig:gaussian-geometry}). The
+representation therefore blurred without a wholesale collapse of its circular
+organisation.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=.92\linewidth,height=.67\textheight,keepaspectratio]{figure_g3_geometry.pdf}
+\caption{\textbf{Clean and Gaussian circular-state geometry at delay 80 and
+RMS 0.05.} Angle centroids and uncertainty ellipses are projected into the
+clean-fitted PC1--PC2 plane. Gaussian perturbation broadens within-angle states
+while largely preserving global centroid separation.}
+\label{fig:gaussian-geometry}
+\end{figure}
+
+Response settling changed little at the primary RMS. At delay 80, the first
+response step below $20^{\circ}$ increased from 5.02 clean to 5.19 at RMS 0.05,
+with 99.2\% of trials settling. At RMS 0.10, settling increased to 6.55 steps
+and 93.6\% settled (Fig.~\ref{fig:gaussian-settling}). Final error in this
+focused analysis was $5.94^{\circ}$ clean, $6.75^{\circ}$ at RMS 0.05, and
+$10.40^{\circ}$ at RMS 0.10.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=.92\linewidth,height=.67\textheight,keepaspectratio]{figure_g4_settling.pdf}
+\caption{\textbf{Response settling at delay 80.} Settling is the first counted
+response step below $20^{\circ}$ error after excluding the five transition
+steps. Points are model seeds and lines are five-model means.}
+\label{fig:gaussian-settling}
+\end{figure}
+
+Independent Gaussian noise is therefore a useful weak, non-specific
+degradation control. It increases dispersion, drift, and error with elapsed
+delay, but does not identify a pharmacological or cognitive mechanism.
+Structured AR(1) and topology-correlated noise remain a separate exploratory
+robustness study and are not part of the present mechanism comparison.
+
+\section{Discussion}
+
+The fixation-gated RNN provides a replicated continuous working-memory
+baseline. Accurate response and delay-period decoding across five seeds show
+that the result is not restricted to one favourable initialisation. The
+canonical checkpoint's sampled fixed points and local Jacobians are consistent
+with a ring-like slow manifold, although that inference is descriptive and
+does not substitute for replicated dynamical analysis.
+
+The dissertation asks whether perturbing a working-memory RNN can recover the
+selective behavioural signature observed in humans under acute psilocybin.
+The present results do not yet answer that hypothesis, because they establish
+the baseline and generic control rather than a successful
+psilocybin-motivated manipulation. They nevertheless provide the necessary
+reference against which recovery of the human signature can be judged.
+
+Independent Gaussian perturbation supplied the intended generic control. Its
+effects were graded and strongest in maintenance-sensitive measures, while
+fixation and between-angle organisation were largely preserved at moderate
+strength. This establishes how unstructured variability degrades the trained
+system. It does not establish that altered entropy in psychedelic recordings
+is Gaussian, nor that RMS maps to human dose. More importantly, the principal
+pattern was a broad increase in error with perturbation strength and delay.
+This is insufficient by itself to recover the task-selective combination of
+slowing, updating-load sensitivity, and competing-input vulnerability that
+defines the dissertation hypothesis.
+
+The gain literature supplies one possible mechanistic interpretation, but not
+a completed result. Receptor-informed modelling supports altered neural
+response gain \citep{herzog2023mechanistic}, whereas REBUS motivates altered
+precision and effective afferent influence
+\citep{carhartharris2019rebus}. Direct sensory-cortex studies also caution that
+gain effects can be reduced, heterogeneous, and population specific
+\citep{michaiel2019visualgain,barzan2024gaincontrol}. Consequently, any later
+RNN gain manipulation must be judged by whether it recovers the human
+behavioural pattern, not by whether it simply changes network activity or
+increases error.
+
+\section{Conclusion}
+
+The fixation-gated RNN provides a reproducible substrate for testing the
+dissertation's central hypothesis. Independent Gaussian noise produces
+predictable delay-dependent degradation, but the current evidence does not
+show that it recovers the selective behavioural signatures reported in humans
+under acute psilocybin. The relevant standard for subsequent perturbations is
+therefore pattern recovery across working-memory conditions, not impairment
+alone. Even if an RNN perturbation meets that standard, it would demonstrate
+computational sufficiency rather than biological equivalence to psilocybin.
+
+\bibliography{references}
+
+\end{document}
