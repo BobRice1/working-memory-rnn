@@ -3,7 +3,28 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Freeze competent N-back checkpoint family</summary>
+<summary>2026-07-27 - Current commit - Preregister additive N-back cost precision</summary>
+
+Purpose:
+
+- Replace unstable proportional ceiling-error matching with a frozen additive
+  sequence-log-loss cost before any perturbation is computed.
+
+Frozen decisions:
+
+- Target `0.050` nats, held-out band `[0.040, 0.060]`, maximum 95% half-width
+  `0.005`, and candidate-P5 gap `0.005`.
+- Collect 8,192 fresh unperturbed 0-back sequences per checkpoint.
+- Bootstrap the family-wide maximum SD and derive `n_cost_check` with the
+  registered conservative variance formula.
+- Use sequence-level resampling, non-overlapping future task banks, and a hard
+  maximum of 8,192 sequences per cell.
+- Prohibit operators, P5, 2-back, or strength calibration during this phase.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 06d4f67 - Freeze competent N-back checkpoint family</summary>
 
 Purpose:
 
