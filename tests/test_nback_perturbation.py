@@ -83,16 +83,16 @@ def test_cost_units_are_one_log_loss_observation_per_sequence() -> None:
     logits = torch.zeros((*batch.targets.shape, 2))
 
     units = sequence_log_loss_units(logits, batch)
-    summary = summarize_sequence_log_loss_cost(units, units * 1.3)
+    summary = summarize_sequence_log_loss_cost(units, units + 0.05)
 
     assert units.shape == (3,)
     np.testing.assert_allclose(units, np.log(2.0))
     assert summary.n_sequences == 3
     assert summary.baseline_mean_log_loss == pytest.approx(np.log(2.0))
     assert summary.perturbed_mean_log_loss == pytest.approx(
-        1.3 * np.log(2.0)
+        np.log(2.0) + 0.05
     )
-    assert summary.proportional_cost == pytest.approx(0.3)
+    assert summary.additive_cost == pytest.approx(0.05)
 
 
 def test_candidate_vs_p5_load_contrast_has_registered_positive_sign() -> None:

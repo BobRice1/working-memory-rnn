@@ -3,7 +3,43 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Preregister additive N-back perturbations</summary>
+<summary>2026-07-27 - Current commit - Implement additive N-back experiment foundations</summary>
+
+Purpose:
+
+- Implement and verify the frozen pre-outcome foundations required before the
+  phased N-back perturbation runner may evaluate any non-neutral setting.
+
+File changes:
+
+- `src/wm_rnn/nback_additive_calibration.py`: Encodes the exact profile and
+  seed manifests, additive calibration, sequence-wise replicate averaging,
+  monotonicity and no-extrapolation gates, deterministic paired bootstrap, and
+  held-out P5 cost-match validation.
+- `src/wm_rnn/nback_metrics.py`: Enforces exact generated-batch identity and
+  finite binary inputs, and adds specificity, balanced accuracy, ordinary
+  nonmatch performance, settling validity, and explicit response-failure
+  metrics.
+- `src/wm_rnn/nback_perturbation.py`: Uses additive sequence log-loss cost and
+  retains the registered six-channel P3a boundary and C2 sign convention.
+- `src/wm_rnn/nback_perturbation_state.py`: Provides atomic, hash-validated
+  phased persistence, artifact identity checks, phase barriers, and safe
+  resume.
+- Focused tests cover all registered calibration failure modes, stochastic
+  seed maps, additive rather than proportional cost, metric guards, P3a
+  context protection, and persistence corruption/refusal behavior.
+
+Validation:
+
+- Focused additive, metric, adapter, and persistence tests: 42 passed.
+- Full repository suite: 242 passed.
+- No checkpoint, strength, Gaussian perturbation, or 2-back outcome was
+  evaluated.
+
+</details>
+
+<details>
+<summary>2026-07-27 - fc99475 - Preregister additive N-back perturbations</summary>
 
 Purpose:
 

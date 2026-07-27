@@ -12,13 +12,65 @@ import torch.nn.functional as F
 from wm_rnn.nback_task import NBackBatch
 
 
+def _validate_sequence_loss_inputs(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    loss_mask: torch.Tensor,
+) -> None:
+    """Validate the binary sequence-loss tensors before reduction."""
+    if (
+        logits.ndim != 3
+        or logits.shape[-1] != 2
+        or targets.shape != logits.shape[:2]
+        or loss_mask.shape != logits.shape[:2]
+    ):
+        raise ValueError(
+            "logits, targets, and loss_mask must have shapes "
+            "[time, batch, 2], [time, batch], and [time, batch]"
+        )
+    if not torch.isfinite(logits).all():
+        raise ValueError("logits must contain only finite values")
+    if not torch.isfinite(loss_mask).all():
+        raise ValueError("loss_mask must contain only finite values")
+    if not torch.all((targets == 0) | (targets == 1)):
+        raise ValueError("targets must contain only binary class labels")
+    if not torch.all((loss_mask == 0) | (loss_mask == 1)):
+        raise ValueError("loss_mask must contain only zeros and ones")
+    if not torch.all(loss_mask.sum(dim=0) > 0):
+        raise ValueError("every sequence must contain scored timesteps")
+
+
+def _validate_batch_metric_inputs(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    loss_mask: torch.Tensor,
+    batch: NBackBatch,
+) -> None:
+    """Require metric tensors to reproduce the registered generated batch."""
+    _validate_sequence_loss_inputs(logits, targets, loss_mask)
+    target_values = targets.detach().cpu().numpy()
+    mask_values = loss_mask.detach().cpu().numpy()
+    if not np.array_equal(target_values, batch.targets):
+        raise ValueError("targets must exactly match batch.targets")
+    if not np.array_equal(mask_values, batch.loss_mask):
+        raise ValueError("loss_mask must exactly match batch.loss_mask")
+
+
 def _item_arrays(
     logits: torch.Tensor,
     batch: NBackBatch,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Return final-event predictions, labels, and scored mask."""
-    if logits.ndim != 3 or logits.shape[:2] != batch.targets.shape:
-        raise ValueError("logits must match batch time and batch dimensions")
+    if (
+        logits.ndim != 3
+        or logits.shape[:2] != batch.targets.shape
+        or logits.shape[-1] != 2
+    ):
+        raise ValueError(
+            "logits must have shape [time, batch, 2] matching the batch"
+        )
+    if not torch.isfinite(logits).all():
+        raise ValueError("logits must contain only finite values")
     event_final_steps = torch.as_tensor(
         batch.event_onsets + batch.event_steps - 1,
         device=logits.device,
@@ -36,6 +88,7 @@ def per_sequence_cross_entropy(
     loss_mask: torch.Tensor,
 ) -> np.ndarray:
     """Return mean scored time-point cross-entropy for each sequence."""
+    _validate_sequence_loss_inputs(logits, targets, loss_mask)
     losses = F.cross_entropy(
         logits.reshape(-1, logits.size(-1)),
         targets.reshape(-1),
@@ -62,10 +115,14 @@ def _rates(
         false_alarm_count / nonmatch_count if nonmatch_count else None
     )
     if hit_rate is None or false_alarm_rate is None:
+        specificity = None
+        balanced_accuracy = None
         discriminability = None
         response_bias = None
         d_prime = None
     else:
+        specificity = 1.0 - false_alarm_rate
+        balanced_accuracy = 0.5 * (hit_rate + specificity)
         discriminability = hit_rate - false_alarm_rate
         denominator = 1.0 - discriminability
         response_bias = (
@@ -89,6 +146,8 @@ def _rates(
         "nonmatch_count": nonmatch_count,
         "hit_rate": hit_rate,
         "false_alarm_rate": false_alarm_rate,
+        "specificity": specificity,
+        "balanced_accuracy": balanced_accuracy,
         "discriminability": discriminability,
         "response_bias": response_bias,
         "d_prime": d_prime,
@@ -153,13 +212,16 @@ def _summarize_settling(
         return {
             "count": 0,
             "fraction_settled": None,
+            "failure_rate": None,
             "median_settling_steps": None,
             "restricted_mean_settling_steps": None,
         }
     settled = values < event_cap
+    fraction_settled = float(settled.mean())
     return {
         "count": int(values.size),
-        "fraction_settled": float(settled.mean()),
+        "fraction_settled": fraction_settled,
+        "failure_rate": float(1.0 - fraction_settled),
         "median_settling_steps": (
             float(np.median(values[settled])) if settled.any() else None
         ),
@@ -178,6 +240,17 @@ def nback_metrics(
     consecutive_steps: int = 3,
 ) -> dict[str, Any]:
     """Compute one-observation-per-item N-back metrics."""
+    _validate_batch_metric_inputs(logits, targets, loss_mask, batch)
+    if (
+        not np.isfinite(probability_threshold)
+        or not 0.0 <= probability_threshold <= 1.0
+    ):
+        raise ValueError("probability_threshold must lie in [0, 1]")
+    if (
+        not np.isfinite(margin_threshold)
+        or not 0.0 <= margin_threshold <= 1.0
+    ):
+        raise ValueError("margin_threshold must lie in [0, 1]")
     if consecutive_steps <= 0 or consecutive_steps > batch.event_steps:
         raise ValueError("consecutive_steps must fit within one event")
     predictions, labels, scored = _item_arrays(logits, batch)
@@ -207,6 +280,19 @@ def nback_metrics(
     lure_accuracy = (
         float(np.mean(lure_predictions == 0)) if lure_count else None
     )
+    ordinary_nonmatch_mask = (
+        scored & (labels == 0) & ~batch.one_back_lures
+    )
+    ordinary_nonmatch_count = int(ordinary_nonmatch_mask.sum())
+    ordinary_nonmatch_predictions = predictions[ordinary_nonmatch_mask]
+    ordinary_nonmatch_false_alarms = int(
+        (ordinary_nonmatch_predictions == 1).sum()
+    )
+    ordinary_nonmatch_false_alarm_rate = (
+        ordinary_nonmatch_false_alarms / ordinary_nonmatch_count
+        if ordinary_nonmatch_count
+        else None
+    )
 
     return {
         "condition": batch.condition,
@@ -222,8 +308,21 @@ def nback_metrics(
             lure_false_alarms / lure_count if lure_count else None
         ),
         "one_back_lure_accuracy": lure_accuracy,
+        "ordinary_nonmatch_count": ordinary_nonmatch_count,
+        "ordinary_nonmatch_false_alarm_count": (
+            ordinary_nonmatch_false_alarms
+        ),
+        "ordinary_nonmatch_false_alarm_rate": (
+            ordinary_nonmatch_false_alarm_rate
+        ),
+        "ordinary_nonmatch_accuracy": (
+            1.0 - ordinary_nonmatch_false_alarm_rate
+            if ordinary_nonmatch_false_alarm_rate is not None
+            else None
+        ),
         "settling_all": all_settling,
         "settling_correct_decisions": correct_settling,
+        "failure_rate": all_settling["failure_rate"],
         "settling_valid": (
             all_settling["fraction_settled"] is not None
             and all_settling["fraction_settled"] >= 0.80

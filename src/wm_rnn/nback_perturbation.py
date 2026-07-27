@@ -16,7 +16,6 @@ import torch
 from wm_rnn.model import WorkingMemoryRNN
 from wm_rnn.nback_metrics import per_sequence_cross_entropy
 from wm_rnn.nback_task import NBackBatch
-from wm_rnn.perturbation_calibration import proportional_cost
 from wm_rnn.perturbation_operators import (
     OPERATORS,
     ForwardFn,
@@ -48,7 +47,7 @@ class SequenceLogLossCost:
     n_sequences: int
     baseline_mean_log_loss: float
     perturbed_mean_log_loss: float
-    proportional_cost: float
+    additive_cost: float
 
 
 @dataclass(frozen=True)
@@ -166,10 +165,7 @@ def summarize_sequence_log_loss_cost(
         n_sequences=int(baseline.size),
         baseline_mean_log_loss=baseline_mean,
         perturbed_mean_log_loss=perturbed_mean,
-        proportional_cost=proportional_cost(
-            baseline_mean,
-            perturbed_mean,
-        ),
+        additive_cost=perturbed_mean - baseline_mean,
     )
 
 
