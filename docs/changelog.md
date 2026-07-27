@@ -3,7 +3,37 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Pass N-back neutral-confirmatory firewall</summary>
+<summary>2026-07-27 - Current commit - Complete gated N-back confirmatory phase</summary>
+
+Purpose:
+
+- Verify confirmatory-bank baseline transport and enforce the frozen all-ten
+  matched-cost barrier before any non-neutral C2 evaluation.
+
+Result:
+
+- All 20 native checkpoint/load cells passed baseline transport.
+- Across checkpoints, 0-back accuracy ranged from `0.999946` to `1.000000`.
+  Two-back accuracy ranged from `0.956868` to `0.987142`, and 2-back
+  discriminability ranged from `0.918620` to `0.973063`.
+- All 300 non-neutral profile/checkpoint/load cells were explicitly recorded
+  as skipped with `global_cost_validity_failure`.
+- The only 20 confirmatory raw-array artifacts are native baselines. No
+  candidate or Gaussian-P5 non-neutral confirmatory array was generated.
+- The phase completed on CUDA in one uninterrupted attempt with 961.4707
+  seconds of active execution time.
+
+Interpretive boundary:
+
+- The RNN checkpoints remain competent on the independent N-back task bank.
+  The confirmatory C2 result is NA because matched-cost comparator validity
+  failed, not because the networks failed the working-memory task and not
+  because a candidate-versus-P5 effect was null.
+
+</details>
+
+<details>
+<summary>2026-07-27 - e63934b - Pass N-back neutral-confirmatory firewall</summary>
 
 Purpose:
 
