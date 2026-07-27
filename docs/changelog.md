@@ -3,7 +3,34 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Preregister additive N-back cost precision</summary>
+<summary>2026-07-27 - Current commit - Implement additive N-back cost precision</summary>
+
+Purpose:
+
+- Implement the frozen baseline-only sequence-log-loss precision phase
+  without constructing or evaluating a perturbation.
+
+File changes:
+
+- `src/wm_rnn/nback_additive_cost_precision.py`: Strictly loads the ten
+  retained checkpoints, generates the registered 64 fresh 0-back batches per
+  checkpoint, persists all sequence units and seeds, bootstraps the
+  family-wide maximum SD, and derives the held-out cost-check sample size.
+- `tests/test_nback_additive_cost_precision.py`: Covers seed addressing,
+  descriptive statistics, deterministic chunked bootstrap, planning formula,
+  complete audit artifacts, and absence of perturbation imports.
+
+Validation:
+
+- Focused precision tests: 6 passed.
+- Full repository suite: 214 passed, 1 skipped.
+- The full precision-reference experiment was not run before this
+  implementation was committed.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 3da286e - Preregister additive N-back cost precision</summary>
 
 Purpose:
 
