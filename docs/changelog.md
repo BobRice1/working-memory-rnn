@@ -3,7 +3,24 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Preregister competence-screened N-back pool</summary>
+<summary>2026-07-27 - Current commit - Preregister disjoint N-back bank seeds</summary>
+
+Purpose:
+
+- Prevent adjacent checkpoint-by-condition cells from sharing the same
+  numeric random seed.
+
+Frozen correction:
+
+- In the screened pool only, use
+  `bank_offset + 2 * checkpoint_seed + condition_index`.
+- Preserve historical seed addressing for all prior configurations.
+- Change no task, model, training, metric, gate, or selection decision.
+
+</details>
+
+<details>
+<summary>2026-07-27 - a31558c - Preregister competence-screened N-back pool</summary>
 
 Purpose:
 
