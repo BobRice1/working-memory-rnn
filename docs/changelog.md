@@ -3,7 +3,33 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-26 - Current commit - Implement competence-gated N-back baseline</summary>
+<summary>2026-07-27 - Current commit - Record initial N-back baseline failure</summary>
+
+Purpose:
+
+- Enforce the actual N-back development stop rule after seed `20260821`
+  exhausted Stage 2.
+
+Recorded result:
+
+- Stage 1 passed at steps 100 and 200.
+- Final held-out 0-back accuracy and discriminability were both `1.000`.
+- Final 2-back accuracy was `0.891`, discriminability `0.726`, hit rate
+  `0.778`, false-alarm rate `0.052`, and one-back-lure accuracy `0.991`.
+
+Interpretation:
+
+- The actual N-back reformulation acquired the control rule and genuine lure
+  rejection but missed the high-load competence gate.
+- Equal rule sampling and unweighted 1:2 class prevalence produced an
+  inefficient, conservative 2-back learner.
+- Remaining development/final seeds and all perturbation outcomes remain
+  uninspected. A training-only rescue requires a new pre-registration.
+
+</details>
+
+<details>
+<summary>2026-07-26 - 7cfea6c - Implement competence-gated N-back baseline</summary>
 
 Purpose:
 
