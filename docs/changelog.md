@@ -3,7 +3,28 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Implement additive N-back cost precision</summary>
+<summary>2026-07-27 - Current commit - Record additive N-back precision pass</summary>
+
+Purpose:
+
+- Freeze the registered baseline-only precision result before constructing
+  any perturbation experiment.
+
+Result:
+
+- Collected 8,192 fresh unperturbed 0-back sequence losses from each of ten
+  checkpoints.
+- Family-wide `sigma_upper` was `0.002274699`.
+- The planning formula yielded `n_required = 3.9755`; the registered minimum
+  therefore fixes `n_cost_check = 1024`.
+- All validity, seed-map, persistence, bootstrap, and planning gates passed.
+- Saved artifact hashes were independently verified.
+- No operator, P5, strength grid, 2-back outcome, or calibration was run.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 0e5e813 - Implement additive N-back cost precision</summary>
 
 Purpose:
 
