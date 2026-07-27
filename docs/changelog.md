@@ -3,7 +3,30 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Implement N-back Stage 2 budget rescue</summary>
+<summary>2026-07-27 - Current commit - Record budget-rescue development pass</summary>
+
+Purpose:
+
+- Record the three-seed budget-rescue decision before freezing a replacement
+  final family.
+
+Result:
+
+- Seeds `20260827-29` all passed training and untouched competence.
+- 2-back accuracy was `0.965-0.970`, discriminability `0.929-0.944`, and lure
+  accuracy `0.967-0.997`; 0-back remained effectively perfect.
+- All three passed in `7,600-10,000` steps, before the old ceiling.
+
+Interpretation:
+
+- The wider maximum preserves development competence but was not needed by
+  these three initializations.
+- No perturbation outcome was inspected.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 64759b8 - Implement N-back Stage 2 budget rescue</summary>
 
 Purpose:
 
