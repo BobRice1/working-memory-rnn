@@ -3,7 +3,41 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Pass N-back neutral-calibration firewall</summary>
+<summary>2026-07-27 - Current commit - Complete N-back additive calibration</summary>
+
+Purpose:
+
+- Run the frozen non-neutral calibration bank after the exact-neutral firewall
+  passed, without consulting held-out cost-check or 2-back outcomes.
+
+Result:
+
+- 75 of 150 checkpoint/profile cells reached the registered
+  `0.050 +/- 0.0025`-nat additive 0-back cost target.
+- Profiles 1, 3, 9, 11, 12, and 13 calibrated on all ten checkpoints.
+  Confirmatory profiles among these were 1 (response/drive gain above), 9
+  (recurrent gain above), and 12 (conserved-integrator time constant below).
+- Confirmatory profiles 4, 7, and 10 calibrated on 1, 0, and 5 checkpoints,
+  respectively, and therefore failed the all-ten calibration barrier.
+- Gaussian comparator P5 (profile 14) calibrated on 9 of 10 checkpoints.
+  Checkpoint seed `20260913` reached only `0.0433148` nats at the registered
+  maximum state-noise strength `0.1`, so extrapolation was correctly refused.
+- All 75 failed cells were registered unreachable-strength failures; there
+  were no nonfinite numerical failures.
+- The phase completed on CUDA in one uninterrupted attempt with 1157.2079
+  seconds of active execution time.
+
+Interpretive boundary:
+
+- Because P5 did not calibrate on all ten checkpoints, no candidate-versus-P5
+  confirmatory profile is yet globally eligible. The frozen held-out phases
+  will propagate and report this validity result without widening the grid or
+  replacing the checkpoint.
+
+</details>
+
+<details>
+<summary>2026-07-27 - e8fb324 - Pass N-back neutral-calibration firewall</summary>
 
 Purpose:
 
