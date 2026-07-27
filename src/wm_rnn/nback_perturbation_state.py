@@ -17,18 +17,22 @@ import os
 import tempfile
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import numpy as np
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DEFAULT_PHASE_ORDER = (
-    "neutral_checks",
+    "neutral-calibration",
     "calibration",
-    "cost_check",
-    "outcomes",
+    "cost-check",
+    "neutral-confirmatory",
+    "confirmatory",
+    "dose",
+    "finalize",
 )
 _PHASE_STATUSES = {"pending", "active", "completed"}
 
@@ -48,6 +52,7 @@ class ResumeSnapshot:
     revision: int
     phase_statuses: dict[str, str]
     reusable_cells: dict[str, tuple[str, ...]]
+    phase_timings: dict[str, dict[str, Any]]
 
 
 @dataclass(frozen=True)
@@ -56,6 +61,14 @@ class CellRecordResult:
 
     snapshot: ResumeSnapshot
     reused: bool
+
+
+@dataclass(frozen=True)
+class PhaseAttemptStart:
+    """One newly opened active-execution timing attempt."""
+
+    attempt_id: int
+    snapshot: ResumeSnapshot
 
 
 def _canonical_json_bytes(payload: Any) -> bytes:
@@ -264,10 +277,183 @@ def _initial_state(manifest: Mapping[str, Any], manifest_hash: str) -> dict[str,
         "design_hash": manifest["design_hash"],
         "revision": 0,
         "phases": {
-            phase: {"status": "pending", "cells": {}}
+            phase: {
+                "status": "pending",
+                "cells": {},
+                "timing": {
+                    "accumulated_seconds": 0.0,
+                    "next_attempt_id": 0,
+                    "active_attempt_id": None,
+                    "attempts": [],
+                },
+            }
             for phase in manifest["phase_order"]
         },
     }
+
+
+def _utc_now() -> str:
+    """Return an audit-only UTC timestamp; durations use a monotonic clock."""
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _finite_nonnegative_seconds(value: Any, name: str) -> float:
+    try:
+        resolved = float(value)
+    except (TypeError, ValueError) as error:
+        raise PerturbationStateError(
+            f"{name} must be a finite non-negative duration"
+        ) from error
+    if not np.isfinite(resolved) or resolved < 0.0:
+        raise PerturbationStateError(
+            f"{name} must be a finite non-negative duration"
+        )
+    return resolved
+
+
+def _validate_phase_timing(
+    timing: Any,
+    *,
+    phase: str,
+    phase_status: str,
+) -> dict[str, Any]:
+    if not isinstance(timing, dict):
+        raise PerturbationStateError(f"phase {phase} has invalid timing state")
+    required = {
+        "accumulated_seconds",
+        "next_attempt_id",
+        "active_attempt_id",
+        "attempts",
+    }
+    if set(timing) != required:
+        raise PerturbationStateError(f"phase {phase} has invalid timing state")
+    accumulated = _finite_nonnegative_seconds(
+        timing["accumulated_seconds"],
+        f"phase {phase} accumulated timing",
+    )
+    next_attempt_id = timing["next_attempt_id"]
+    active_attempt_id = timing["active_attempt_id"]
+    attempts = timing["attempts"]
+    if (
+        not isinstance(next_attempt_id, int)
+        or next_attempt_id < 0
+        or (
+            active_attempt_id is not None
+            and (
+                not isinstance(active_attempt_id, int)
+                or active_attempt_id < 0
+            )
+        )
+        or not isinstance(attempts, list)
+    ):
+        raise PerturbationStateError(f"phase {phase} has invalid timing state")
+
+    ids: list[int] = []
+    active_ids: list[int] = []
+    committed_total = 0.0
+    required_attempt = {
+        "attempt_id",
+        "status",
+        "started_utc",
+        "detected_interrupted_utc",
+        "ended_utc",
+        "committed_seconds",
+        "last_committed_cell_id",
+        "device",
+        "cuda_synchronized",
+    }
+    for attempt in attempts:
+        if not isinstance(attempt, dict) or set(attempt) != required_attempt:
+            raise PerturbationStateError(
+                f"phase {phase} has invalid timing attempt"
+            )
+        attempt_id = attempt["attempt_id"]
+        status = attempt["status"]
+        if (
+            not isinstance(attempt_id, int)
+            or attempt_id < 0
+            or status not in {"active", "interrupted", "completed"}
+            or not isinstance(attempt["started_utc"], str)
+            or not attempt["started_utc"]
+            or not isinstance(attempt["device"], str)
+            or not attempt["device"]
+            or not isinstance(attempt["cuda_synchronized"], bool)
+        ):
+            raise PerturbationStateError(
+                f"phase {phase} has invalid timing attempt"
+            )
+        for key in ("detected_interrupted_utc", "ended_utc"):
+            if attempt[key] is not None and (
+                not isinstance(attempt[key], str) or not attempt[key]
+            ):
+                raise PerturbationStateError(
+                    f"phase {phase} has invalid timing attempt"
+                )
+        last_cell = attempt["last_committed_cell_id"]
+        if last_cell is not None and (
+            not isinstance(last_cell, str) or not last_cell
+        ):
+            raise PerturbationStateError(
+                f"phase {phase} has invalid timing attempt"
+            )
+        committed_total += _finite_nonnegative_seconds(
+            attempt["committed_seconds"],
+            f"phase {phase} attempt timing",
+        )
+        if status == "active":
+            active_ids.append(attempt_id)
+            if (
+                attempt["detected_interrupted_utc"] is not None
+                or attempt["ended_utc"] is not None
+            ):
+                raise PerturbationStateError(
+                    f"phase {phase} active attempt is already closed"
+                )
+        elif status == "interrupted":
+            if (
+                attempt["detected_interrupted_utc"] is None
+                or attempt["ended_utc"] is not None
+            ):
+                raise PerturbationStateError(
+                    f"phase {phase} interrupted attempt is invalid"
+                )
+        elif (
+            attempt["ended_utc"] is None
+            or attempt["detected_interrupted_utc"] is not None
+        ):
+            raise PerturbationStateError(
+                f"phase {phase} completed attempt is invalid"
+            )
+        ids.append(attempt_id)
+
+    if ids != list(range(next_attempt_id)):
+        raise PerturbationStateError(
+            f"phase {phase} timing attempt IDs are not contiguous"
+        )
+    if active_ids != (
+        [] if active_attempt_id is None else [active_attempt_id]
+    ):
+        raise PerturbationStateError(
+            f"phase {phase} active timing attempt does not match"
+        )
+    if phase_status in {"pending", "completed"} and active_attempt_id is not None:
+        raise PerturbationStateError(
+            f"phase {phase} cannot retain an active timing attempt"
+        )
+    if phase_status == "pending" and attempts:
+        raise PerturbationStateError(
+            f"pending phase {phase} cannot contain timing attempts"
+        )
+    if not np.isclose(
+        committed_total,
+        accumulated,
+        rtol=0.0,
+        atol=1e-9,
+    ):
+        raise PerturbationStateError(
+            f"phase {phase} accumulated timing does not match attempts"
+        )
+    return deepcopy(timing)
 
 
 def _artifact_path_record(path: Path, run_root: Path) -> dict[str, Any]:
@@ -375,6 +561,7 @@ def _validate_state(
 
     statuses: dict[str, str] = {}
     reusable: dict[str, tuple[str, ...]] = {}
+    phase_timings: dict[str, dict[str, Any]] = {}
     completed_prefix = True
     active_seen = False
     for phase in manifest["phase_order"]:
@@ -385,6 +572,11 @@ def _validate_state(
         cells = phase_state.get("cells")
         if status not in _PHASE_STATUSES or not isinstance(cells, dict):
             raise PerturbationStateError(f"invalid state for phase {phase}")
+        phase_timings[phase] = _validate_phase_timing(
+            phase_state.get("timing"),
+            phase=phase,
+            phase_status=status,
+        )
         if status == "completed":
             if not completed_prefix or active_seen:
                 raise PerturbationStateError("completed phases are out of order")
@@ -465,6 +657,7 @@ def _validate_state(
         revision=revision,
         phase_statuses=statuses,
         reusable_cells=reusable,
+        phase_timings=phase_timings,
     )
 
 
@@ -491,6 +684,7 @@ def _validated_snapshot(
         revision=snapshot.revision,
         phase_statuses=snapshot.phase_statuses,
         reusable_cells=snapshot.reusable_cells,
+        phase_timings=snapshot.phase_timings,
     )
     return manifest, state, snapshot
 
@@ -621,6 +815,143 @@ def begin_phase(
     return _validated_snapshot(manifest_target, state_target)[2]
 
 
+def start_phase_attempt(
+    manifest_path: str | Path,
+    state_path: str | Path,
+    *,
+    phase: str,
+    device: str,
+    cuda_synchronized: bool,
+    started_utc: str | None = None,
+) -> PhaseAttemptStart:
+    """Open one active-execution attempt, closing a crashed predecessor.
+
+    An earlier still-active attempt is marked interrupted when resume detects
+    it. No time between its last committed cell and this resume is counted.
+    """
+    manifest_target = Path(manifest_path).resolve()
+    state_target = Path(state_path).resolve()
+    manifest, state, _ = _validated_snapshot(manifest_target, state_target)
+    if phase not in manifest["phase_order"]:
+        raise PerturbationStateError(f"unregistered phase: {phase}")
+    phase_state = state["phases"][phase]
+    if phase_state["status"] != "active":
+        raise PerturbationStateError(
+            f"phase {phase} must be active before starting a timing attempt"
+        )
+    if not isinstance(device, str) or not device:
+        raise ValueError("device must be a non-empty string")
+    if not isinstance(cuda_synchronized, bool):
+        raise ValueError("cuda_synchronized must be boolean")
+    timestamp = _utc_now() if started_utc is None else str(started_utc)
+    if not timestamp:
+        raise ValueError("started_utc must be non-empty")
+
+    timing = phase_state["timing"]
+    active_id = timing["active_attempt_id"]
+    if active_id is not None:
+        prior = timing["attempts"][active_id]
+        if prior["status"] != "active":
+            raise PerturbationStateError(
+                f"phase {phase} timing attempt state is inconsistent"
+            )
+        prior["status"] = "interrupted"
+        prior["detected_interrupted_utc"] = timestamp
+        timing["active_attempt_id"] = None
+
+    attempt_id = int(timing["next_attempt_id"])
+    timing["next_attempt_id"] = attempt_id + 1
+    timing["active_attempt_id"] = attempt_id
+    timing["attempts"].append(
+        {
+            "attempt_id": attempt_id,
+            "status": "active",
+            "started_utc": timestamp,
+            "detected_interrupted_utc": None,
+            "ended_utc": None,
+            "committed_seconds": 0.0,
+            "last_committed_cell_id": None,
+            "device": device,
+            "cuda_synchronized": cuda_synchronized,
+        }
+    )
+    _write_state(state_target, state)
+    snapshot = _validated_snapshot(manifest_target, state_target)[2]
+    return PhaseAttemptStart(attempt_id=attempt_id, snapshot=snapshot)
+
+
+def _apply_timing_delta(
+    phase_state: dict[str, Any],
+    *,
+    phase: str,
+    attempt_id: int,
+    timing_delta_seconds: float,
+    last_cell_id: str | None,
+) -> None:
+    timing = phase_state["timing"]
+    if timing["active_attempt_id"] != attempt_id:
+        raise PerturbationStateError(
+            f"phase {phase} timing attempt is not active"
+        )
+    delta = _finite_nonnegative_seconds(
+        timing_delta_seconds,
+        f"phase {phase} timing delta",
+    )
+    attempt = timing["attempts"][attempt_id]
+    if attempt["status"] != "active":
+        raise PerturbationStateError(
+            f"phase {phase} timing attempt is not active"
+        )
+    timing["accumulated_seconds"] = (
+        float(timing["accumulated_seconds"]) + delta
+    )
+    attempt["committed_seconds"] = (
+        float(attempt["committed_seconds"]) + delta
+    )
+    if last_cell_id is not None:
+        attempt["last_committed_cell_id"] = last_cell_id
+
+
+def finish_phase_attempt(
+    manifest_path: str | Path,
+    state_path: str | Path,
+    *,
+    phase: str,
+    attempt_id: int,
+    timing_delta_seconds: float,
+    ended_utc: str | None = None,
+) -> ResumeSnapshot:
+    """Atomically add the final active-time delta and close one attempt."""
+    manifest_target = Path(manifest_path).resolve()
+    state_target = Path(state_path).resolve()
+    manifest, state, _ = _validated_snapshot(manifest_target, state_target)
+    if phase not in manifest["phase_order"]:
+        raise PerturbationStateError(f"unregistered phase: {phase}")
+    phase_state = state["phases"][phase]
+    if phase_state["status"] != "active":
+        raise PerturbationStateError(
+            f"phase {phase} must be active before finishing a timing attempt"
+        )
+    resolved_attempt = int(attempt_id)
+    _apply_timing_delta(
+        phase_state,
+        phase=phase,
+        attempt_id=resolved_attempt,
+        timing_delta_seconds=timing_delta_seconds,
+        last_cell_id=None,
+    )
+    timestamp = _utc_now() if ended_utc is None else str(ended_utc)
+    if not timestamp:
+        raise ValueError("ended_utc must be non-empty")
+    timing = phase_state["timing"]
+    attempt = timing["attempts"][resolved_attempt]
+    attempt["status"] = "completed"
+    attempt["ended_utc"] = timestamp
+    timing["active_attempt_id"] = None
+    _write_state(state_target, state)
+    return _validated_snapshot(manifest_target, state_target)[2]
+
+
 def record_completed_cell(
     manifest_path: str | Path,
     state_path: str | Path,
@@ -629,6 +960,8 @@ def record_completed_cell(
     cell_id: str,
     artifacts: Sequence[str | Path],
     metadata: Mapping[str, Any] | None = None,
+    timing_attempt_id: int | None = None,
+    timing_delta_seconds: float | None = None,
 ) -> CellRecordResult:
     """Record immutable hashes for one completed registered cell.
 
@@ -675,6 +1008,24 @@ def record_completed_cell(
         raise PerturbationStateError(
             f"phase {phase} must be active before recording cells"
         )
+    active_attempt = phase_state["timing"]["active_attempt_id"]
+    if active_attempt is None:
+        if timing_attempt_id is not None or timing_delta_seconds is not None:
+            raise PerturbationStateError(
+                f"phase {phase} has no active timing attempt"
+            )
+    else:
+        if timing_attempt_id is None or timing_delta_seconds is None:
+            raise PerturbationStateError(
+                f"phase {phase} cell timing must be committed atomically"
+            )
+        _apply_timing_delta(
+            phase_state,
+            phase=phase,
+            attempt_id=int(timing_attempt_id),
+            timing_delta_seconds=timing_delta_seconds,
+            last_cell_id=cell_id,
+        )
     phase_state["cells"][cell_id] = requested_cell
     _write_state(state_target, state)
     return CellRecordResult(
@@ -709,6 +1060,10 @@ def complete_phase(
     if missing:
         raise PerturbationStateError(
             f"phase {phase} is missing completed cells: {missing}"
+        )
+    if phase_state["timing"]["active_attempt_id"] is not None:
+        raise PerturbationStateError(
+            f"phase {phase} has an unfinished timing attempt"
         )
     phase_state["status"] = "completed"
     _write_state(state_target, state)

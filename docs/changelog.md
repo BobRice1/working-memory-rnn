@@ -3,7 +3,46 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Implement additive N-back experiment foundations</summary>
+<summary>2026-07-27 - Current commit - Implement phased additive N-back perturbation runner</summary>
+
+Purpose:
+
+- Implement the frozen seven-phase CUDA experiment without evaluating a
+  non-neutral perturbation before the runner, validity gates, persistence, and
+  outcome calculations were independently tested.
+
+File changes:
+
+- `configs/nback_additive_perturbation.yaml`: Pins the preregistration,
+  screened checkpoint pool, precision evidence, sample sizes, additive
+  calibration target, and held-out matched-cost gates.
+- `src/wm_rnn/nback_additive_perturbation_runner.py`: Implements the registered
+  neutral-calibration, calibration, cost-check, neutral-confirmatory,
+  confirmatory, dose, and finalize phases with exact seed banks, CUDA
+  execution, numerical sentinels, global barriers, immutable runtime hashes,
+  raw audit arrays, and descriptive outputs.
+- `src/wm_rnn/nback_additive_outcomes.py`: Pools replicate counts and
+  sequence-wise cross-entropy, applies baseline-transport gates, and computes
+  the registered checkpoint-level C2 contrast and diagnostic t summary.
+- `src/wm_rnn/nback_perturbation_state.py`: Extends atomic phase persistence
+  with cumulative active-time ledgers, interrupted-attempt records, and
+  cell-coupled timing deltas for truthful crash/resume timing.
+- Focused tests cover exact neutral equivalence for every profile and
+  stochastic replicate, calibration and cost gates, nonfinite sentinels,
+  candidate-versus-P5 C2 calculations, descriptive latency/failure outcomes,
+  runtime mutation refusal, and timing idempotence.
+
+Validation:
+
+- Focused additive runner and analysis suite: 100 passed.
+- Full repository suite: 300 passed.
+- No checkpoint, strength, Gaussian perturbation, or 2-back outcome was
+  evaluated during implementation or testing.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 8d3c9c2 - Implement additive N-back experiment foundations</summary>
 
 Purpose:
 

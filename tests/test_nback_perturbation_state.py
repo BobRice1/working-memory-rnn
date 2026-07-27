@@ -9,16 +9,31 @@ import numpy as np
 import pytest
 
 from wm_rnn.nback_perturbation_state import (
+    DEFAULT_PHASE_ORDER,
     PerturbationStateError,
     atomic_write_json,
     atomic_write_npz,
     begin_phase,
     canonical_design_hash,
     complete_phase,
+    finish_phase_attempt,
     initialize_or_resume_run,
     record_completed_cell,
+    start_phase_attempt,
     validate_resume,
 )
+
+
+def test_default_phase_order_matches_frozen_nback_experiment() -> None:
+    assert DEFAULT_PHASE_ORDER == (
+        "neutral-calibration",
+        "calibration",
+        "cost-check",
+        "neutral-confirmatory",
+        "confirmatory",
+        "dose",
+        "finalize",
+    )
 
 
 PHASES = ("neutral_checks", "calibration", "cost_check", "outcomes")
@@ -283,3 +298,177 @@ def test_partial_identity_and_outside_artifact_are_refused(
             cell_id="neutral_seed_0",
             artifacts=[outside],
         )
+
+
+def test_timed_cell_and_delta_are_committed_in_one_state_revision(
+    tmp_path: Path,
+) -> None:
+    manifest, state, _, _ = _initialize(tmp_path)
+    begin_phase(manifest, state, "neutral_checks")
+    attempt = start_phase_attempt(
+        manifest,
+        state,
+        phase="neutral_checks",
+        device="synthetic CPU",
+        cuda_synchronized=False,
+        started_utc="2026-07-27T10:00:00+00:00",
+    )
+    artifact = atomic_write_json(
+        manifest.parent / "timed.json", {"passed": True}
+    )
+
+    recorded = record_completed_cell(
+        manifest,
+        state,
+        phase="neutral_checks",
+        cell_id="neutral_seed_0",
+        artifacts=[artifact],
+        timing_attempt_id=attempt.attempt_id,
+        timing_delta_seconds=0.75,
+    )
+
+    timing = recorded.snapshot.phase_timings["neutral_checks"]
+    assert timing["accumulated_seconds"] == pytest.approx(0.75)
+    assert timing["attempts"][0]["committed_seconds"] == pytest.approx(0.75)
+    assert timing["attempts"][0]["last_committed_cell_id"] == (
+        "neutral_seed_0"
+    )
+    finished = finish_phase_attempt(
+        manifest,
+        state,
+        phase="neutral_checks",
+        attempt_id=attempt.attempt_id,
+        timing_delta_seconds=0.25,
+        ended_utc="2026-07-27T10:00:01+00:00",
+    )
+    assert finished.phase_timings["neutral_checks"][
+        "accumulated_seconds"
+    ] == pytest.approx(1.0)
+    assert complete_phase(
+        manifest, state, "neutral_checks"
+    ).phase_statuses["neutral_checks"] == "completed"
+
+
+def test_interrupted_attempt_preserves_committed_time_without_downtime(
+    tmp_path: Path,
+) -> None:
+    manifest, state, checkpoints = _paths(tmp_path)
+    cells = {"phase": ("cell_a", "cell_b")}
+    initialize_or_resume_run(
+        manifest,
+        state,
+        design=_design(),
+        checkpoints=checkpoints,
+        phase_order=("phase",),
+        expected_cells=cells,
+    )
+    begin_phase(manifest, state, "phase")
+    first = start_phase_attempt(
+        manifest,
+        state,
+        phase="phase",
+        device="synthetic CPU",
+        cuda_synchronized=False,
+        started_utc="2026-07-27T10:00:00+00:00",
+    )
+    first_artifact = atomic_write_json(
+        manifest.parent / "first.json", {"value": 1}
+    )
+    record_completed_cell(
+        manifest,
+        state,
+        phase="phase",
+        cell_id="cell_a",
+        artifacts=[first_artifact],
+        timing_attempt_id=first.attempt_id,
+        timing_delta_seconds=2.0,
+    )
+
+    second = start_phase_attempt(
+        manifest,
+        state,
+        phase="phase",
+        device="synthetic CPU",
+        cuda_synchronized=False,
+        started_utc="2026-07-27T12:00:00+00:00",
+    )
+    second_artifact = atomic_write_json(
+        manifest.parent / "second.json", {"value": 2}
+    )
+    record_completed_cell(
+        manifest,
+        state,
+        phase="phase",
+        cell_id="cell_b",
+        artifacts=[second_artifact],
+        timing_attempt_id=second.attempt_id,
+        timing_delta_seconds=3.0,
+    )
+    finished = finish_phase_attempt(
+        manifest,
+        state,
+        phase="phase",
+        attempt_id=second.attempt_id,
+        timing_delta_seconds=0.5,
+        ended_utc="2026-07-27T12:00:04+00:00",
+    )
+
+    timing = finished.phase_timings["phase"]
+    assert timing["accumulated_seconds"] == pytest.approx(5.5)
+    assert [row["status"] for row in timing["attempts"]] == [
+        "interrupted",
+        "completed",
+    ]
+    assert timing["attempts"][0]["committed_seconds"] == pytest.approx(2.0)
+    assert timing["attempts"][0]["detected_interrupted_utc"] == (
+        "2026-07-27T12:00:00+00:00"
+    )
+
+
+def test_active_attempt_requires_atomic_cell_timing_and_cannot_complete(
+    tmp_path: Path,
+) -> None:
+    manifest, state, _, _ = _initialize(tmp_path)
+    begin_phase(manifest, state, "neutral_checks")
+    attempt = start_phase_attempt(
+        manifest,
+        state,
+        phase="neutral_checks",
+        device="synthetic CPU",
+        cuda_synchronized=False,
+    )
+    artifact = atomic_write_json(
+        manifest.parent / "untimed.json", {"passed": True}
+    )
+
+    with pytest.raises(PerturbationStateError, match="atomically"):
+        record_completed_cell(
+            manifest,
+            state,
+            phase="neutral_checks",
+            cell_id="neutral_seed_0",
+            artifacts=[artifact],
+        )
+    resumed = validate_resume(
+        manifest,
+        state,
+        design=_design(),
+        checkpoints={"20260912": tmp_path / "dummy_seed_20260912.pt"},
+        phase_order=PHASES,
+        expected_cells=CELLS,
+    )
+    assert resumed.reusable_cells["neutral_checks"] == ()
+    assert resumed.phase_timings["neutral_checks"][
+        "accumulated_seconds"
+    ] == 0.0
+    record_completed_cell(
+        manifest,
+        state,
+        phase="neutral_checks",
+        cell_id="neutral_seed_0",
+        artifacts=[artifact],
+        timing_attempt_id=attempt.attempt_id,
+        timing_delta_seconds=0.5,
+    )
+    with pytest.raises(PerturbationStateError, match="unfinished timing"):
+        complete_phase(manifest, state, "neutral_checks")
