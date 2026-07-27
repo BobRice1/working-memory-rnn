@@ -1,0 +1,427 @@
+\documentclass[11pt,reprint,aps,prl,floatfix,secnumarabic]{revtex4-2}
+
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage{microtype}
+\microtypesetup{expansion=false}
+
+\graphicspath{{figures/full_candidate_perturbation/}}
+\raggedbottom
+
+\begin{document}
+
+\title{Reduced Recurrent-State Persistence Reproduces Selected
+Psilocybin-Related Working-Memory Signatures in Trained Recurrent Networks}
+
+\author{Bob Rice}
+\affiliation{University of Nottingham}
+
+\begin{abstract}
+Acute psilocybin does not produce a uniform loss of cognitive performance:
+human studies instead report response slowing, greater impairment at higher
+working-memory load, sensitivity to longer intervals, and vulnerability to
+competing information. We asked whether any of seven abstract perturbations of
+task-trained recurrent neural networks (RNNs) reproduced this selective
+behavioural pattern. Five independently trained fixation-gated circular-memory
+networks and ten independently trained N-back networks were evaluated on 1,024
+trials or sequences per condition. We tested synaptic-drive gain,
+heterogeneous drive gain, sensory-input gain, distractor-window gain,
+recurrent gain, carried-state persistence, and a conserved effective
+time-constant change. A carried-state persistence scale of 0.95 was the only
+setting to reproduce the complete descriptive pattern. It increased
+post-cue settling by $0.194\pm0.252$ model steps while changing ordinary
+delay-20 angular error by only $1.38\pm6.17\%$; long-minus-short delay
+selectivity was $0.264\pm0.140$, distractor-minus-clean selectivity was
+$0.159\pm0.080$, and 2-back-minus-0-back selectivity was
+$0.250\pm0.077$ (mean $\pm$ SD across trained seeds). Every contrast had the
+predicted direction in all five circular or all ten N-back networks. However,
+the slowing was small and the unperturbed distractor condition was weak.
+Reduced state persistence is therefore computationally sufficient to produce
+several selected cross-task signatures, but the result does not identify a
+biological action of psilocybin or establish mechanistic uniqueness.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+Working memory requires a neural system to preserve task-relevant information
+after its eliciting input has disappeared. Recurrent excitation, attractor
+dynamics, and slow manifolds provide candidate mechanisms through which an
+internal state can remain stable while still supporting a later response
+\cite{wang2013nmda,ghazizadeh2021}. A perturbation of these dynamics need not
+destroy memory immediately. A weak change may instead expose selective
+vulnerability when information must be maintained for longer, protected from
+irrelevant input, or updated under greater task load.
+
+The acute human behavioural literature motivates precisely such a selective
+target. Psilocybin impaired 2-back performance more clearly than 0-back
+performance in a letter N-back task \cite{barrett2018}. It also impaired
+multiple-object tracking while spatial working-memory span was comparatively
+spared in a small within-subject study \cite{carter2005}. Longer interval
+reproduction was more affected than shorter intervals, with spatial span
+impairment emerging at the higher dose \cite{wittmann2007}. In a
+memory-guided delayed-response task, reaction time increased without a clear
+reduction in correct responses \cite{vollenweider1998}. A recent meta-analysis
+similarly found a more robust acute effect on reaction time than accuracy
+across attention and executive tasks, while cautioning that the evidence was
+heterogeneous and at risk of bias \cite{yousefi2025}. Together, these findings
+define qualitative dissociations rather than a single target level of
+performance.
+
+Candidate network manipulations were motivated by, but not equated with,
+psychedelic mechanisms. REBUS relates relaxed high-level precision to altered
+postsynaptic gain and afferent sensitivity \cite{carhartharris2019}; a
+receptor-informed whole-brain model operationalised 5-HT2A effects through
+spatially heterogeneous response gain \cite{herzog2023}. Neither framework
+specifies a unique perturbation of a trained working-memory RNN. We therefore
+treated gain, recurrent weighting, sensory sensitivity, state persistence, and
+effective timescale as competing computational interventions.
+
+We evaluated these interventions in two complementary task families. The
+fixation-gated circular task measured response settling, delay dependence, and
+distractor sensitivity. The N-back task measured selective impairment at
+higher updating load. We hypothesised that a credible candidate would reproduce
+several dissociations across independently trained networks rather than merely
+increase average error. This study is a candidate-versus-native-baseline
+analysis; generic-noise matching and biological identification were outside
+its scope.
+
+\section{Methods}
+
+\subsection{Fixation-gated circular delayed-response task}
+
+Each circular-task trial comprised pre-cue fixation, a circular cue, a silent
+memory delay, and a response period (Fig.~\ref{fig:tasks}A). Stimulus angle
+$\theta\in[0,2\pi)$ was encoded over 32 evenly spaced preferred angles
+$\mu_j$ as
+\begin{equation}
+ c_j(\theta)=\exp\{\kappa[\cos(\theta-\mu_j)-1]\},\qquad \kappa=8.
+\end{equation}
+The fixation input and output remained high until the response cue. Circular
+outputs were deliberately silent before response and then reported the
+remembered angle. Pre-cue and cue durations varied during training; evaluation
+used clean delays of 10, 20, 40, and 80 model steps. A separate delay-20
+condition inserted a five-step irrelevant circular cue midway through the
+delay. The networks had not been trained with this distractor, making it an
+out-of-distribution robustness probe rather than a second trained task.
+
+\subsection{Context-cued N-back task}
+
+The N-back task presented 20 sequential items drawn from six stimulus
+identities (Fig.~\ref{fig:tasks}B). Two context channels instructed either
+0-back or 2-back behaviour. In 0-back, the network classified whether the
+current item matched a fixed target identity. In 2-back, it classified whether
+the current item matched the item presented two positions previously.
+Sequences contained six matches; the 2-back generator additionally controlled
+one-back lures. The first two items were excluded from scored outcomes. The
+output consisted of match and non-match logits.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{task_schematic.png}
+  \caption{\textbf{Complementary working-memory tasks.}
+  \textbf{A}, The fixation-gated circular task required a continuous cue angle
+  to be maintained across variable clean delays and reported after the go cue;
+  an optional irrelevant delay-period cue tested distractor vulnerability.
+  \textbf{B}, Context inputs switched the same N-back network between a
+  fixed-target 0-back rule and a 2-back updating rule. The tasks supplied
+  settling, delay, distractor, and updating-load contrasts rather than a single
+  performance level.}
+  \label{fig:tasks}
+\end{figure*}
+
+\subsection{Recurrent networks and checkpoint replication}
+
+Both task families used 64-unit \texttt{tanh} recurrent networks with
+$dt=20$, $\tau=100$, and $\alpha=dt/\tau=0.2$. The native update was
+\begin{align}
+ z_t &= W_{\mathrm{in}}x_t+b_{\mathrm{in}}
+      +W_{\mathrm{rec}}h_{t-1}+b_{\mathrm{rec}},\\
+ h_t &= \tanh\!\left[(1-\alpha)h_{t-1}+\alpha z_t\right].
+ \label{eq:native}
+\end{align}
+The circular model had 33 inputs and outputs: 32 tuned channels plus
+fixation. The N-back model had six stimulus inputs, two rule-context inputs,
+and two outputs. Perturbations were applied only at evaluation; no model was
+retrained. Five competent circular checkpoints (seeds
+20260714--20260718) and ten competent N-back checkpoints (seeds
+20260912--20260921) were retained. Independently trained checkpoint, not trial
+or technical replicate, was the replication unit.
+
+\subsection{Candidate perturbations}
+
+We evaluated seven single-operator families (Table~\ref{tab:perturbations}).
+For synaptic-drive gain, the weight-derived input and recurrent drive was
+multiplied by scalar $g$, while learned biases remained outside the gain. Fixed
+heterogeneous gain replaced $g$ with a positive unit-wise vector
+$\mathbf{g}$ drawn from a log-normal distribution and normalised to population
+mean one; three fixed vectors were treated as technical replicates and averaged
+within checkpoint. Sensory-input gain scaled only stimulus-channel input
+drive, leaving rule and fixation channels unchanged. Distractor-window gain
+applied this operation only during the irrelevant circular cue. Recurrent gain
+scaled $W_{\mathrm{rec}}h_{t-1}$ while leaving recurrent bias unchanged.
+
+State persistence changed the carried-state term but retained the native drive
+coefficient:
+\begin{equation}
+ h_t=\tanh\!\left[p(1-\alpha)h_{t-1}+\alpha z_t\right],
+ \label{eq:persistence}
+\end{equation}
+where $p$ is the persistence scale. This is an asymmetric intervention and is
+not identical to response gain. The conserved time-constant operator instead
+set $\alpha'=\min(\alpha/s,1)$ and used
+\begin{equation}
+ h_t=\tanh\!\left[(1-\alpha')h_{t-1}+\alpha'z_t\right],
+\end{equation}
+so carried-state and drive coefficients continued to sum to one.
+
+\begin{table*}[t]
+\caption{\textbf{Candidate perturbations and fixed evaluation grids.}
+Neutral settings reproduce the native forward pass. Distractor-window gain was
+defined only for the circular distractor condition; all other operators were
+evaluated in both task families.}
+\label{tab:perturbations}
+\centering
+\begin{tabular}{llll}
+\toprule
+ID & Perturbation & Computational intervention & Strengths \\
+\midrule
+P1 & Synaptic-drive gain & Scalar gain on input and recurrent weight drive
+& 0.90, 0.95, 1.00, 1.05, 1.10 \\
+P2 & Heterogeneous drive gain & Fixed mean-one unit-wise log-normal gain
+& log-SD 0.00, 0.10, 0.20, 0.30 \\
+P3a & Sensory-input gain & Gain on stimulus-channel input contribution
+& 0.80, 0.90, 1.00, 1.10, 1.20 \\
+P3b & Distractor-window gain & P3a restricted to irrelevant cue window
+& 1.00, 1.10, 1.25, 1.50 \\
+P4 & Recurrent gain & Scalar gain on recurrent weight contribution
+& 0.90, 0.95, 1.00, 1.05, 1.10 \\
+P6 & State persistence & Scale $p$ on carried-state coefficient
+& 0.90, 0.95, 1.00, 1.05, 1.10 \\
+P7 & Effective time constant & Conserved update using $\alpha'=\alpha/s$
+& 0.80, 0.90, 1.00, 1.10, 1.25 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Evaluation and behavioural signature}
+
+Each circular checkpoint, operator, strength, condition, and delay used 1,024
+trials. Each N-back checkpoint, operator, strength, and load used 1,024
+20-item sequences. Native and perturbed evaluations reused identical generated
+task samples within checkpoint and cell.
+
+Circular response accuracy was mean absolute angular error. Post-cue settling
+was the first response step at which angular error was below $15^\circ$ and
+population-vector amplitude exceeded 50\% of the native reference amplitude.
+Trials that did not settle were capped at the 25-step response duration,
+yielding restricted mean settling time. Settling was interpreted only when
+fixation accuracy was at least 0.90 and at least 80\% of trials settled.
+``Slowing with preservation'' required a positive settling change at clean
+delay 20 while proportional angular-error impairment remained at or below
+0.20.
+
+For circular condition $c$, proportional impairment was
+\begin{equation}
+ I_c=\frac{E_{\mathrm{perturbed},c}-E_{\mathrm{native},c}}
+ {E_{\mathrm{native},c}},
+\end{equation}
+where $E$ is mean angular error. Delay selectivity was
+$I_{\mathrm{delay\,80}}-I_{\mathrm{delay\,10}}$; distractor selectivity was
+$I_{\mathrm{distractor\,20}}-I_{\mathrm{clean\,20}}$.
+
+N-back discriminability was $D=H-F$, where $H$ and $F$ are hit and false-alarm
+rates. Condition-normalised impairment was
+\begin{equation}
+ J_c=\frac{D_{\mathrm{native},c}-D_{\mathrm{perturbed},c}}
+ {D_{\mathrm{native},c}},
+\end{equation}
+and load selectivity was $J_{\mathrm{2back}}-J_{\mathrm{0back}}$. Positive
+values indicate disproportionate high-load impairment.
+
+The analysis was descriptive. For each operator-strength setting we reported
+the mean contrast and fraction of checkpoint seeds in the predicted direction.
+A complete pattern required positive mean slowing with preservation,
+distractor selectivity, and N-back load selectivity, with a majority of
+checkpoint seeds agreeing; delay selectivity supplied additional supporting
+evidence. No participant-level inference, confirmatory $p$ values, or
+multiple-comparison claims were made.
+
+\section{Results}
+
+\subsection{The full screen isolated one complete cross-task profile}
+
+The perturbations were not interchangeable. Across 29 shared
+operator-strength profiles, only state persistence $p=0.95$ reproduced the
+complete descriptive pattern (Fig.~\ref{fig:screen}). It showed slowing with
+preservation, long-delay selectivity, and distractor selectivity in all five
+circular checkpoints, together with load selectivity in all ten N-back
+checkpoints. Neutral settings returned zero contrast. Other perturbations often
+reproduced one or two components, but not the full combination.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[height=0.86\textheight]{signature_screen.png}
+  \caption{\textbf{Cross-task signature screen.}
+  Rows are every operator-strength setting evaluated in both task families;
+  columns show the fraction of independent checkpoint seeds with the predicted
+  signature direction. Circular fractions have denominator five and N-back
+  fractions denominator ten. State persistence 0.95 was the only row with
+  complete agreement across all four features. Values quantify directional
+  consistency, not participant-level probability or statistical significance.}
+  \label{fig:screen}
+\end{figure*}
+
+\subsection{A 5\% persistence reduction preserved ordinary accuracy while
+selectively affecting demanding conditions}
+
+At $p=0.95$, clean delay-20 angular error changed by
+$1.38\pm6.17\%$ across circular checkpoints, satisfying the preservation
+criterion in all five seeds (Table~\ref{tab:leading}). Restricted mean settling
+increased by $0.194\pm0.252$ steps. Every seed showed a positive change, but
+the range was only 0.010--0.561 steps; the result is therefore a small,
+replicated response-dynamics analogue rather than a large reaction-time effect.
+
+Long-minus-short delay selectivity was $0.264\pm0.140$ and positive in 5/5
+checkpoints. Distractor-minus-clean selectivity was $0.159\pm0.080$ and also
+positive in 5/5. In the N-back networks, 2-back-minus-0-back selectivity was
+$0.250\pm0.077$, positive in 10/10 checkpoints, and ranged from 0.110 to
+0.363. Thus the leading perturbation did not merely increase average error: it
+preferentially affected longer maintenance, competing input, and higher
+updating load.
+
+\begin{table}[b]
+\caption{\textbf{State persistence 0.95.} Values are mean $\pm$ SD across five
+circular or ten N-back checkpoint seeds.}
+\label{tab:leading}
+\centering
+\begin{tabular}{lcc}
+\toprule
+Outcome & Contrast & Consistency \\
+\midrule
+Delay-20 error & $0.014\pm0.062$ & preserved 5/5 \\
+Settling change & $0.194\pm0.252$ steps & 5/5 positive \\
+Delay selectivity & $0.264\pm0.140$ & 5/5 positive \\
+Distractor selectivity & $0.159\pm0.080$ & 5/5 positive \\
+N-back load selectivity & $0.250\pm0.077$ & 10/10 positive \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The persistence effect was dose-like but not monotonic across all
+features}
+
+Reducing persistence further to 0.90 enlarged mean settling, delay, and N-back
+load effects (Fig.~\ref{fig:persistence}). However, slowing with preservation
+passed only 2/5 circular checkpoints, so the stronger intervention no longer
+expressed the selective accuracy-preserving pattern. Increasing persistence
+above one continued to impair N-back preferentially but reversed the circular
+delay and distractor contrasts. The joint signature was therefore specific to
+a weak reduction around 0.95 rather than monotonic damage at any non-neutral
+strength.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{persistence_dose_response.png}
+  \caption{\textbf{Dose-like response to carried-state persistence scaling.}
+  Grey lines are independently trained checkpoint seeds; blue points and error
+  bars are mean $\pm$ SD. The dashed red line marks the leading scale 0.95 and
+  the horizontal line marks no change from native performance. A stronger
+  reduction increased several impairments but also violated relative
+  preservation, whereas increased persistence reversed circular delay and
+  distractor selectivity.}
+  \label{fig:persistence}
+\end{figure*}
+
+\subsection{Alternative operators reproduced partial signatures}
+
+Sensory-input gain 1.20 produced distractor selectivity in 5/5 circular
+checkpoints and load selectivity in 9/10 N-back checkpoints, but mean settling
+became slightly faster and delay selectivity was inconsistent. Effective
+time-constant scale 0.90 produced delay and distractor selectivity but also
+accelerated settling. Recurrent gain 0.95 showed delay selectivity in 4/5 and
+load selectivity in 9/10 checkpoints, but distractor selectivity in only 1/5.
+Heterogeneous drive gain frequently produced delay and N-back effects without
+distractor selectivity. These near-misses constrain the result: matching one
+difficult condition was insufficient to qualify as the complete pattern.
+
+\subsection{The distractor contrast remained validity-limited}
+
+All 945 circular result rows passed the fixation gate, all ten N-back native
+checkpoints passed competence, and all $p=0.95$ clean delay-20 cells were
+latency-valid. However, the unperturbed distractor condition was already weak:
+mean angular error ranged from $25.8^\circ$ to $50.4^\circ$, and only
+26.7--35.7\% of native distractor trials settled. Increasing the trial count
+reduced sampling uncertainty but could not repair this out-of-distribution
+baseline. The distractor direction is reproducible, but its magnitude may
+reflect floor or headroom effects and cannot support a strong Carter-style
+recovery claim in isolation.
+
+\section{Discussion}
+
+The full candidate screen identified reduced carried-state persistence as the
+strongest computational account of the selected cross-task behavioural
+pattern. Scaling the carried-state coefficient by 0.95 left ordinary circular
+accuracy approximately intact while modestly slowing response settling,
+increasing vulnerability at longer delays and under distraction, and
+selectively impairing 2-back discriminability. The result replicated across
+all five circular and all ten N-back checkpoints.
+
+Equation~\ref{eq:persistence} suggests a coherent model-level explanation.
+Each update retains slightly less of the preceding hidden state without
+simultaneously rescaling incoming drive. Information is therefore not erased
+at once; rather, its stability is weakened cumulatively. Short and simple
+conditions remain relatively intact, whereas longer maintenance, competing
+input, and repeated updating expose the loss. This interpretation is supported
+by the delay and load contrasts, although the present behavioural analyses do
+not yet directly demonstrate a changed attractor or slow manifold.
+
+Importantly, ``state persistence'' is an operational property of this
+implemented recurrence, not a measured neurobiological parameter. The result
+shows computational sufficiency: this intervention can generate the selected
+qualitative pattern. It does not show that psilocybin reduces neural
+persistence, that 5-HT2A activation maps to $p=0.95$, or that the mechanism is
+unique. A generic-damage comparator was deliberately postponed, and several
+alternative operators reproduced individual components. Subsequent analyses
+should therefore examine hidden-state drift and stability and, separately,
+test specificity against non-neutral matched-cost controls.
+
+Two limitations particularly constrain the present inference. First, post-cue
+settling is not literal reaction time because response onset was externally
+imposed; moreover, the mean change was less than one model step. Second, the
+distractor condition lacked a competent native baseline. A weaker irrelevant
+cue or a separately trained distractor-capable task is required before the
+Carter-style dissociation can be treated as secure. The descriptive grid also
+contains multiple operator-strength profiles but no confirmatory inferential
+family. Checkpoint consistency demonstrates robustness across trained models,
+not population inference about human participants.
+
+The immediate next experiment should densify persistence scaling around
+0.95, quantify delay-period representational drift, and repeat the clean,
+delay, and N-back contrasts on independently banked task samples. The
+distractor amplitude should first be calibrated to retain usable native
+performance. A later specificity analysis can compare the retained candidate
+with generic perturbation at comparable clean-task cost without changing the
+candidate-versus-baseline result reported here.
+
+\section*{Conclusion}
+
+A 5\% reduction in carried-state persistence was the only tested RNN
+perturbation to reproduce the complete pre-specified descriptive pattern:
+relative preservation with slower settling, greater long-delay and distractor
+costs, and selective 2-back impairment. The consistency across independently
+trained networks makes reduced persistence a credible candidate for further
+mechanistic analysis. The result nevertheless remains an abstract
+computational sufficiency finding, with small settling effects and a
+validity-limited distractor condition, rather than evidence for a biological
+mechanism of psilocybin.
+
+\bibliographystyle{apsrev4-2}
+\bibliography{full_candidate_perturbation_references}
+
+\end{document}

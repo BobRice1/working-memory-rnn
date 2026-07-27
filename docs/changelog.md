@@ -3,6 +3,37 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-27 - Pending - Create scientific LaTeX perturbation write-up</summary>
+
+Purpose:
+
+- Convert the full 1,024-sample candidate-only evaluation into a
+  dissertation-ready scientific paper with task-first Methods, formal
+  perturbation definitions, quantitative Results, and calibrated
+  interpretation.
+
+Artifacts:
+
+- Added a seven-page REVTeX manuscript and dedicated bibliography under
+  `docs/reports/`.
+- Added reproducible publication figures for the two task structures, the full
+  29-profile signature screen, and the state-persistence dose/seed response.
+- Compiled the final PDF with all citations and cross-references resolved.
+
+Verification:
+
+- Checked all manuscript numbers against the full-run summary and raw
+  checkpoint-level contrasts.
+- Rendered and visually inspected all seven PDF pages; figures, tables,
+  equations, captions, columns, and references are legible without clipping.
+- The full repository suite remains green with 316 tests passed.
+- The manuscript states that settling is an analogue rather than reaction
+  time, that the distractor baseline is weak, and that computational
+  sufficiency does not identify a biological psilocybin mechanism.
+
+</details>
+
+<details>
 <summary>2026-07-27 - Pending - Freeze full 1,024-sample candidate-only run</summary>
 
 Purpose:
