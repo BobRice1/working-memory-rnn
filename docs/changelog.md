@@ -3,7 +3,24 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Preregister N-back Stage 2 budget rescue</summary>
+<summary>2026-07-27 - Current commit - Implement N-back Stage 2 budget rescue</summary>
+
+Purpose:
+
+- Materialize the sole frozen budget extension before training development
+  seed `20260827`.
+
+File changes:
+
+- `configs/nback_working_memory_budget_rescue.yaml`: Added the 20,000-update
+  Stage 2 maximum, new development seed, new seed-bank offsets, and isolated
+  output paths.
+- `tests/test_nback_training.py`: Added an exact config-difference guard.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 4158040 - Preregister N-back Stage 2 budget rescue</summary>
 
 Purpose:
 
