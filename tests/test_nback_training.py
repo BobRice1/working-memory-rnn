@@ -230,3 +230,24 @@ def test_budget_rescue_changes_only_frozen_budget_seed_banks_paths() -> None:
         config["evaluation"]["seed_offset"] = 0
         config["paths"] = {}
     assert budget == rescue
+
+
+def test_budget_final_changes_only_frozen_seed_banks_and_paths() -> None:
+    budget = load_config(
+        "configs/nback_working_memory_budget_rescue.yaml"
+    )
+    final = load_config(
+        "configs/nback_working_memory_budget_final.yaml"
+    )
+
+    assert final["task"]["seed"] == 20260911
+    assert final["validation"]["seed_offset"] == 900000
+    assert final["evaluation"]["seed_offset"] == 1000000
+    assert final["paths"]["output_dir"].endswith("_budget_final")
+
+    for config in (budget, final):
+        config["task"]["seed"] = 0
+        config["validation"]["seed_offset"] = 0
+        config["evaluation"]["seed_offset"] = 0
+        config["paths"] = {}
+    assert final == budget

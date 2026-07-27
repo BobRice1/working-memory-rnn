@@ -3,7 +3,24 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Preregister replacement final N-back family</summary>
+<summary>2026-07-27 - Current commit - Implement replacement final N-back configuration</summary>
+
+Purpose:
+
+- Materialize the frozen replacement final seed banks without training a
+  checkpoint.
+
+File changes:
+
+- `configs/nback_working_memory_budget_final.yaml`: Added final seed
+  `20260911`, validation offset `900000`, competence offset `1000000`, and
+  isolated output paths.
+- `tests/test_nback_training.py`: Added an exact config-difference guard.
+
+</details>
+
+<details>
+<summary>2026-07-27 - f0082e1 - Preregister replacement final N-back family</summary>
 
 Purpose:
 
