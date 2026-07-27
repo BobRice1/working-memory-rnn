@@ -3,7 +3,29 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Record N-back rescue development pass</summary>
+<summary>2026-07-27 - Current commit - Preregister final N-back checkpoint family</summary>
+
+Purpose:
+
+- Freeze the ten-checkpoint final family after the independent three-seed
+  development pass and before final training.
+
+Frozen decisions:
+
+- Training seeds `20260901-20260910`.
+- New validation offset `500000` and untouched competence offset `600000`.
+- Exact successful rescue task, architecture, training allocation, loss,
+  metrics, competence gates, and stop-on-first-failure rule.
+
+Interpretation:
+
+- All ten checkpoints must pass before N-back perturbation calibration or
+  outcome inspection.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 66a95c8 - Record N-back rescue development pass</summary>
 
 Purpose:
 
