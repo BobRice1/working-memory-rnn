@@ -21,6 +21,17 @@ Design:
 - Measure circular-task settling, delay, and distractor contrasts alongside the
   N-back 2-back-versus-0-back contrast.
 
+Implementation:
+
+- Added isolated circular and N-back pilot evaluators with explicit frozen
+  checkpoint selection, hash/source validation, fresh deterministic task
+  banks, fixed grids, and three technical replicates for heterogeneous gain and
+  Gaussian noise.
+- The circular runner requires an explicit `--execute` flag; its default
+  command only expands the outcome-free design.
+- Added 14 focused pilot tests. The complete repository suite passes with
+  313 tests passed and one skipped before checkpoint evaluation.
+
 Claim boundary:
 
 - This is an exploratory three-checkpoint screen. It can nominate perturbation
