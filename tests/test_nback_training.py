@@ -9,6 +9,7 @@ from wm_rnn.nback_evaluation import evaluate_nback_checkpoint
 from wm_rnn.nback_task import NBackTaskConfig, generate_nback_batch
 from wm_rnn.train_nback import (
     draw_balanced_nback_block,
+    draw_nback_rule_block,
     train_nback_model,
 )
 from wm_rnn.training_utils import (
@@ -85,6 +86,20 @@ def test_balanced_nback_block_is_reproducible() -> None:
     assert set(first) == {0, 2}
 
 
+def test_rescue_rule_block_contains_one_zero_and_three_two_back() -> None:
+    import numpy as np
+
+    first = draw_nback_rule_block(
+        np.random.default_rng(51), (0, 2, 2, 2)
+    )
+    second = draw_nback_rule_block(
+        np.random.default_rng(51), (0, 2, 2, 2)
+    )
+    assert first == second
+    assert first.count(0) == 1
+    assert first.count(2) == 3
+
+
 def test_tiny_cpu_training_completes_both_stages(tmp_path) -> None:
     config = _tiny_config(tmp_path)
     result = train_nback_model(config)
@@ -115,7 +130,42 @@ def test_cuda_forward_and_loss_stay_on_gpu_when_available() -> None:
     inputs, targets, loss_mask = batch_to_tensors(batch, device)
     logits, states = model(inputs)
     loss = masked_cross_entropy(logits, targets, loss_mask)
+    weighted_loss = masked_cross_entropy(
+        logits,
+        targets,
+        loss_mask,
+        class_weights=torch.tensor([1.0, 2.0], device=device),
+    )
 
     assert next(model.parameters()).is_cuda
     assert inputs.is_cuda and targets.is_cuda and loss_mask.is_cuda
-    assert logits.is_cuda and states.is_cuda and loss.is_cuda
+    assert (
+        logits.is_cuda
+        and states.is_cuda
+        and loss.is_cuda
+        and weighted_loss.is_cuda
+    )
+
+
+def test_rescue_config_changes_only_registered_training_fields() -> None:
+    base = load_config("configs/nback_working_memory.yaml")
+    rescue = load_config(
+        "configs/nback_working_memory_balance_rescue.yaml"
+    )
+    assert rescue["training"]["stage2_rule_block"] == [0, 2, 2, 2]
+    assert rescue["training"]["stage2_class_weights"] == {
+        2: [1.0, 2.0]
+    }
+    assert rescue["task"]["seed"] == 20260824
+    assert rescue["validation"]["seed_offset"] == 300000
+    assert rescue["evaluation"]["seed_offset"] == 400000
+    assert rescue["paths"] != base["paths"]
+
+    for config in (base, rescue):
+        config["task"]["seed"] = 0
+        config["validation"]["seed_offset"] = 0
+        config["evaluation"]["seed_offset"] = 0
+        config["paths"] = {}
+    rescue["training"].pop("stage2_rule_block")
+    rescue["training"].pop("stage2_class_weights")
+    assert rescue == base

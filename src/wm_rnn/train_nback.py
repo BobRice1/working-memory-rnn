@@ -41,13 +41,23 @@ class NBackTrainResult:
     passed: bool
 
 
+def draw_nback_rule_block(
+    rng: np.random.Generator,
+    rules: tuple[int, ...] = (0, 2),
+) -> list[int]:
+    """Return a reproducibly shuffled homogeneous-rule training block."""
+    if not rules or any(rule not in {0, 2} for rule in rules):
+        raise ValueError("rules must be a non-empty sequence of 0 and 2")
+    block = list(rules)
+    rng.shuffle(block)
+    return block
+
+
 def draw_balanced_nback_block(
     rng: np.random.Generator,
 ) -> list[int]:
-    """Return a reproducibly shuffled block containing 0-back and 2-back."""
-    block = [0, 2]
-    rng.shuffle(block)
-    return block
+    """Return one 0-back and one 2-back batch in shuffled order."""
+    return draw_nback_rule_block(rng)
 
 
 def _validation_record(
@@ -120,6 +130,26 @@ def train_nback_model(config: dict[str, Any]) -> NBackTrainResult:
     required_consecutive = int(
         config["training"].get("required_consecutive_passes", 2)
     )
+    stage2_rule_block = tuple(
+        int(value)
+        for value in config["training"].get(
+            "stage2_rule_block", [0, 2]
+        )
+    )
+    draw_nback_rule_block(np_rng, stage2_rule_block)
+    stage2_class_weights = {
+        int(rule): tuple(float(value) for value in weights)
+        for rule, weights in config["training"]
+        .get("stage2_class_weights", {})
+        .items()
+    }
+    if any(
+        len(weights) != 2 or any(value <= 0.0 for value in weights)
+        for weights in stage2_class_weights.values()
+    ):
+        raise ValueError(
+            "stage2_class_weights must contain positive two-class weights"
+        )
     log_every = int(config["training"].get("log_every", 100))
 
     history: list[dict[str, Any]] = []
@@ -142,7 +172,24 @@ def train_nback_model(config: dict[str, Any]) -> NBackTrainResult:
         )
         optimizer.zero_grad(set_to_none=True)
         logits, _ = model(inputs)
-        loss = masked_cross_entropy(logits, targets, loss_mask)
+        configured_weights = (
+            stage2_class_weights.get(n_back) if stage == 2 else None
+        )
+        class_weights = (
+            torch.tensor(
+                configured_weights,
+                device=device_info.device,
+                dtype=logits.dtype,
+            )
+            if configured_weights is not None
+            else None
+        )
+        loss = masked_cross_entropy(
+            logits,
+            targets,
+            loss_mask,
+            class_weights=class_weights,
+        )
         if not torch.isfinite(loss):
             raise RuntimeError("N-back training loss became non-finite")
         loss.backward()
@@ -161,6 +208,16 @@ def train_nback_model(config: dict[str, Any]) -> NBackTrainResult:
                 "loss": float(loss.item()),
                 "timestep_accuracy": accuracy,
                 "learning_rate": float(optimizer.param_groups[0]["lr"]),
+                "nonmatch_weight": (
+                    float(configured_weights[0])
+                    if configured_weights is not None
+                    else 1.0
+                ),
+                "match_weight": (
+                    float(configured_weights[1])
+                    if configured_weights is not None
+                    else 1.0
+                ),
             }
         )
         if (
@@ -207,7 +264,9 @@ def train_nback_model(config: dict[str, Any]) -> NBackTrainResult:
     if stage1_passed:
         for stage_step in range(1, stage2_max + 1):
             if not mode_block:
-                mode_block = draw_balanced_nback_block(np_rng)
+                mode_block = draw_nback_rule_block(
+                    np_rng, stage2_rule_block
+                )
             train_step(mode_block.pop(), 2)
             if stage_step % stage2_every != 0:
                 continue

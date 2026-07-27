@@ -8,6 +8,7 @@ import torch
 
 from wm_rnn.nback_metrics import nback_metrics
 from wm_rnn.nback_task import NBackTaskConfig, generate_nback_batch
+from wm_rnn.training_utils import masked_cross_entropy
 
 
 def _perfect_logits(
@@ -101,3 +102,16 @@ def test_nonsettling_outputs_are_capped_and_invalid() -> None:
         == batch.event_steps
     )
     assert metrics["settling_valid"] is False
+
+
+def test_class_weighted_cross_entropy_matches_hand_calculation() -> None:
+    logits = torch.tensor([[[0.0, 0.0], [0.0, 0.0]]])
+    targets = torch.tensor([[0, 1]])
+    mask = torch.ones((1, 2))
+    weights = torch.tensor([1.0, 2.0])
+
+    loss = masked_cross_entropy(
+        logits, targets, mask, class_weights=weights
+    )
+
+    assert loss.item() == pytest.approx(np.log(2.0))

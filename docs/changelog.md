@@ -3,7 +3,28 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Preregister N-back training-balance rescue</summary>
+<summary>2026-07-27 - Current commit - Implement N-back training-balance rescue</summary>
+
+Purpose:
+
+- Implement the frozen high-load training-allocation rescue before training
+  development seed `20260824`.
+
+File changes:
+
+- `src/wm_rnn/train_nback.py`: Added configurable shuffled rule blocks and
+  rule-specific class weights.
+- `src/wm_rnn/training_utils.py`: Added normalized class-weight support to
+  masked cross-entropy without changing unweighted callers.
+- `configs/nback_working_memory_balance_rescue.yaml`: Added the frozen
+  1:3 rule allocation, 2-back match weight, and new seed banks.
+- N-back tests cover exact rule counts, weighted-loss arithmetic, unchanged
+  base configuration, and CUDA weighted loss.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 7efd0af - Preregister N-back training-balance rescue</summary>
 
 Purpose:
 

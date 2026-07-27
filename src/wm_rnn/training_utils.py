@@ -149,11 +149,27 @@ def batch_to_tensors(batch: TaskBatch, device: torch.device) -> tuple[torch.Tens
     return inputs, targets, loss_mask
 
 
-def masked_cross_entropy(logits: torch.Tensor, targets: torch.Tensor, loss_mask: torch.Tensor) -> torch.Tensor:
-    """Compute cross-entropy only on time points selected by ``loss_mask``."""
-    loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), targets.reshape(-1), reduction="none")
+def masked_cross_entropy(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    loss_mask: torch.Tensor,
+    class_weights: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Compute optionally class-weighted CE on time points in ``loss_mask``."""
+    loss = F.cross_entropy(
+        logits.reshape(-1, logits.size(-1)),
+        targets.reshape(-1),
+        weight=class_weights,
+        reduction="none",
+    )
     mask = loss_mask.reshape(-1)
-    return (loss * mask).sum() / mask.sum().clamp_min(1.0)
+    if class_weights is None:
+        denominator = mask.sum()
+    else:
+        denominator = (
+            class_weights[targets.reshape(-1)] * mask
+        ).sum()
+    return (loss * mask).sum() / denominator.clamp_min(1.0)
 
 
 def masked_mse(predictions: torch.Tensor, targets: torch.Tensor, loss_mask: torch.Tensor) -> torch.Tensor:
