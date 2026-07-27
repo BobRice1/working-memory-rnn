@@ -3,7 +3,32 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Implement competence-screened N-back pool</summary>
+<summary>2026-07-27 - Current commit - Freeze competent N-back checkpoint family</summary>
+
+Purpose:
+
+- Record the registered screened-pool terminal result before any
+  calibration or perturbation work.
+
+Result:
+
+- Seeds `20260912-20260921` all passed the unchanged training and untouched
+  competence gates.
+- The target of ten retained checkpoints was reached after ten attempts,
+  with no failures.
+- Seeds `20260922-20260926` were left unattempted by the registered stop rule.
+- No perturbation outcome was run or inspected.
+
+Decision:
+
+- Freeze the ten passing checkpoints as the N-back inferential family.
+- Proceed only to a separately pre-registered baseline-only
+  calibration-precision phase.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 530d300 - Implement competence-screened N-back pool</summary>
 
 Purpose:
 
