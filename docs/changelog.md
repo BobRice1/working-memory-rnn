@@ -3,7 +3,33 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Record final N-back family failure</summary>
+<summary>2026-07-27 - Current commit - Preregister N-back Stage 2 budget rescue</summary>
+
+Purpose:
+
+- Test whether the 12,000-update ceiling truncated late-learning N-back
+  initializations.
+
+Sole training change:
+
+- Extend the Stage 2 maximum to 20,000 updates while retaining early stopping
+  after two consecutive joint validation passes.
+
+Seed separation:
+
+- New development seeds `20260827-29`.
+- New validation offset `700000` and competence offset `800000`.
+- Prospective final seeds `20260911-20`.
+
+Held fixed:
+
+- Task, CTRNN, loss, rule allocation, optimizer, metrics, competence gates, and
+  perturbation lockout.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 068ebe1 - Record final N-back family failure</summary>
 
 Purpose:
 
