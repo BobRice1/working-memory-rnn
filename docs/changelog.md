@@ -3,7 +3,30 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Record initial N-back baseline failure</summary>
+<summary>2026-07-27 - Current commit - Preregister N-back training-balance rescue</summary>
+
+Purpose:
+
+- Test whether inefficient rule allocation and unweighted class prevalence
+  caused the initial actual N-back competence failure.
+
+Frozen changes:
+
+- Use one 0-back and three 2-back homogeneous batches per shuffled Stage 2
+  block.
+- Weight 2-back match errors by `2.0` while retaining the six-to-twelve event
+  prevalence and ordinary 0-back cross-entropy.
+- Use new development seeds `20260824-26` and new validation/competence banks.
+
+Held fixed:
+
+- Task, 64-unit CTRNN, timings, generator, optimizer, maximum steps, metrics,
+  competence gates, and perturbation lockout.
+
+</details>
+
+<details>
+<summary>2026-07-27 - aed9cca - Record initial N-back baseline failure</summary>
 
 Purpose:
 
