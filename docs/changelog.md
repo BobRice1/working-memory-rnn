@@ -3,7 +3,31 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Add gated N-back seed-family runner</summary>
+<summary>2026-07-27 - Current commit - Record N-back rescue development pass</summary>
+
+Purpose:
+
+- Record the three-seed development decision before freezing or training the
+  final N-back family.
+
+Result:
+
+- Seeds `20260824-26` all passed training validation and untouched competence.
+- 0-back accuracy/discriminability were effectively `1.000`.
+- 2-back accuracy was `0.959-0.965`, discriminability `0.924-0.938`, and lure
+  accuracy `0.971-0.988`.
+
+Interpretation:
+
+- The training-balance rescue transports across initialization.
+- Final-family training is now eligible after a separate final seed-bank
+  pre-registration.
+- No perturbation outcome has been inspected.
+
+</details>
+
+<details>
+<summary>2026-07-27 - ecbd01f - Add gated N-back seed-family runner</summary>
 
 Purpose:
 
