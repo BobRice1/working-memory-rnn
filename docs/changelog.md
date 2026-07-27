@@ -3,7 +3,30 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Implement replacement final N-back configuration</summary>
+<summary>2026-07-27 - Current commit - Record replacement final-family failure</summary>
+
+Purpose:
+
+- Enforce the replacement final-family stop rule after seed `20260911`.
+
+Result:
+
+- Training passed at step 6,000.
+- Untouched 0-back, 2-back accuracy, and lure checks passed.
+- 2-back discriminability was `0.888`, narrowly below `0.900`.
+- Seeds `20260912-20` were not started; no perturbation was run.
+
+Interpretation:
+
+- The 10/10 family rule is stricter than the exact Wan et al. RNN precedent,
+  which retained 10 competent networks from 12 trained initializations.
+- A preregistered competence-screened pool is the evidence-aligned next
+  design; thresholds remain unchanged.
+
+</details>
+
+<details>
+<summary>2026-07-27 - d986f1b - Implement replacement final N-back configuration</summary>
 
 Purpose:
 
