@@ -3,7 +3,23 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Preregister final N-back checkpoint family</summary>
+<summary>2026-07-27 - Current commit - Implement frozen final N-back configuration</summary>
+
+Purpose:
+
+- Materialize the final-family seed banks without training a final checkpoint.
+
+File changes:
+
+- `configs/nback_working_memory_final.yaml`: Added the exact successful rescue
+  with final seed `20260901`, validation offset `500000`, competence offset
+  `600000`, and isolated output paths.
+- `tests/test_nback_training.py`: Added an exact config-difference guard.
+
+</details>
+
+<details>
+<summary>2026-07-27 - b339814 - Preregister final N-back checkpoint family</summary>
 
 Purpose:
 

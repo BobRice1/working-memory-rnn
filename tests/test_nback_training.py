@@ -187,3 +187,23 @@ def test_per_seed_config_isolates_outputs_without_mutating_base() -> None:
         "seed_sweep/seed_20260825"
     )
     assert seeded["paths"]["run_name"].endswith("_seed_20260825")
+
+
+def test_final_config_changes_only_frozen_seed_banks_and_paths() -> None:
+    rescue = load_config(
+        "configs/nback_working_memory_balance_rescue.yaml"
+    )
+    final = load_config("configs/nback_working_memory_final.yaml")
+
+    assert final["task"]["seed"] == 20260901
+    assert final["validation"]["seed_offset"] == 500000
+    assert final["evaluation"]["seed_offset"] == 600000
+    assert final["paths"]["output_dir"].endswith("_final")
+    assert final["paths"]["run_name"].endswith("_final")
+
+    for config in (rescue, final):
+        config["task"]["seed"] = 0
+        config["validation"]["seed_offset"] = 0
+        config["evaluation"]["seed_offset"] = 0
+        config["paths"] = {}
+    assert final == rescue
