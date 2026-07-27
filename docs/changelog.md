@@ -3,7 +3,44 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Complete N-back additive calibration</summary>
+<summary>2026-07-27 - Current commit - Complete N-back held-out cost check</summary>
+
+Purpose:
+
+- Test calibrated strengths on the independent 1,024-sequence 0-back bank
+  using the frozen cost band, paired-bootstrap precision, and candidate-P5
+  cost-gap gates.
+
+Result:
+
+- 53 of 150 checkpoint/profile cells were valid after propagating unavailable
+  calibrations and applying all held-out gates.
+- Gaussian comparator P5 transported on its nine calibrated checkpoints, with
+  held-out additive costs from `0.044388` to `0.051666` nats, but remained
+  invalid at checkpoint seed `20260913`; P5 therefore failed the required
+  all-ten profile barrier.
+- Confirmatory profile valid-checkpoint counts were: profile 1, 7/10; profile
+  4, 1/10; profile 7, 0/10; profile 9, 2/10; profile 10, 4/10; and profile 12,
+  8/10. No confirmatory profile passed all ten checkpoints.
+- Beyond unavailable calibrations and the invalid P5 reference, held-out
+  failures included candidate-P5 gaps above `0.005` and confidence half-widths
+  above `0.005`; the largest observed gap and half-width were `0.0139692` and
+  `0.0084422`, respectively.
+- There were no nonfinite numerical failures.
+- The phase completed on CUDA in one uninterrupted attempt with 377.7230
+  seconds of active execution time.
+
+Interpretive boundary:
+
+- The frozen N-back candidate-versus-generic-noise C2 test is not globally
+  testable in this run. Subsequent phases will retain explicit NA cells and
+  descriptive validity information; they cannot be used to rescue or replace
+  the failed matched-cost comparator.
+
+</details>
+
+<details>
+<summary>2026-07-27 - 103f69f - Complete N-back additive calibration</summary>
 
 Purpose:
 
