@@ -3,7 +3,31 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Add outcome-free N-back perturbation adapters</summary>
+<summary>2026-07-27 - Current commit - Record final N-back family failure</summary>
+
+Purpose:
+
+- Enforce the final-family stop rule after seed `20260902` exhausted the
+  frozen Stage 2 budget.
+
+Result:
+
+- Seed `20260901` passed.
+- Seed `20260902` retained perfect 0-back but ended at 2-back accuracy `0.847`,
+  discriminability `0.688`, and lure accuracy `0.835`.
+- Seeds `20260903-10` were not started; no perturbation was run.
+
+Interpretation:
+
+- The failed seed showed a sharply improving but late 2-back trajectory at the
+  12,000-update endpoint.
+- The smallest next rescue is a training-budget extension with all scientific
+  task and competence decisions held fixed.
+
+</details>
+
+<details>
+<summary>2026-07-27 - e1237cb - Add outcome-free N-back perturbation adapters</summary>
 
 Purpose:
 
