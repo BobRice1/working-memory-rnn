@@ -145,15 +145,27 @@ def cross_task_summary(
         delay_values = [row["delay_selectivity"] for row in crows]
         distractor_values = [row["distractor_selectivity"] for row in crows]
         load_values = [row["load_selectivity"] for row in nrows]
+        circular_required = len(crows) // 2 + 1
+        nback_required = len(nrows) // 2 + 1
         delay_count = sum(value > 0 for value in delay_values)
         distractor_count = sum(value > 0 for value in distractor_values)
         load_count = sum(value > 0 for value in load_values)
-        slowing_match = slowing_count >= 2
-        delay_match = _mean(delay_values) > 0 and delay_count >= 2
-        distractor_match = (
-            _mean(distractor_values) > 0 and distractor_count >= 2
+        mean_settling = _mean(
+            [row["clean20_settling_delta"] for row in crows]
         )
-        load_match = _mean(load_values) > 0 and load_count >= 2
+        slowing_match = (
+            mean_settling > 0 and slowing_count >= circular_required
+        )
+        delay_match = (
+            _mean(delay_values) > 0 and delay_count >= circular_required
+        )
+        distractor_match = (
+            _mean(distractor_values) > 0
+            and distractor_count >= circular_required
+        )
+        load_match = (
+            _mean(load_values) > 0 and load_count >= nback_required
+        )
         rows.append(
             {
                 "operator": operator,
@@ -164,9 +176,7 @@ def cross_task_summary(
                         for row in crows
                     ]
                 ),
-                "mean_clean20_settling_delta": _mean(
-                    [row["clean20_settling_delta"] for row in crows]
-                ),
+                "mean_clean20_settling_delta": mean_settling,
                 "slowing_with_preservation_count": slowing_count,
                 "slowing_with_preservation": slowing_match,
                 "mean_delay_selectivity": _mean(delay_values),

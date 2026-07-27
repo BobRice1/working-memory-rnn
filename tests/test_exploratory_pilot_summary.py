@@ -35,3 +35,31 @@ def test_cross_task_summary_requires_two_of_three_and_positive_mean():
     assert row["distractor_selective"]
     assert row["load_selective"]
     assert row["complete_primary_pattern"]
+
+
+def test_cross_task_summary_requires_majority_for_five_checkpoints():
+    circular = [
+        {
+            "checkpoint_seed": seed,
+            "operator": "sensory_input_gain",
+            "strength": 1.2,
+            "clean20_proportional_error_impairment": 0.0,
+            "clean20_settling_delta": -0.1,
+            "slowing_with_preservation": seed < 2,
+            "delay_selectivity": 0.1,
+            "distractor_selectivity": 0.2,
+        }
+        for seed in range(5)
+    ]
+    nback = [
+        {
+            "checkpoint_seed": seed,
+            "operator": "sensory_input_gain",
+            "strength": 1.2,
+            "load_selectivity": 0.2,
+        }
+        for seed in range(10)
+    ]
+    row = cross_task_summary(circular, nback)[0]
+    assert not row["slowing_with_preservation"]
+    assert not row["complete_primary_pattern"]

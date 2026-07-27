@@ -30,6 +30,24 @@ Implementation:
   checkpoints, exact candidate grids, and 1,024-sample task-bank dimensions
   before outcome evaluation. Fourteen focused evaluator tests pass.
 
+Outcome:
+
+- The uninterrupted CUDA run completed in 1,075.9 seconds (17 minutes
+  56 seconds), producing 945 circular grid rows and 600 N-back evaluation
+  cells.
+- State persistence `0.95` remained the sole complete descriptive profile:
+  slowing/preservation, delay selectivity, and distractor selectivity were
+  positive in 5/5 circular checkpoints, and N-back load selectivity was
+  positive in 10/10 checkpoints.
+- Mean contrasts were +1.38% delay-20 error, +0.194 settling steps, +0.264
+  long-minus-short delay selectivity, +0.159 distractor selectivity, and +0.250
+  N-back load selectivity.
+- Native distractor performance remained weak (25.8–50.4 degree mean error;
+  26.7–35.7% settled), so the distractor component is provisional despite its
+  consistent direction.
+- Added a full-run report and regenerated the cross-task summary and
+  seed-point figure.
+
 </details>
 
 <details>
