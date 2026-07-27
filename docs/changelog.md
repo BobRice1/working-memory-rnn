@@ -3,7 +3,30 @@
 This changelog tracks two related histories:
 
 <details>
-<summary>2026-07-27 - Current commit - Complete N-back held-out cost check</summary>
+<summary>2026-07-27 - Current commit - Pass N-back neutral-confirmatory firewall</summary>
+
+Purpose:
+
+- Verify exact neutral behavior again on the independent confirmatory 0-back
+  and 2-back task banks before allowing any non-neutral confirmatory outcome.
+
+Result:
+
+- All 300 profile/checkpoint/load cells passed exact equality for logits and
+  hidden states, with zero maximum absolute difference and zero additive
+  sequence-loss cost.
+- The audit covered all 15 profiles, all ten retained checkpoints, and both
+  condition codes. Deterministic profiles made eight registered comparisons
+  per cell and stochastic profiles made 24.
+- The phase completed on the NVIDIA GeForce RTX 3060 Laptop GPU in one
+  uninterrupted, CUDA-synchronized attempt with 1328.3175 seconds of active
+  execution time.
+- No non-neutral confirmatory outcome was evaluated during this firewall.
+
+</details>
+
+<details>
+<summary>2026-07-27 - d53b76d - Complete N-back held-out cost check</summary>
 
 Purpose:
 
