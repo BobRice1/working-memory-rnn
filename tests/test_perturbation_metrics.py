@@ -218,6 +218,20 @@ def test_distractor_attraction_has_target_distractor_and_away_anchors() -> None:
     assert moves_away["peak_attraction"] == pytest.approx(-0.5)
 
 
+def test_end_of_delay_distractor_marks_recovery_unavailable() -> None:
+    metrics = distractor_drift_and_recovery(
+        np.array([[0.0], [np.pi / 4.0], [np.pi / 2.0]]),
+        np.array([0.0]),
+        np.array([np.pi / 2.0]),
+        slice(1, 3),
+        slice(3, 3),
+    )
+
+    assert metrics["peak_attraction"] == pytest.approx(1.0)
+    assert metrics["end_attraction"] == pytest.approx(1.0)
+    assert np.isnan(metrics["recovered_fraction"])
+
+
 def test_signed_circular_error_retains_sign_and_wraps() -> None:
     decoded = np.deg2rad(np.array([10.0, 350.0, 1.0, 359.0, 180.0]))
     target = np.deg2rad(np.array([0.0, 0.0, 359.0, 1.0, 0.0]))

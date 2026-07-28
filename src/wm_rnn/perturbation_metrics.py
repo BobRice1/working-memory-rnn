@@ -233,8 +233,19 @@ def distractor_drift_and_recovery(
         raise ValueError("target_angles and distractor_angles must have shape [trials]")
 
     during = _window(decoded, distractor_slice, "distractor_slice")
-    after = _window(decoded, post_distractor_slice, "post_distractor_slice")
-    trajectory = np.concatenate((during, after), axis=0)
+    if not isinstance(post_distractor_slice, slice):
+        raise TypeError("post_distractor_slice must be a slice")
+    if post_distractor_slice.step not in (None, 1):
+        raise ValueError(
+            "post_distractor_slice must select consecutive time steps"
+        )
+    after = decoded[post_distractor_slice]
+    has_post_distractor_window = after.shape[0] > 0
+    trajectory = (
+        np.concatenate((during, after), axis=0)
+        if has_post_distractor_window
+        else during
+    )
     distractor_arc = _signed_wrapped_radians(distractors - targets)
     if np.any(np.isclose(distractor_arc, 0.0, atol=1e-12)):
         raise ValueError("target and distractor angles must differ on every trial")
@@ -248,7 +259,10 @@ def distractor_drift_and_recovery(
 
     mean_target_error_degrees = np.mean(np.degrees(np.abs(displacement)), axis=1)
     peak_target_error = float(np.max(mean_target_error_degrees))
-    if np.isclose(peak_attraction, 0.0, atol=1e-12):
+    if (
+        not has_post_distractor_window
+        or np.isclose(peak_attraction, 0.0, atol=1e-12)
+    ):
         recovered_fraction = float("nan")
     else:
         recovered_fraction = float((peak_attraction - end_attraction) / peak_attraction)
