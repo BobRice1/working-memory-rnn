@@ -1,0 +1,21 @@
+evaluation:
+  output_dir: outputs/circular_distractor_timing_generalisation
+  trials_per_condition: 1024
+  batch_size: 128
+  delay_steps: 20
+  distractor_steps: 5
+  onset_fractions:
+    clean: null
+    start: 0.00
+    quarter: 0.25
+    midpoint: 0.50
+    three_quarter: 0.75
+    end: 1.00
+  seed_base: 202607300
+
+sources:
+  circular_config: configs/fixation_circular_distractor_working_memory.yaml
+  circular_manifest: outputs/fixation_circular_distractor_working_memory/metrics/fixation_circular_distractor_working_memory_pool_summary.json
+
+interpretation:
+  status: post_result_robustness_analysis
