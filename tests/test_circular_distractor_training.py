@@ -11,6 +11,7 @@ from wm_rnn.config import load_config
 from wm_rnn.train import (
     apply_circular_distractor_trial_type,
     draw_circular_distractor_block,
+    draw_distractor_onset_fraction_block,
     train_model,
 )
 from wm_rnn.training_utils import fresh_model, task_config_from_dict
@@ -65,6 +66,13 @@ def test_circular_distractor_block_contains_one_batch_per_condition() -> None:
     assert sorted(block) == ["clean", "distractor"]
 
 
+def test_onset_block_contains_each_configured_fraction_once() -> None:
+    block = draw_distractor_onset_fraction_block(
+        np.random.default_rng(7), [0.0, 0.25, 0.5, 0.75, 1.0]
+    )
+    assert sorted(block) == [0.0, 0.25, 0.5, 0.75, 1.0]
+
+
 def test_trial_type_only_changes_distractor_presence() -> None:
     config = load_config(
         "configs/fixation_circular_distractor_working_memory.yaml"
@@ -90,6 +98,30 @@ def test_balanced_training_logs_clean_and_distractor_batches(tmp_path) -> None:
     assert sorted(row["distractor_steps"] for row in result.history) == [0, 2]
 
 
+def test_variable_onset_training_balances_all_fractions(tmp_path) -> None:
+    config = _tiny_config(tmp_path)
+    config["training"]["steps"] = 10
+    config["task"]["distractor_onset_fraction_choices"] = [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+    ]
+    result = train_model(config)
+    distractor_rows = [
+        row for row in result.history if row["trial_type"] == "distractor"
+    ]
+    assert sorted(
+        row["distractor_onset_fraction"] for row in distractor_rows
+    ) == [0.0, 0.25, 0.5, 0.75, 1.0]
+    assert all(
+        row["distractor_onset_fraction"] is None
+        for row in result.history
+        if row["trial_type"] == "clean"
+    )
+
+
 @pytest.mark.parametrize("condition", ["clean", "distractor"])
 def test_condition_evaluation_returns_finite_metrics(
     tmp_path,
@@ -105,3 +137,17 @@ def test_condition_evaluation_returns_finite_metrics(
     assert np.isfinite(metrics.mean_angular_error_degrees)
     assert np.isfinite(metrics.median_angular_error_degrees)
     assert 0.0 <= metrics.fixation_accuracy <= 1.0
+
+
+def test_condition_evaluation_accepts_onset_override(tmp_path) -> None:
+    config = _tiny_config(tmp_path)
+    model = fresh_model(config, torch.device("cpu"))
+    model.eval()
+    metrics = evaluate_condition(
+        model,
+        config,
+        "distractor",
+        distractor_onset_fraction=1.0,
+    )
+    assert metrics.condition == "distractor"
+    assert metrics.trials == 8

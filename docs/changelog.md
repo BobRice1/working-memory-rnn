@@ -3,6 +3,45 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-28 - Freeze variable-timing circular training protocol</summary>
+
+Action:
+
+- Added a new, independent circular checkpoint-family configuration with
+  delay-relative distractor starts at `0.00`, `0.25`, `0.50`, `0.75`, and
+  `1.00`.
+- Kept clean and distractor batches balanced 1:1. Within distractor batches,
+  each timing is presented once per shuffled five-batch block.
+- Froze an ordered 15-seed candidate schedule (`20260801`--`20260815`) and a
+  first-10-passing retention rule. The final family therefore contains 10
+  independently initialized competent checkpoints; later candidates are used
+  only if an earlier candidate fails.
+- Added paired held-out evaluation at every trained timing using 1,024 trials
+  per condition and a separate frozen evaluation seed bank.
+- Froze competence gates of clean mean angular error no greater than 10
+  degrees, mean angular error no greater than 15 degrees at each individual
+  distractor timing, and fixation accuracy of at least 0.90 in every
+  condition.
+- Added timing-specific training-history fields, pool metrics, and focused
+  tests.
+
+Interpretation:
+
+- The per-timing thresholds are preregistered model-validity and competence
+  thresholds informed by task structure; they are not literature-derived
+  behavioural effect sizes.
+- Timing range is reported descriptively and is not used to select
+  checkpoints.
+- This family is separate from the five midpoint-trained checkpoints and does
+  not retroactively alter their timing-generalisation result.
+
+Planned output:
+
+- `outputs/fixation_circular_variable_distractor_working_memory/`
+
+</details>
+
+<details>
 <summary>2026-07-28 - Evaluate circular distractor-timing generalisation</summary>
 
 Action:

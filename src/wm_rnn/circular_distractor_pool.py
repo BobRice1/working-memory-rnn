@@ -68,6 +68,7 @@ def evaluate_condition(
     model: torch.nn.Module,
     config: dict[str, Any],
     condition: str,
+    distractor_onset_fraction: float | None = None,
 ) -> CircularConditionMetrics:
     """Evaluate paired held-out circular trials for one task condition."""
     if condition not in {"clean", "distractor"}:
@@ -90,6 +91,11 @@ def evaluate_condition(
         delay_steps=int(config["task"]["delay_steps"]),
         distractor_steps=(
             configured_distractor_steps if condition == "distractor" else 0
+        ),
+        distractor_onset_fraction=(
+            float(distractor_onset_fraction)
+            if distractor_onset_fraction is not None
+            else base_task.distractor_onset_fraction
         ),
     )
     device = next(model.parameters()).device

@@ -78,6 +78,25 @@ def draw_circular_distractor_block(
     return block
 
 
+def draw_distractor_onset_fraction_block(
+    rng: np.random.Generator,
+    onset_fractions: list[float] | tuple[float, ...],
+) -> list[float]:
+    """Shuffle one batch at each configured delay-relative onset."""
+    block = [float(value) for value in onset_fractions]
+    if not block or len(block) != len(set(block)):
+        raise ValueError(
+            "task.distractor_onset_fraction_choices must be non-empty "
+            "and unique"
+        )
+    if any(not 0.0 <= value <= 1.0 for value in block):
+        raise ValueError(
+            "task.distractor_onset_fraction_choices must lie in [0, 1]"
+        )
+    rng.shuffle(block)
+    return block
+
+
 def apply_circular_distractor_trial_type(
     task_config: TaskConfig,
     trial_type: str,
@@ -283,12 +302,28 @@ def train_model(config: dict[str, Any]) -> TrainResult:
     configured_distractor_steps = int(
         config["task"].get("distractor_steps", 0)
     )
+    distractor_onset_fraction_choices = config["task"].get(
+        "distractor_onset_fraction_choices"
+    )
+    if (
+        distractor_onset_fraction_choices is not None
+        and not balanced_circular_distractors
+    ):
+        raise ValueError(
+            "task.distractor_onset_fraction_choices requires "
+            "balanced_clean_distractor_blocks sampling"
+        )
     if balanced_circular_distractors:
         apply_circular_distractor_trial_type(
             task_config_from_dict(config),
             "distractor",
             configured_distractor_steps,
         )
+        if distractor_onset_fraction_choices is not None:
+            draw_distractor_onset_fraction_block(
+                np.random.default_rng(base_seed + 888888),
+                distractor_onset_fraction_choices,
+            )
     curriculum = (
         _family_b_curriculum(config["training"], steps)
         if balanced_trial_types
@@ -296,6 +331,7 @@ def train_model(config: dict[str, Any]) -> TrainResult:
     )
     curriculum_stage = -1
     trial_type_block: list[str] = []
+    distractor_onset_fraction_block: list[float] = []
 
     history: list[dict[str, Any]] = []
 
@@ -366,6 +402,23 @@ def train_model(config: dict[str, Any]) -> TrainResult:
                 trial_type,
                 configured_distractor_steps,
             )
+            if (
+                trial_type == "distractor"
+                and distractor_onset_fraction_choices is not None
+            ):
+                if not distractor_onset_fraction_block:
+                    distractor_onset_fraction_block = (
+                        draw_distractor_onset_fraction_block(
+                            delay_rng,
+                            distractor_onset_fraction_choices,
+                        )
+                    )
+                task_config = replace(
+                    task_config,
+                    distractor_onset_fraction=(
+                        distractor_onset_fraction_block.pop(0)
+                    ),
+                )
         batch = generate_batch_for_task(task_config)
         inputs, targets, loss_mask = batch_to_tensors(batch, device_info.device)
 
@@ -460,6 +513,14 @@ def train_model(config: dict[str, Any]) -> TrainResult:
             "distractor_steps": int(
                 getattr(task_config, "distractor_steps", 0)
             ),
+            "distractor_onset_fraction": (
+                float(task_config.distractor_onset_fraction)
+                if (
+                    trial_type == "distractor"
+                    and isinstance(task_config, TunedDelayTaskConfig)
+                )
+                else None
+            ),
         }
         if task_type == "tuned":
             if tuned_loss == "circular_distribution":
@@ -510,6 +571,11 @@ def train_model(config: dict[str, Any]) -> TrainResult:
         ),
         "delay_steps_choices": [int(value) for value in delay_choices] if delay_choices is not None else None,
         "trial_type_sampling": trial_type_sampling,
+        "distractor_onset_fraction_choices": (
+            [float(value) for value in distractor_onset_fraction_choices]
+            if distractor_onset_fraction_choices is not None
+            else None
+        ),
         "curriculum": config["training"].get("curriculum"),
         "checkpoint": str(checkpoint_path),
     }
