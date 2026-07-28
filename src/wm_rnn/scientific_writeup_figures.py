@@ -70,7 +70,7 @@ def task_schematic(path: Path) -> None:
         )
         ax.text(start + width / 2, 1.575, label, ha="center", va="center")
     ax.annotate(
-        "optional irrelevant cue",
+        "trained irrelevant cue",
         xy=(61, 1.25),
         xytext=(61, 0.55),
         ha="center",
@@ -87,8 +87,8 @@ def task_schematic(path: Path) -> None:
     ax.text(
         2,
         0.08,
-        "Clean delays: 10, 20, 40 or 80 steps; the remembered angle is "
-        "reported only after the go cue.",
+        "Balanced clean/distractor training; clean delays span 10--80 steps "
+        "and the angle is reported only after the go cue.",
         color="#374151",
     )
 
@@ -276,7 +276,7 @@ def persistence_dose_response(
         axis.set_xlabel("State-persistence scale")
     axes[0, 0].legend(frameon=False, loc="best")
     fig.suptitle(
-        "Dose-like response to carried-state persistence scaling",
+        "Response across carried-state persistence scales",
         weight="bold",
         fontsize=12,
     )
@@ -298,12 +298,18 @@ def main() -> None:
         type=Path,
         default=Path("docs/reports/figures/full_candidate_perturbation"),
     )
+    parser.add_argument("--circular-grid", type=Path)
+    parser.add_argument("--nback-signatures", type=Path)
     args = parser.parse_args()
     circular = circular_signatures(
-        args.results_root
+        args.circular_grid
+        or args.results_root
         / "circular_family_a/metrics/circular_family_a_grid.csv"
     )
-    nback = nback_signatures(args.results_root / "nback/pilot_signatures.csv")
+    nback = nback_signatures(
+        args.nback_signatures
+        or args.results_root / "nback/pilot_signatures.csv"
+    )
     task_schematic(args.output_dir / "task_schematic.png")
     signature_screen(args.output_dir / "signature_screen.png", circular, nback)
     persistence_dose_response(
