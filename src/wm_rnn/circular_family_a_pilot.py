@@ -176,14 +176,22 @@ def verify_frozen_inputs(
     repo_root: str | Path,
     *,
     checkpoints: tuple[FrozenCheckpoint, ...] = FROZEN_CHECKPOINTS,
+    config_path: str | Path = CONFIG_PATH,
+    expected_config_sha256: str | None = CONFIG_SHA256,
 ) -> dict[str, Any]:
     """Verify exact config and checkpoint identities before any model loading."""
     root = Path(repo_root).resolve()
-    config_path = root / CONFIG_PATH
-    observed_config_hash = _sha256(config_path)
-    if observed_config_hash != CONFIG_SHA256:
+    resolved_config_path = Path(config_path)
+    if not resolved_config_path.is_absolute():
+        resolved_config_path = root / resolved_config_path
+    observed_config_hash = _sha256(resolved_config_path)
+    if (
+        expected_config_sha256 is not None
+        and observed_config_hash != expected_config_sha256
+    ):
         raise RuntimeError(
-            f"config hash mismatch: {observed_config_hash} != {CONFIG_SHA256}"
+            f"config hash mismatch: {observed_config_hash} != "
+            f"{expected_config_sha256}"
         )
     verified = []
     for checkpoint in checkpoints:
@@ -196,7 +204,7 @@ def verify_frozen_inputs(
             )
         verified.append({**asdict(checkpoint), "resolved_path": str(path)})
     return {
-        "config_path": str(config_path),
+        "config_path": str(resolved_config_path),
         "config_sha256": observed_config_hash,
         "checkpoints": verified,
     }
@@ -329,10 +337,19 @@ def run_pilot(
     checkpoints: tuple[FrozenCheckpoint, ...] = FROZEN_CHECKPOINTS,
     trials_per_cell: int = TRIALS_PER_CELL,
     required_operators: set[str] | None = None,
+    base_config_path: str | Path = CONFIG_PATH,
+    expected_base_config_sha256: str | None = CONFIG_SHA256,
+    output_stem: str = "circular_family_a",
+    interpretive_limit: str | None = None,
 ) -> tuple[Path, Path]:
-    """Run the fixed three-checkpoint Family A exploratory grid."""
+    """Run a fixed one-item circular exploratory perturbation grid."""
     root = Path(repo_root).resolve()
-    frozen = verify_frozen_inputs(root, checkpoints=checkpoints)
+    frozen = verify_frozen_inputs(
+        root,
+        checkpoints=checkpoints,
+        config_path=base_config_path,
+        expected_config_sha256=expected_base_config_sha256,
+    )
     pilot_path = Path(pilot_config_path)
     if not pilot_path.is_absolute():
         pilot_path = root / pilot_path
@@ -343,7 +360,10 @@ def run_pilot(
         trials_per_cell=trials_per_cell,
         required_operators=required_operators,
     )
-    base_config = load_config(root / CONFIG_PATH)
+    resolved_base_config = Path(base_config_path)
+    if not resolved_base_config.is_absolute():
+        resolved_base_config = root / resolved_base_config
+    base_config = load_config(resolved_base_config)
     task_config = task_config_from_dict(base_config)
     if not isinstance(task_config, TunedDelayTaskConfig):
         raise TypeError("Family A pilot requires TunedDelayTaskConfig")
@@ -434,7 +454,7 @@ def run_pilot(
     if not resolved_output.is_absolute():
         resolved_output = root / resolved_output
     dirs = ensure_run_dirs(resolved_output)
-    csv_path = _write_csv(dirs["metrics"] / "circular_family_a_grid.csv", rows)
+    csv_path = _write_csv(dirs["metrics"] / f"{output_stem}_grid.csv", rows)
     metadata = {
         "exploratory": True,
         "family": FAMILY,
@@ -449,13 +469,14 @@ def run_pilot(
         "cells": [asdict(cell) for cell in PILOT_CELLS],
         "operator_settings": [asdict(setting) for setting in settings],
         "angle_hashes": angle_hashes,
-        "interpretive_limit": (
+        "interpretive_limit": interpretive_limit
+        or (
             "Exploratory three-checkpoint/OOD-distractor pilot; not "
             "confirmatory inference and not a biological psilocybin model."
         ),
     }
     metadata_path = write_json(
-        dirs["metrics"] / "circular_family_a_metadata.json", metadata
+        dirs["metrics"] / f"{output_stem}_metadata.json", metadata
     )
     return csv_path, metadata_path
 

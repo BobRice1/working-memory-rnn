@@ -250,11 +250,20 @@ def _plot_leader(
     plt.close(fig)
 
 
-def run_summary(root: Path) -> dict[str, Any]:
+def run_summary(
+    root: Path,
+    *,
+    circular_grid: Path | None = None,
+    nback_signature_table: Path | None = None,
+) -> dict[str, Any]:
+    """Summarise circular and N-back results from explicit or legacy paths."""
     circular = circular_signatures(
-        root / "circular_family_a/metrics/circular_family_a_grid.csv"
+        circular_grid
+        or root / "circular_family_a/metrics/circular_family_a_grid.csv"
     )
-    nback = nback_signatures(root / "nback/pilot_signatures.csv")
+    nback = nback_signatures(
+        nback_signature_table or root / "nback/pilot_signatures.csv"
+    )
     summary = cross_task_summary(circular, nback)
     summary.sort(
         key=lambda row: (
@@ -292,8 +301,19 @@ def main() -> None:
         default="outputs/exploratory_psilocybin_signature_pilot",
         type=Path,
     )
+    parser.add_argument("--circular-grid", type=Path)
+    parser.add_argument("--nback-signatures", type=Path)
     args = parser.parse_args()
-    print(json.dumps(run_summary(args.root), indent=2))
+    print(
+        json.dumps(
+            run_summary(
+                args.root,
+                circular_grid=args.circular_grid,
+                nback_signature_table=args.nback_signatures,
+            ),
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ from wm_rnn.circular_family_a_pilot import (
     design_summary,
     load_pilot_config,
     settings_for_cell,
+    verify_frozen_inputs,
 )
 
 
@@ -77,3 +78,31 @@ def test_changed_fixed_seed_list_is_rejected(tmp_path: Path) -> None:
     changed.write_text(text, encoding="utf-8")
     with pytest.raises(ValueError, match="circular_seeds"):
         load_pilot_config(changed)
+
+
+def test_input_verification_accepts_explicit_config_and_checkpoint(
+    tmp_path: Path,
+) -> None:
+    from hashlib import sha256
+
+    from wm_rnn.circular_family_a_pilot import FrozenCheckpoint
+
+    config = tmp_path / "task.yaml"
+    checkpoint = tmp_path / "model.pt"
+    config.write_bytes(b"task: tuned\n")
+    checkpoint.write_bytes(b"checkpoint")
+    frozen = FrozenCheckpoint(
+        seed=7,
+        path=str(checkpoint),
+        sha256=sha256(checkpoint.read_bytes()).hexdigest().upper(),
+    )
+
+    verified = verify_frozen_inputs(
+        tmp_path,
+        checkpoints=(frozen,),
+        config_path=config,
+        expected_config_sha256=sha256(config.read_bytes()).hexdigest().upper(),
+    )
+
+    assert verified["config_path"] == str(config)
+    assert verified["checkpoints"][0]["seed"] == 7

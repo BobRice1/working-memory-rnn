@@ -19,13 +19,20 @@ trained N-back checkpoints ───┘             │
 
 ### Circular family
 
-- Configuration: `configs/fixation_circular_working_memory.yaml`
+- Current distractor-trained configuration:
+  `configs/fixation_circular_distractor_working_memory.yaml`
+- Prior clean-trained configuration:
+  `configs/fixation_circular_working_memory.yaml`
 - Task: `src/wm_rnn/tuned_task.py`
 - Training: `src/wm_rnn/train.py`
+- Distractor-trained checkpoint pool:
+  `src/wm_rnn/circular_distractor_pool.py`
 - Hidden-state memory decoding primitive:
   `src/wm_rnn/hidden_angle_decoder.py`
-- Current multi-delay and distractor evaluation:
+- Multi-delay and trained-distractor evaluation:
   `src/wm_rnn/circular_family_a_pilot.py`
+- Baseline competence and hidden-state figures:
+  `src/wm_rnn/baseline_competence_figures.py`
 
 ### N-back family
 
@@ -34,10 +41,15 @@ trained N-back checkpoints ───┘             │
 - Training: `src/wm_rnn/train_nback.py`
 - Pool screening: `src/wm_rnn/nback_screened_pool.py`
 - Evaluation: `src/wm_rnn/nback_evaluation.py`
+- Baseline competence and hidden-state figures:
+  `src/wm_rnn/baseline_competence_figures.py`
 
 ### Candidate perturbation evaluation
 
-- Configuration: `configs/full_candidate_perturbation_1024.yaml`
+- Current configuration:
+  `configs/full_candidate_perturbation_trained_distractor_1024.yaml`
+- Prior clean-trained configuration:
+  `configs/full_candidate_perturbation_1024.yaml`
 - Circular operators and metrics:
   `src/wm_rnn/perturbation_operators.py`,
   `src/wm_rnn/perturbation_metrics.py`
@@ -49,6 +61,11 @@ trained N-back checkpoints ───┘             │
   `src/wm_rnn/scientific_writeup_figures.py`
 - Results: `docs/reports/full_candidate_perturbation_1024_results.md`
 - Paper: `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+- Current generated grid:
+  `outputs/full_candidate_perturbation_trained_distractor_1024/`
+- The N-back component was not retrained or recomputed because neither its
+  checkpoints, task, operators, nor evaluation settings changed; the current
+  cross-task summary records the reused source table explicitly.
 
 ## Retired Executable Work
 
@@ -94,7 +111,7 @@ proxy for Git repository size.
 
 ## Active Package Boundary
 
-The active `src/wm_rnn/` package now contains 25 substantive modules:
+The active `src/wm_rnn/` package now contains 26 substantive modules:
 
 - shared configuration, device, I/O, model, and training utilities;
 - current circular and N-back task/training code;

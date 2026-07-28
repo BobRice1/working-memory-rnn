@@ -1,4 +1,4 @@
-"""Run the full 1,024-sample candidate-only perturbation evaluation."""
+"""Run the trained-distractor circular candidate evaluation and joint summary."""
 
 from __future__ import annotations
 
@@ -6,22 +6,27 @@ import argparse
 import json
 from pathlib import Path
 
-from wm_rnn.circular_family_a_pilot import FULL_CHECKPOINTS, run_pilot as run_circular
-from wm_rnn.nback_exploratory_pilot import PilotDesign, run_pilot as run_nback
+from wm_rnn.circular_family_a_pilot import (
+    FrozenCheckpoint,
+    run_pilot as run_circular,
+)
+from wm_rnn.exploratory_pilot_summary import run_summary
 
 
-CONFIG = Path("configs/full_candidate_perturbation_1024.yaml")
-OUTPUT = Path("outputs/full_candidate_perturbation_1024")
-NBACK_SEEDS = tuple(range(20260912, 20260922))
-NBACK_PROFILES = (1, 4, 7, 9, 10, 12)
-NBACK_DESIGN = PilotDesign(
-    checkpoint_seeds=NBACK_SEEDS,
-    profile_ids=NBACK_PROFILES,
-    batch_size=128,
-    n_batches=8,
-    task_seed_base=161_000_000,
-    noise_seed_base=162_000_000,
-    expected_sequences_per_cell=1024,
+CONFIG = Path(
+    "configs/full_candidate_perturbation_trained_distractor_1024.yaml"
+)
+OUTPUT = Path("outputs/full_candidate_perturbation_trained_distractor_1024")
+BASE_CONFIG = Path("configs/fixation_circular_distractor_working_memory.yaml")
+BASE_CONFIG_SHA256 = (
+    "95433330DD59F77BA0A6AE6E177C0FD2E44121F92E65036F9857FEEE1F4C4656"
+)
+POOL_MANIFEST = Path(
+    "outputs/fixation_circular_distractor_working_memory/metrics/"
+    "fixation_circular_distractor_working_memory_pool_summary.json"
+)
+NBACK_SIGNATURES = Path(
+    "outputs/full_candidate_perturbation_1024/nback/pilot_signatures.csv"
 )
 CANDIDATE_OPERATORS = {
     "synaptic_drive_gain",
@@ -34,29 +39,63 @@ CANDIDATE_OPERATORS = {
 }
 
 
+def trained_distractor_checkpoints(
+    repo_root: str | Path,
+) -> tuple[FrozenCheckpoint, ...]:
+    """Load the exact competent circular checkpoint set from its run manifest."""
+    root = Path(repo_root).resolve()
+    with (root / POOL_MANIFEST).open(encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    retained = tuple(int(seed) for seed in manifest["retained_checkpoint_seeds"])
+    by_seed = {int(row["seed"]): row for row in manifest["results"]}
+    checkpoints = []
+    for seed in retained:
+        row = by_seed[seed]
+        if not bool(row["competence_passed"]):
+            raise ValueError(f"retained checkpoint {seed} failed competence")
+        checkpoints.append(
+            FrozenCheckpoint(
+                seed=seed,
+                path=str(row["checkpoint"]),
+                sha256=str(row["checkpoint_sha256"]),
+            )
+        )
+    if len(checkpoints) != int(manifest["target_competent_checkpoints"]):
+        raise ValueError("retained checkpoint count does not match pool target")
+    return tuple(checkpoints)
+
+
 def run(repo_root: str | Path = ".", device: str = "cuda") -> dict[str, object]:
     root = Path(repo_root).resolve()
+    checkpoints = trained_distractor_checkpoints(root)
     circular_csv, circular_metadata = run_circular(
         root,
         pilot_config_path=root / CONFIG,
-        output_dir=root / OUTPUT / "circular_family_a",
+        output_dir=root / OUTPUT / "circular_trained_distractor",
         device=device,
-        checkpoints=FULL_CHECKPOINTS,
+        checkpoints=checkpoints,
         trials_per_cell=1024,
         required_operators=CANDIDATE_OPERATORS,
+        base_config_path=root / BASE_CONFIG,
+        expected_base_config_sha256=BASE_CONFIG_SHA256,
+        output_stem="circular_trained_distractor",
+        interpretive_limit=(
+            "Descriptive candidate-only evaluation on circular checkpoints "
+            "trained to filter distractors; not confirmatory inference and "
+            "not a biological psilocybin model."
+        ),
     )
-    nback = run_nback(
-        config_path=root / CONFIG,
-        repo_root=root,
-        output_dir=root / OUTPUT / "nback",
-        device_override=device,
-        design=NBACK_DESIGN,
+    leader = run_summary(
+        root / OUTPUT,
+        circular_grid=circular_csv,
+        nback_signature_table=root / NBACK_SIGNATURES,
     )
     return {
         "status": "descriptive_candidate_only",
         "circular_grid": str(circular_csv),
         "circular_metadata": str(circular_metadata),
-        "nback": nback,
+        "nback_signature_source": str(root / NBACK_SIGNATURES),
+        "joint_leading_profile": leader,
     }
 
 
