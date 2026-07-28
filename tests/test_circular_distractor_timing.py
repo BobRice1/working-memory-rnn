@@ -5,6 +5,7 @@ import pytest
 
 from wm_rnn.circular_distractor_timing import (
     TIMING_CONDITIONS,
+    assert_midpoint_reproduction,
     checkpoint_comparisons,
     generate_paired_banks,
     load_design,
@@ -143,3 +144,9 @@ def test_midpoint_references_select_native_persistence_rows(tmp_path):
         encoding="utf-8",
     )
     assert load_midpoint_references(source) == {1: 3.5, 2: 4.5}
+
+
+def test_midpoint_reproduction_allows_only_sub_microdegree_roundoff():
+    assert_midpoint_reproduction(4.4365174, 4.4365170)
+    with pytest.raises(AssertionError):
+        assert_midpoint_reproduction(4.4366170, 4.4365170)

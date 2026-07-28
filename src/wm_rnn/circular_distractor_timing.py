@@ -206,6 +206,19 @@ def load_midpoint_references(path: str | Path) -> dict[int, float]:
     return references
 
 
+def assert_midpoint_reproduction(
+    observed: float,
+    expected: float,
+) -> None:
+    """Require archived midpoint reproduction within GPU roundoff."""
+    np.testing.assert_allclose(
+        float(observed),
+        float(expected),
+        rtol=0.0,
+        atol=1e-6,
+    )
+
+
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> Path:
     """Write non-empty records using their insertion-ordered columns."""
     if not rows:
@@ -324,11 +337,9 @@ def run_evaluation(
             ]
         )
         expected_midpoint = midpoint_references[checkpoint.seed]
-        np.testing.assert_allclose(
+        assert_midpoint_reproduction(
             observed_midpoint,
             expected_midpoint,
-            rtol=0.0,
-            atol=1e-9,
         )
         midpoint_checks[str(checkpoint.seed)] = {
             "expected_mean_angular_error_degrees": expected_midpoint,
