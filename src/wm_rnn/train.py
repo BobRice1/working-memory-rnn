@@ -26,6 +26,7 @@ from wm_rnn.training_utils import (
     with_delay_steps,
     weighted_tuned_mse,
 )
+from wm_rnn.tuned_task import TunedDelayTaskConfig
 
 _FAMILY_B_TRIAL_TYPES = (
     "load1_clean",
@@ -33,6 +34,7 @@ _FAMILY_B_TRIAL_TYPES = (
     "load2_clean",
     "load2_distractor",
 )
+_CIRCULAR_DISTRACTOR_TRIAL_TYPES = ("clean", "distractor")
 
 
 @dataclass(frozen=True)
@@ -65,6 +67,39 @@ def draw_balanced_trial_type_block(
     block = list(trial_types)
     rng.shuffle(block)
     return block
+
+
+def draw_circular_distractor_block(
+    rng: np.random.Generator,
+) -> list[str]:
+    """Shuffle one clean and one distractor batch for circular training."""
+    block = list(_CIRCULAR_DISTRACTOR_TRIAL_TYPES)
+    rng.shuffle(block)
+    return block
+
+
+def apply_circular_distractor_trial_type(
+    task_config: TaskConfig,
+    trial_type: str,
+    distractor_steps: int,
+) -> TaskConfig:
+    """Return a one-item circular task with or without a delay distractor."""
+    if trial_type not in _CIRCULAR_DISTRACTOR_TRIAL_TYPES:
+        raise ValueError(f"unknown circular trial_type: {trial_type}")
+    if not isinstance(task_config, TunedDelayTaskConfig):
+        raise ValueError("circular distractor sampling requires a tuned task")
+    if task_config.probe_gated or task_config.n_items != 1:
+        raise ValueError(
+            "circular distractor sampling requires the original one-item task"
+        )
+    if distractor_steps <= 0:
+        raise ValueError("task.distractor_steps must be positive")
+    return replace(
+        task_config,
+        distractor_steps=(
+            int(distractor_steps) if trial_type == "distractor" else 0
+        ),
+    )
 
 
 def _family_b_curriculum(
@@ -221,10 +256,18 @@ def train_model(config: dict[str, Any]) -> TrainResult:
         config["training"].get("trial_type_sampling", "default")
     )
     balanced_trial_types = trial_type_sampling == "balanced_homogeneous_blocks"
-    if trial_type_sampling not in {"default", "balanced_homogeneous_blocks"}:
+    balanced_circular_distractors = (
+        trial_type_sampling == "balanced_clean_distractor_blocks"
+    )
+    if trial_type_sampling not in {
+        "default",
+        "balanced_homogeneous_blocks",
+        "balanced_clean_distractor_blocks",
+    }:
         raise ValueError(
             "training.trial_type_sampling must be 'default' or "
-            "'balanced_homogeneous_blocks'"
+            "'balanced_homogeneous_blocks' or "
+            "'balanced_clean_distractor_blocks'"
         )
     randomize_delay = (delay_min is not None and delay_max is not None) or delay_choices is not None
     needs_task_rng = (
@@ -232,6 +275,7 @@ def train_model(config: dict[str, Any]) -> TrainResult:
         or pre_cue_choices is not None
         or cue_choices is not None
         or balanced_trial_types
+        or balanced_circular_distractors
     )
     delay_rng = (
         np.random.default_rng(base_seed + 777777) if needs_task_rng else None
@@ -239,6 +283,12 @@ def train_model(config: dict[str, Any]) -> TrainResult:
     configured_distractor_steps = int(
         config["task"].get("distractor_steps", 0)
     )
+    if balanced_circular_distractors:
+        apply_circular_distractor_trial_type(
+            task_config_from_dict(config),
+            "distractor",
+            configured_distractor_steps,
+        )
     curriculum = (
         _family_b_curriculum(config["training"], steps)
         if balanced_trial_types
@@ -306,6 +356,15 @@ def train_model(config: dict[str, Any]) -> TrainResult:
             trial_type = trial_type_block.pop(0)
             task_config = apply_trial_type(
                 task_config, trial_type, configured_distractor_steps
+            )
+        elif balanced_circular_distractors:
+            if not trial_type_block:
+                trial_type_block = draw_circular_distractor_block(delay_rng)
+            trial_type = trial_type_block.pop(0)
+            task_config = apply_circular_distractor_trial_type(
+                task_config,
+                trial_type,
+                configured_distractor_steps,
             )
         batch = generate_batch_for_task(task_config)
         inputs, targets, loss_mask = batch_to_tensors(batch, device_info.device)

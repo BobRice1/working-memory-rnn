@@ -33,9 +33,11 @@ measurement of:
 - sensitivity to longer retention delays; and
 - sensitivity to an irrelevant cue presented during the delay.
 
-The current distractor condition is added only at evaluation, so it is treated
-as an exploratory out-of-distribution robustness test rather than a definitive
-test of learned distractor filtering.
+A dedicated circular checkpoint family is trained on a balanced mixture of
+clean and distractor-present trials. This makes distractor filtering a learned
+part of the task while preserving the original single-item architecture and
+timeline. The earlier clean-trained checkpoints and their evaluation-only
+distractor results remain historical exploratory analyses.
 
 ### N-back working memory
 

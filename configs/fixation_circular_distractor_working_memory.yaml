@@ -1,0 +1,54 @@
+task:
+  task_type: tuned
+  n_tuned_units: 32
+  tuning_kappa: 8.0
+  pre_cue_steps: 25
+  pre_cue_steps_choices: [15, 25, 35]
+  cue_steps: 20
+  cue_steps_choices: [10, 20, 30]
+  delay_steps: 20
+  delay_steps_choices: [10, 20, 40, 80]
+  response_steps: 25
+  batch_size: 64
+  seed: 20260731
+  fixation_gated: true
+  distractor_steps: 5
+  distractor_onset_fraction: 0.5
+  distractor_angle_mode: random
+
+model:
+  hidden_size: 64
+  dt: 20.0
+  tau: 100.0
+  activation: tanh
+  recurrent_noise_std: 0.05
+
+training:
+  steps: 4000
+  learning_rate: 0.001
+  log_every: 100
+  yang_weighted_loss: true
+  ignore_initial_steps: 5
+  response_transition_steps: 5
+  response_weight: 5.0
+  fixation_weight: 2.0
+  input_noise_std: 0.01
+  gradient_clip_value: 1.0
+  trial_type_sampling: balanced_clean_distractor_blocks
+  device: auto
+
+evaluation:
+  trials_per_condition: 1024
+  batch_size: 128
+  seed_base: 2026073100
+  clean_max_mean_angular_error_degrees: 10.0
+  distractor_max_mean_angular_error_degrees: 15.0
+  fixation_min_accuracy: 0.90
+
+pool:
+  seeds: [20260731, 20260732, 20260733, 20260734, 20260735, 20260736]
+  target_competent_checkpoints: 5
+
+paths:
+  output_dir: outputs/fixation_circular_distractor_working_memory
+  run_name: fixation_circular_distractor_working_memory

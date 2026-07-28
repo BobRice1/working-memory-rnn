@@ -1,0 +1,28 @@
+pilot:
+  output_dir: outputs/full_candidate_perturbation_trained_distractor_1024
+  circular_seeds: [20260731, 20260732, 20260733, 20260735, 20260736]
+  nback_seeds: [20260912, 20260913, 20260914, 20260915, 20260916, 20260917, 20260918, 20260919, 20260920, 20260921]
+  circular_trials_per_cell: 1024
+  nback_sequences_per_cell: 1024
+  batch_size: 128
+  circular_delays: [10, 20, 40, 80]
+  distractor_delay: 20
+  distractor_steps: 5
+  fixation_floor: 0.90
+  fraction_settled_floor: 0.80
+  stochastic_replicates: 3
+
+operators:
+  synaptic_drive_gain: [0.90, 0.95, 1.00, 1.05, 1.10]
+  heterogeneous_drive_gain: [0.00, 0.10, 0.20, 0.30]
+  sensory_input_gain: [0.80, 0.90, 1.00, 1.10, 1.20]
+  distractor_input_gain: [1.00, 1.10, 1.25, 1.50]
+  recurrent_gain: [0.90, 0.95, 1.00, 1.05, 1.10]
+  state_persistence: [0.90, 0.95, 1.00, 1.05, 1.10]
+  time_constant: [0.80, 0.90, 1.00, 1.10, 1.25]
+
+sources:
+  circular_config: configs/fixation_circular_distractor_working_memory.yaml
+  circular_manifest: outputs/fixation_circular_distractor_working_memory/metrics/fixation_circular_distractor_working_memory_pool_summary.json
+  nback_config: configs/nback_working_memory_screened_final.yaml
+  nback_results: outputs/full_candidate_perturbation_1024/nback/pilot_signatures.csv
