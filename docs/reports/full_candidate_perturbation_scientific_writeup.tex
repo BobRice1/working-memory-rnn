@@ -42,11 +42,13 @@ The fixation input and output remained high until the response cue. Circular
 outputs were deliberately silent before response and then reported the
 remembered angle. Pre-cue and cue durations varied during training; evaluation
 used clean delays of 10, 20, 40, and 80 model steps. A separate delay-20
-condition inserted a five-step irrelevant circular cue midway through the
-delay. Training sampled one clean and one distractor-present homogeneous batch
-exactly once per shuffled two-batch block. Distractor filtering was therefore a
-learned property of the evaluated networks rather than an out-of-distribution
-challenge.
+condition inserted a five-step irrelevant circular cue. Evaluation assigned
+each trial a frozen randomised onset from all 16 valid delay positions, with 64
+trials per onset. Training sampled one clean and one distractor-present
+homogeneous batch exactly once per shuffled two-batch block; distractor batches
+were balanced across delay-relative onset fractions 0, 0.25, 0.50, 0.75, and
+1. Distractor filtering was therefore a learned property of the evaluated
+networks rather than an out-of-distribution challenge.
 
 \subsection{Context-cued N-back task}
 
@@ -75,12 +77,12 @@ and two outputs. Circular networks were trained for 4,000 Adam updates
 (learning rate $10^{-3}$, batch size 64) with weighted fixation and
 response loss on a balanced clean/distractor mixture. Training used input noise
 SD 0.01, recurrent noise SD 0.05, and gradient clipping at 1.0; all learned
-weights were then frozen before perturbation. Six circular seeds were trained;
-five met
-preconfigured competence limits (clean mean error $\le10^\circ$, distractor
-mean error $\le15^\circ$, fixation accuracy $\ge0.90$) and were retained
-(seeds 20260731, 20260732, 20260733, 20260735, and 20260736). Seed 20260734
-exceeded those limits (clean $15.75^\circ$, distractor $17.46^\circ$) and was
+weights were then frozen before perturbation. Eleven circular candidates were
+trained and the first ten meeting preconfigured competence limits were retained:
+clean mean error $\le10^\circ$, error at each trained distractor timing
+$\le15^\circ$, and fixation accuracy $\ge0.90$. Retained seeds were
+20260801--20260806 and 20260808--20260811. Seed 20260807 failed general task
+competence (approximately $91^\circ$ clean and distractor error) and was
 excluded before the perturbation screen. The ten N-back checkpoints
 (seeds 20260912--20260921) were drawn from a competence-screened pool trained
 with staged 0-back then 2-back curriculum under Adam (learning rate $10^{-3}$).
@@ -324,8 +326,8 @@ the checkpoint mean, SD, and a student $t$ 95\% interval across seeds, together
 with the fraction of seeds in the predicted direction. A setting met the
 complete descriptive pattern when the mean slowing-with-preservation,
 distractor, and N-back load contrasts were positive and at least a simple
-majority of checkpoints agreed on each (three of five circular; six of ten
-N-back); delay selectivity was supporting evidence only. That majority rule is
+majority of checkpoints agreed on each (six of ten for both task families);
+delay selectivity was supporting evidence only. That majority rule is
 implemented in the summary code; it was not restated as a numeric threshold in
 the 1,024-trial preregistration text. Cross-operator comparisons are uncontrolled
 for overall perturbation magnitude, so a near-miss may fail because of strength
@@ -333,9 +335,10 @@ selection as well as mechanism. No participant-level inference, confirmatory
 $p$ values, or multiple-comparison claims were made.
 
 Persistence 0.95 had been nominated by an earlier three-checkpoint exploratory
-pilot. The present analysis is therefore a retest on newly trained circular
-checkpoints and an expansion of the partially overlapping N-back evaluation,
-not a fresh blind screen. Three of the ten N-back checkpoints (seeds
+pilot and retained in a subsequent five-checkpoint circular retest. The present
+analysis is a family replication on ten independently trained circular
+checkpoints with randomised distractor timing and reuses the completed N-back
+evaluation; it is not a fresh blind screen. Three N-back checkpoints (seeds
 20260912--20260914) contributed to the nomination pilot.
 
 \section{Results}
@@ -343,15 +346,15 @@ not a fresh blind screen. Three of the ten N-back checkpoints (seeds
 \subsection{One descriptive profile met the complete majority pattern}
 
 Across the 23 non-neutral shared operator-strength profiles evaluated on the
-distractor-trained circular family and the ten N-back checkpoints, only
+variable-timing circular family and the ten N-back checkpoints, only
 persistence $0.95$ met the complete descriptive majority pattern
 (Fig.~\ref{fig:screen}). It showed slowing with preservation, long-delay
-selectivity, and distractor selectivity in four of five circular checkpoints,
-together with load selectivity in all ten N-back checkpoints. Mean circular
-delay selectivity was $0.089$ and mean distractor selectivity $0.015$; N-back
-load selectivity was $0.250$. Neutral settings returned zero contrast. Other
-perturbations often reproduced one or two components, but not the full
-combination.
+selectivity, and distractor selectivity in 6/10, 9/10, and 8/10 circular
+checkpoints, respectively, together with load selectivity in all ten N-back
+checkpoints. Mean circular delay selectivity was $0.137$ and mean distractor
+selectivity $0.035$; N-back load selectivity was $0.250$. Neutral settings
+returned zero contrast. Other perturbations often reproduced one or two
+components, but not the full combination.
 
 \begin{figure*}[t]
   \centering
@@ -359,10 +362,12 @@ combination.
   \caption{\textbf{Cross-task signature screen.}
   Rows are every shared operator-strength setting evaluated in both task
   families; columns show the fraction of independent checkpoint seeds with the
-  predicted signature direction. Circular fractions have denominator five and
-  N-back fractions denominator ten. State persistence 0.95 was the only row to
-  meet the complete majority pattern and additionally reached 4/5 agreement on
-  each circular feature with complete N-back agreement. Values quantify
+  predicted signature direction. Both circular and N-back fractions have
+  denominator ten. State persistence 0.95 was the only row to meet the complete
+  majority pattern, with circular agreement of 6/10 for
+  slowing-with-preservation, 9/10 for delay selectivity, and 8/10 for
+  randomised-timing distractor selectivity, together with 10/10 N-back
+  agreement. Values quantify
   directional consistency, not participant-level probability or statistical
   significance.}
   \label{fig:screen}
@@ -372,23 +377,21 @@ combination.
 selectively affecting demanding conditions}
 
 At $p=0.95$, clean delay-20 proportional angular-error change was
-$0.049\pm0.092$ across circular checkpoints (95\% $t$-interval
-$[-0.065,0.164]$) and remained below $0.20$ in 5/5 seeds. Restricted mean
-settling increased by $0.104\pm0.167$ steps ($[-0.103,0.312]$) and was
-positive in 4/5 seeds, with a range of $-0.013$ to $0.393$ steps
-(Table~\ref{tab:leading}). The circular settling, delay, and distractor
-intervals all include zero, so those components are directional majority
-tendencies rather than robust across-checkpoint effects. By contrast, N-back
-load selectivity was $0.250\pm0.077$ ($[0.195,0.305]$), positive in 10/10
-checkpoints, and ranged from $0.110$ to $0.363$. Long-minus-short delay
-selectivity was $0.089\pm0.075$ ($[-0.004,0.181]$) and distractor-minus-clean
-selectivity was $0.015\pm0.044$ ($[-0.040,0.071]$), each positive in 4/5
-checkpoints. Thus the leading perturbation retained the predicted average
-ordering, but only the N-back contrast clearly excluded zero under the
-seed-level $t$-interval.
+$-0.003\pm0.114$ across circular checkpoints (95\% $t$-interval
+$[-0.085,0.079]$) and remained below $0.20$ in 9/10 seeds. Restricted mean
+settling increased by $0.032\pm0.062$ steps ($[-0.013,0.076]$) and was
+positive in 7/10 seeds (Table~\ref{tab:leading}); the joint
+slowing-with-preservation rule held in 6/10 because one slowed seed exceeded
+the clean-cost ceiling. N-back load selectivity was $0.250\pm0.077$
+($[0.195,0.305]$), positive in 10/10 checkpoints. Long-minus-short delay
+selectivity was $0.137\pm0.143$ ($[0.035,0.240]$), positive in 9/10, whereas
+randomised-timing distractor-minus-clean selectivity was $0.035\pm0.063$
+($[-0.010,0.080]$), positive in 8/10. Thus the delay and N-back intervals
+excluded zero, while settling and distractor selectivity remained directional
+majority tendencies.
 
 \begin{table*}[t]
-\caption{\textbf{State persistence 0.95.} Values are mean $\pm$ SD across five
+\caption{\textbf{State persistence 0.95.} Values are mean $\pm$ SD across ten
 circular or ten N-back checkpoint seeds; intervals are student $t$ 95\%
 intervals across those seeds.}
 \label{tab:leading}
@@ -397,10 +400,10 @@ intervals across those seeds.}
 \toprule
 Outcome & Contrast & 95\% interval & Consistency \\
 \midrule
-Delay-20 error & $0.049\pm0.092$ & $[-0.065,0.164]$ & below 0.20 in 5/5 \\
-Settling change (steps) & $0.104\pm0.167$ & $[-0.103,0.312]$ & 4/5 positive \\
-Delay selectivity & $0.089\pm0.075$ & $[-0.004,0.181]$ & 4/5 positive \\
-Distractor selectivity & $0.015\pm0.044$ & $[-0.040,0.071]$ & 4/5 positive \\
+Delay-20 error & $-0.003\pm0.114$ & $[-0.085,0.079]$ & below 0.20 in 9/10 \\
+Settling change (steps) & $0.032\pm0.062$ & $[-0.013,0.076]$ & 7/10 positive \\
+Delay selectivity & $0.137\pm0.143$ & $[0.035,0.240]$ & 9/10 positive \\
+Distractor selectivity & $0.035\pm0.063$ & $[-0.010,0.080]$ & 8/10 positive \\
 N-back load selectivity & $0.250\pm0.077$ & $[0.195,0.305]$ & 10/10 positive \\
 \bottomrule
 \end{tabular}
@@ -411,8 +414,8 @@ strength}
 
 Reducing persistence further to 0.90 enlarged mean settling, delay, and N-back
 load effects (Fig.~\ref{fig:persistence}). However, slowing with preservation
-passed only 1/5 circular checkpoints, so the stronger intervention no longer
-expressed the selective accuracy-preserving pattern. Increasing persistence
+passed only 5/10 circular checkpoints, so the stronger intervention no longer
+met the descriptive majority rule. Increasing persistence
 above one continued to impair N-back preferentially but reversed the circular
 delay and distractor contrasts. The joint signature was therefore specific to
 a weak reduction around 0.95 rather than monotonic damage at any non-neutral
@@ -440,17 +443,18 @@ strength.
 
 \subsection{Alternative operators reproduced partial signatures}
 
-Sensory-input gain 1.20 produced distractor selectivity in 5/5 circular
+Sensory-input gain 1.20 produced distractor selectivity in 10/10 circular
 checkpoints and load selectivity in 9/10 N-back checkpoints, but mean settling
-became slightly faster ($-0.010\pm0.023$ steps; positive in only 1/5) and delay
-selectivity was positive in only 1/5. Effective time-constant scale 1.10 slowed
-settling with preservation in 5/5 ($0.605\pm0.176$ steps) and showed load
-selectivity in 10/10, but distractor selectivity was negative in every circular
-checkpoint. Conversely, time-constant scale 0.90 showed delay selectivity in
-5/5 and distractor selectivity in 4/5 but accelerated settling in every
-circular checkpoint ($-0.681\pm0.170$ steps). Synaptic-drive gain 1.05 showed
-delay selectivity in 4/5, distractor selectivity in 3/5, and load selectivity
-in 10/10, but also accelerated settling in 5/5 ($-0.496\pm0.240$ steps). All of
+became slightly faster ($-0.013$ steps; positive in 4/10) and delay
+selectivity was positive in only 4/10. Effective time-constant scale 1.10
+slowed settling with preservation in 10/10 (mean $0.658$ steps) and showed load
+selectivity in 10/10, but delay and distractor selectivity were negative in
+every circular checkpoint. Conversely, time-constant scale 0.90 showed delay
+selectivity in 10/10 and distractor selectivity in 9/10 but accelerated
+settling in every circular checkpoint (mean $-0.667$ steps). Synaptic-drive
+gain 1.05 showed delay selectivity in 7/10, distractor selectivity in 8/10,
+and load selectivity in 10/10, but also accelerated settling in all circular
+checkpoints (mean $-0.429$ steps). All of
 these near-miss clean delay-20 settling cells were latency-valid; uniqueness
 was therefore not an artefact of invalid latency scoring. These near-misses
 constrain the result: matching one difficult condition was insufficient to
@@ -472,19 +476,19 @@ near-misses.
 
 \subsection{Native distractor competence and validity gates}
 
-All 945 circular result rows passed the fixation gate, all ten N-back native
+All 1,890 circular result rows passed the fixation gate, all ten N-back native
 checkpoints passed competence, and all $p=0.95$ clean delay-20 cells were
-latency-valid. Twelve rows elsewhere in the circular grid were latency-invalid
+latency-valid. Fifteen rows elsewhere in the circular grid were latency-invalid
 (all heterogeneous-drive settings with low settled fraction); none of the
 near-miss settling comparisons above used those cells. Native distractor mean
-error ranged from $3.46^\circ$ to $4.83^\circ$, and every native distractor cell
-had a settled fraction of 1.00. The distractor contrast therefore measured
+error ranged from $3.33^\circ$ to $5.76^\circ$, and every native distractor cell
+had a settled fraction of at least 0.981. The distractor contrast therefore measured
 perturbation of a learned filtering behaviour rather than failure on an
 unfamiliar task. As a manipulation check, distractor-window gains 1.10, 1.25,
-and 1.50 increased distractor error by 3.7\%, 9.8\%, and 21.5\% on average,
-respectively, with positive effects in 5/5 checkpoints. Persistence-related
-distractor selectivity nevertheless remained small and was negative in one
-checkpoint, so competent native filtering does not by itself make that contrast
+and 1.50 increased distractor error by 3.5\%, 9.6\%, and 26.4\% on average,
+respectively, with positive effects in 10/10 checkpoints. Persistence-related
+distractor selectivity nevertheless remained small and was negative in two
+checkpoints, so competent native filtering does not by itself make that contrast
 a strong human effect-size match.
 
 This screen did not include a matched-cost Gaussian comparator. Specificity
@@ -499,9 +503,9 @@ pattern against the native baseline. Scaling the carried-state coefficient by
 0.95 left ordinary circular accuracy approximately intact while modestly
 slowing response settling, increasing vulnerability at longer delays and under
 distraction, and selectively impairing 2-back discriminability. The circular
-components had the predicted mean signs and majority directional agreement,
-but their seed-level intervals included zero; only the N-back load contrast was
-robust across checkpoints.
+components had the predicted mean signs and majority directional agreement.
+The delay and N-back intervals excluded zero, whereas settling and distractor
+selectivity remained uncertain across checkpoints.
 
 Equation~\ref{eq:persistence} suggests a coherent model-level explanation.
 Each update retains slightly less of the preceding hidden state without
@@ -530,9 +534,10 @@ settling is not literal reaction time because response onset was externally
 imposed; moreover, the mean change was substantially less than one model step
 and its across-seed interval included zero. Second, although the circular
 networks were competent under distraction, the persistence distractor contrast
-was only 0.015 on average, reversed in one checkpoint, and also had an interval
-including zero. The circular delay contrast was likewise small
-($0.089\pm0.075$). The circular task is also not the multiple-object tracking
+was only 0.035 on average, reversed in two checkpoints, and had an interval
+including zero. The circular delay contrast was positive across seeds
+($0.137\pm0.143$) but heterogeneous. The circular task is also not the
+multiple-object tracking
 paradigm used by Carter et al.\ \cite{carter2005}; it tests a related filtering
 principle rather than reproducing that task. The descriptive grid contains
 multiple operator-strength profiles but no confirmatory inferential family.
@@ -578,9 +583,10 @@ A 5\% reduction in carried-state persistence was the only tested RNN
 perturbation to reproduce the complete descriptive majority pattern on
 distractor-trained circular networks and competence-screened N-back networks:
 relative preservation with slower settling, greater long-delay and distractor
-costs, and selective 2-back impairment. The circular pattern held in four of
-five checkpoints and circular effect sizes were small, whereas N-back load
-selectivity was robust across all ten checkpoints. Reduced persistence remains
+costs, and selective 2-back impairment. The component majority rules held
+across ten circular checkpoints, although settling and distractor effect sizes
+remained small; N-back load selectivity was robust across all ten checkpoints.
+Reduced persistence remains
 a credible candidate for matched-cost specificity and mechanistic analysis, but
 the present result is an abstract descriptive sufficiency finding against the
 native baseline, not evidence for a biological mechanism of psilocybin.

@@ -3,6 +3,41 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-28 - Refresh perturbation report with randomized-timing 10-seed results</summary>
+
+Action:
+
+- Regenerated the cross-task signature heatmap and state-persistence
+  seed-response figure from the completed 10-circular/10-N-back result tables.
+- Revised the report methods, result table, captions, interpretation, and Q&A
+  to replace the historical five-seed midpoint-distractor result.
+- Recompiled and visually checked the eight-page PDF.
+
+Recorded result:
+
+- Persistence `0.95` remains the only complete descriptive majority profile:
+  slowing with preservation in `6/10` circular checkpoints, delay selectivity
+  in `9/10`, randomized-timing distractor selectivity in `8/10`, and N-back
+  load selectivity in `10/10`.
+- The seed-level figure now shows all ten circular trajectories and the updated
+  means and SDs across persistence scales.
+
+Recorded outputs:
+
+- `docs/reports/Perturbations.pdf`
+- `docs/reports/figures/full_candidate_perturbation/signature_screen.png`
+- `docs/reports/figures/full_candidate_perturbation/persistence_dose_response.png`
+
+Interpretation:
+
+- The report now reflects the larger variable-timing circular family and
+  randomized distractor evaluation. It remains a descriptive computational
+  sufficiency result; matched-cost specificity and biological mechanism claims
+  remain outstanding.
+
+</details>
+
+<details>
 <summary>2026-07-28 - Rerun candidate grid with randomized distractor timing</summary>
 
 Action:

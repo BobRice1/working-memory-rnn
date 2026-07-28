@@ -69,8 +69,16 @@ def task_schematic(path: Path) -> None:
             )
         )
         ax.text(start + width / 2, 1.575, label, ha="center", va="center")
+    for centre in (45, 53, 61, 69, 75):
+        ax.plot(
+            [centre, centre],
+            [1.25, 1.90],
+            color=COLOURS["red"],
+            linewidth=2.0,
+            alpha=0.8,
+        )
     ax.annotate(
-        "trained irrelevant cue",
+        "variable distractor timing",
         xy=(61, 1.25),
         xytext=(61, 0.55),
         ha="center",
@@ -87,7 +95,7 @@ def task_schematic(path: Path) -> None:
     ax.text(
         2,
         0.08,
-        "Balanced clean/distractor training; clean delays span 10--80 steps "
+        "Balanced clean/distractor training; distractor timing spans the delay "
         "and the angle is reported only after the go cue.",
         color="#374151",
     )
@@ -291,7 +299,9 @@ def main() -> None:
     parser.add_argument(
         "--results-root",
         type=Path,
-        default=Path("outputs/full_candidate_perturbation_1024"),
+        default=Path(
+            "outputs/full_candidate_perturbation_variable_timing_1024"
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -304,11 +314,14 @@ def main() -> None:
     circular = circular_signatures(
         args.circular_grid
         or args.results_root
-        / "circular_family_a/metrics/circular_family_a_grid.csv"
+        / "circular_variable_timing/metrics/circular_variable_timing_grid.csv"
     )
     nback = nback_signatures(
         args.nback_signatures
-        or args.results_root / "nback/pilot_signatures.csv"
+        or Path(
+            "outputs/full_candidate_perturbation_1024/"
+            "nback/pilot_signatures.csv"
+        )
     )
     task_schematic(args.output_dir / "task_schematic.png")
     signature_screen(args.output_dir / "signature_screen.png", circular, nback)

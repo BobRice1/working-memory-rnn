@@ -180,7 +180,7 @@ separate hidden-state analyses.
 No. Response onset is externally imposed in the circular task. Settling time
 measures how many model steps the output requires to approach the target after
 that onset. It is a response-dynamics analogue, and the mean persistence effect
-of `0.104` steps is very small.
+of `0.032` steps is very small.
 
 ### Is the distractor condition equivalent to Carter et al.'s task?
 
