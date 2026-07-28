@@ -278,6 +278,7 @@ def _run_setting(
     *,
     n_batches: int,
     batch_size: int,
+    randomize_distractor_onsets: bool = False,
 ) -> dict[str, Any]:
     condition_index = 0 if cell.condition == "clean" else 1
     forward_factory = None
@@ -312,6 +313,7 @@ def _run_setting(
             family=FAMILY,
             delay_steps=cell.delay_steps,
             gain_vector_seed=setting.gain_vector_seed,
+            randomize_distractor_onsets=randomize_distractor_onsets,
         )
     return _collect_batches(
         model,
@@ -325,6 +327,7 @@ def _run_setting(
         batch_size=batch_size,
         forward_fn=forward,
         forward_seed_factory=forward_factory,
+        randomize_distractor_onsets=randomize_distractor_onsets,
     )
 
 
@@ -341,6 +344,7 @@ def run_pilot(
     expected_base_config_sha256: str | None = CONFIG_SHA256,
     output_stem: str = "circular_family_a",
     interpretive_limit: str | None = None,
+    randomize_distractor_onsets: bool = False,
 ) -> tuple[Path, Path]:
     """Run a fixed one-item circular exploratory perturbation grid."""
     root = Path(repo_root).resolve()
@@ -378,6 +382,7 @@ def run_pilot(
     selected = select_device(device)
     rows: list[dict[str, Any]] = []
     angle_hashes: dict[str, Any] = {}
+    distractor_timing_hashes: dict[str, str] = {}
 
     for checkpoint in checkpoints:
         checkpoint_path = root / checkpoint.path
@@ -405,10 +410,22 @@ def run_pilot(
                 seed_base=FINAL_SEED_BASE,
                 n_batches=n_batches,
                 batch_size=batch_size,
+                randomize_distractor_onsets=(
+                    randomize_distractor_onsets
+                    and cell.condition == "distractor"
+                ),
             )
             angle_hashes[
                 f"{checkpoint.seed}:{cell.condition}:{cell.delay_steps}"
             ] = baseline["angle_hashes"]
+            if baseline["distractor_relative_starts"] is not None:
+                timing_key = (
+                    f"{checkpoint.seed}:{cell.condition}:"
+                    f"{cell.delay_steps}"
+                )
+                distractor_timing_hashes[timing_key] = hashlib.sha256(
+                    baseline["distractor_relative_starts"].tobytes()
+                ).hexdigest().upper()
             baseline_metric = summarize_collected(
                 baseline, decoder, threshold, family=FAMILY
             )[0]
@@ -421,6 +438,10 @@ def run_pilot(
                     setting,
                     n_batches=n_batches,
                     batch_size=batch_size,
+                    randomize_distractor_onsets=(
+                        randomize_distractor_onsets
+                        and cell.condition == "distractor"
+                    ),
                 )
                 metric = summarize_collected(
                     collected,
@@ -469,6 +490,12 @@ def run_pilot(
         "cells": [asdict(cell) for cell in PILOT_CELLS],
         "operator_settings": [asdict(setting) for setting in settings],
         "angle_hashes": angle_hashes,
+        "distractor_timing_mode": (
+            "per_trial_stratified_uniform_all_valid_starts"
+            if randomize_distractor_onsets
+            else "fixed"
+        ),
+        "distractor_timing_hashes": distractor_timing_hashes,
         "interpretive_limit": interpretive_limit
         or (
             "Exploratory three-checkpoint/OOD-distractor pilot; not "

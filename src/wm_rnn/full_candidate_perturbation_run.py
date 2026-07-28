@@ -41,10 +41,14 @@ CANDIDATE_OPERATORS = {
 
 def trained_distractor_checkpoints(
     repo_root: str | Path,
+    manifest_path: str | Path | None = None,
 ) -> tuple[FrozenCheckpoint, ...]:
     """Load the exact competent circular checkpoint set from its run manifest."""
     root = Path(repo_root).resolve()
-    with (root / POOL_MANIFEST).open(encoding="utf-8") as handle:
+    resolved_manifest = Path(manifest_path or POOL_MANIFEST)
+    if not resolved_manifest.is_absolute():
+        resolved_manifest = root / resolved_manifest
+    with resolved_manifest.open(encoding="utf-8") as handle:
         manifest = json.load(handle)
     retained = tuple(int(seed) for seed in manifest["retained_checkpoint_seeds"])
     by_seed = {int(row["seed"]): row for row in manifest["results"]}

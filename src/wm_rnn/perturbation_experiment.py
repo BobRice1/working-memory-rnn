@@ -62,6 +62,7 @@ from wm_rnn.tuned_task import (
     TunedDelayTaskConfig,
     circular_angular_error,
     decode_population_angle,
+    encode_circular_population,
 )
 
 
@@ -311,6 +312,69 @@ def _condition_task_config(
     return replace(base, **updates)
 
 
+def balanced_random_distractor_starts(
+    delay_steps: int,
+    distractor_steps: int,
+    n_trials: int,
+    seed: int,
+) -> np.ndarray:
+    """Return a shuffled, maximally balanced bank of every valid onset."""
+    duration = min(int(distractor_steps), int(delay_steps))
+    if delay_steps <= 0 or distractor_steps <= 0 or n_trials <= 0:
+        raise ValueError(
+            "delay_steps, distractor_steps, and n_trials must be positive"
+        )
+    valid_starts = np.arange(delay_steps - duration + 1, dtype=np.int64)
+    bank = np.resize(valid_starts, n_trials)
+    np.random.default_rng(int(seed)).shuffle(bank)
+    return bank
+
+
+def _relocate_distractors(
+    batch: TunedDelayBatch,
+    task: TunedDelayTaskConfig,
+    relative_starts: np.ndarray,
+) -> TunedDelayBatch:
+    """Move each trial's already drawn distractor to an explicit onset."""
+    starts = np.asarray(relative_starts, dtype=np.int64)
+    if batch.distractor_angles is None:
+        raise ValueError("cannot relocate a batch without distractors")
+    if starts.shape != (task.batch_size,):
+        raise ValueError("one distractor start is required per trial")
+    duration = min(task.distractor_steps, task.delay_steps)
+    maximum_start = task.delay_steps - duration
+    if np.any(starts < 0) or np.any(starts > maximum_start):
+        raise ValueError("distractor start lies outside the delay")
+
+    inputs = batch.inputs.copy()
+    delay = batch.phase_index["delay"]
+    inputs[delay, :, : task.n_tuned_units] = 0.0
+    if task.stimulus_role_channel:
+        inputs[delay, :, task.stimulus_role_input_index] = 0.0
+    encoded = encode_circular_population(
+        batch.distractor_angles,
+        batch.preferred_angles,
+        task.tuning_kappa,
+    )
+    channels = np.arange(task.n_tuned_units)
+    for relative_start in np.unique(starts):
+        trials = np.flatnonzero(starts == relative_start)
+        times = np.arange(
+            delay.start + int(relative_start),
+            delay.start + int(relative_start) + duration,
+        )
+        inputs[np.ix_(times, trials, channels)] += encoded[
+            trials
+        ][np.newaxis, :, :]
+        if task.stimulus_role_channel:
+            inputs[np.ix_(
+                times,
+                trials,
+                [task.stimulus_role_input_index],
+            )] = -1.0
+    return replace(batch, inputs=inputs)
+
+
 def _collect_batches(
     model: torch.nn.Module,
     base_task: TunedDelayTaskConfig,
@@ -324,11 +388,25 @@ def _collect_batches(
     batch_size: int,
     forward_fn: ForwardFn | None = None,
     forward_seed_factory: Callable[[int], ForwardFn] | None = None,
+    randomize_distractor_onsets: bool = False,
 ) -> dict[str, Any]:
     predictions: list[np.ndarray] = []
     hidden_states: list[np.ndarray] = []
     batches: list[TunedDelayBatch] = []
     angle_hashes: list[str] = []
+    distractor_start_batches: list[np.ndarray] = []
+    distractor_start_bank: np.ndarray | None = None
+    if randomize_distractor_onsets:
+        if family != "A" or condition != "distractor":
+            raise ValueError(
+                "random distractor onsets require Family A distractor trials"
+            )
+        distractor_start_bank = balanced_random_distractor_starts(
+            delay_steps,
+            base_task.distractor_steps,
+            n_batches * batch_size,
+            seed_base + 9_000_000 + delay_steps,
+        )
     for batch_index in range(n_batches):
         batch_seed = frozen_batch_seed(
             seed_base, condition_index, delay_steps, batch_index
@@ -342,6 +420,15 @@ def _collect_batches(
             batch_size,
         )
         batch = generate_batch_for_task(task_config)
+        if distractor_start_bank is not None:
+            start = batch_index * batch_size
+            relative_starts = distractor_start_bank[
+                start : start + batch_size
+            ]
+            batch = _relocate_distractors(
+                batch, task_config, relative_starts
+            )
+            distractor_start_batches.append(relative_starts.copy())
         inputs, _, _ = batch_to_tensors(batch, next(model.parameters()).device)
         with torch.no_grad():
             resolved_forward = (
@@ -381,6 +468,11 @@ def _collect_batches(
         "phase_index": batches[0].phase_index,
         "preferred_angles": batches[0].preferred_angles,
         "angle_hashes": angle_hashes,
+        "distractor_relative_starts": (
+            np.concatenate(distractor_start_batches)
+            if distractor_start_batches
+            else None
+        ),
     }
 
 
@@ -535,7 +627,10 @@ def summarize_collected(
             "distractor_peak_attraction_fraction": np.nan,
             "distractor_end_attraction_fraction": np.nan,
         }
-        if collected["distractor_angles"] is not None:
+        if (
+            collected["distractor_angles"] is not None
+            and collected.get("distractor_relative_starts") is None
+        ):
             distractor_metrics = distractor_drift_and_recovery(
                 decoded_hidden[:, mask],
                 angles[mask],
@@ -910,6 +1005,7 @@ def _operator_forward(
     delay_steps: int,
     gain_vector_seed: int | None = None,
     noise_replicate: int | None = None,
+    randomize_distractor_onsets: bool = False,
 ) -> ForwardFn:
     if operator == "synaptic_drive_gain":
         return synaptic_drive_gain(
@@ -932,9 +1028,12 @@ def _operator_forward(
         probe = _condition_task_config(
             task_config, family, condition, delay_steps, 1, 1
         )
-        distractor_slice = generate_batch_for_task(probe).phase_index[
-            "distractor"
-        ]
+        phases = generate_batch_for_task(probe).phase_index
+        distractor_slice = (
+            phases["delay"]
+            if randomize_distractor_onsets
+            else phases["distractor"]
+        )
         return distractor_input_gain(
             model,
             gain=strength,

@@ -3,6 +3,37 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-28 - Freeze 10-seed circular perturbation rerun</summary>
+
+Action:
+
+- Added a separate perturbation configuration for the 10 retained
+  variable-timing circular checkpoints.
+- Kept the previous seven operator grids, 1,024 trials per cell, clean delay
+  contrasts, held-out evaluation seeds, and completed 10-seed N-back signature
+  table unchanged.
+- Added a dedicated runner and explicit checkpoint-manifest loading.
+- Replaced the historical midpoint-only distractor outcome with a per-trial,
+  stratified-uniform random assignment across all 16 valid onset positions for
+  a 20-step delay and five-step distractor.
+- Frozen onset assignments are paired across baseline and every perturbation;
+  each onset occurs exactly 64 times in the 1,024-trial bank.
+
+Interpretation:
+
+- This is a descriptive family rerun, not a new blind candidate nomination or
+  a matched-cost Gaussian comparison.
+- The circular family and distractor outcome both differ from the historical
+  five-seed midpoint-only rerun, so between-run changes cannot be attributed to
+  the checkpoint family alone.
+
+Planned outputs:
+
+- `outputs/full_candidate_perturbation_variable_timing_1024/`
+
+</details>
+
+<details>
 <summary>2026-07-28 - Train 10-seed variable-timing circular family</summary>
 
 Action:
