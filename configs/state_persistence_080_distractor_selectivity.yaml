@@ -1,0 +1,20 @@
+pilot:
+  output_dir: outputs/state_persistence_080_distractor_selectivity
+  circular_seeds: [20260731, 20260732, 20260733, 20260735, 20260736]
+  circular_trials_per_cell: 1024
+  batch_size: 128
+  circular_delays: [10, 20, 40, 80]
+  distractor_delay: 20
+  distractor_steps: 5
+
+operators:
+  state_persistence: [0.80]
+
+sources:
+  circular_config: configs/fixation_circular_distractor_working_memory.yaml
+  circular_manifest: outputs/fixation_circular_distractor_working_memory/metrics/fixation_circular_distractor_working_memory_pool_summary.json
+
+interpretation:
+  status: post_hoc_exploratory_extension
+  purpose: evaluate distractor selectivity at state persistence 0.80
+  boundary: not part of the original fixed candidate grid
