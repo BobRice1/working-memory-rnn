@@ -3,6 +3,59 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-28 - Train 10-seed variable-timing circular family</summary>
+
+Action:
+
+- Executed the frozen variable-timing circular protocol on CUDA.
+- Evaluated candidates on paired 1,024-trial banks for clean trials and
+  distractor onset fractions `0.00`, `0.25`, `0.50`, `0.75`, and `1.00`.
+- Retained the first 10 candidates passing every frozen competence gate.
+- The initial execution completed seeds `20260801`--`20260804` and was stopped
+  during seed `20260805` before that seed wrote a checkpoint. The resumed run
+  reused and re-evaluated the four complete checkpoints and restarted seed
+  `20260805`; no partial checkpoint was retained.
+
+Result:
+
+- Eleven candidates were evaluated. Ten passed:
+  `20260801`--`20260806`, `20260808`--`20260811`.
+- Seed `20260807` failed clean and distractor competence with approximately 91
+  degrees mean angular error and was excluded under the frozen rule.
+- Across the retained checkpoints, clean error was `2.972 +/- 0.527` degrees
+  and the mean across distractor timings was `3.813 +/- 0.641` degrees
+  (mean +/- seed SD).
+- The worst timing-specific error per checkpoint averaged
+  `3.899 +/- 0.638` degrees and ranged from `3.086` to `5.294`, comfortably
+  below the 15-degree per-timing gate.
+- The within-checkpoint range across the five timings averaged
+  `0.190 +/- 0.107` degrees (range `0.083`--`0.417`). For comparison, the
+  historical midpoint-trained family had a descriptive mean timing range of
+  `0.693` degrees under its separate timing analysis.
+- Minimum fixation accuracy across conditions averaged `0.9766`, above the
+  0.90 gate.
+
+Interpretation:
+
+- The new family is competent across the full trained timing distribution and
+  is suitable as the 10-checkpoint circular pool for the planned balanced
+  comparison.
+- The smaller timing range is descriptive evidence that variable-timing
+  training reduced the pronounced timing dependence of the old family. It is
+  not a randomized causal comparison because the families use independent
+  seeds and separate held-out banks.
+- The failed seed is a training non-convergence outcome, not evidence about
+  distractor timing.
+
+Recorded outputs:
+
+- `outputs/fixation_circular_variable_distractor_working_memory/metrics/fixation_circular_variable_distractor_working_memory_pool.csv`
+- `outputs/fixation_circular_variable_distractor_working_memory/metrics/fixation_circular_variable_distractor_working_memory_pool_summary.json`
+- `docs/reports/variable_distractor_timing_training_result.md`
+
+</details>
+
+<details>
 <summary>2026-07-28 - Freeze variable-timing circular training protocol</summary>
 
 Action:
