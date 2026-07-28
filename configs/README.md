@@ -13,7 +13,7 @@ currently recommended.
 | `fixation_circular_distractor_working_memory.yaml` | Historical distractor baseline | Five retained one-item circular checkpoints trained with a midpoint distractor. |
 | `fixation_circular_working_memory.yaml` | Prior clean baseline | Five-seed circular family retained for the completed candidate screen and earlier results. |
 | `nback_working_memory_screened_final.yaml` | Current baseline pool | Competence-screened N-back checkpoint family used by the completed candidate screen. |
-| `full_candidate_perturbation_variable_timing_1024.yaml` | Current planned evaluation | Candidate-only 1,024-trial circular rerun on the ten variable-timing checkpoints, using frozen per-trial distractor starts sampled across every valid delay position and the unchanged completed N-back results. |
+| `full_candidate_perturbation_variable_timing_1024.yaml` | Current completed evaluation | Candidate-only 1,024-trial circular rerun on the ten variable-timing checkpoints, using frozen per-trial distractor starts sampled across every valid delay position and the unchanged completed N-back results. |
 | `full_candidate_perturbation_trained_distractor_1024.yaml` | Historical completed evaluation | Candidate-only 1,024-trial circular rerun on five midpoint-trained distractor checkpoints, paired with the unchanged completed N-back results. |
 | `full_candidate_perturbation_1024.yaml` | Prior completed evaluation | Original candidate-only screen using the clean-trained circular family and evaluation-only distractors. |
 

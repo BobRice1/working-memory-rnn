@@ -3,6 +3,67 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-28 - Rerun candidate grid with randomized distractor timing</summary>
+
+Action:
+
+- Evaluated the seven candidate perturbation families on all 10 retained
+  variable-timing circular checkpoints with 1,024 trials per cell.
+- Assigned the five-step distractor per trial using one frozen, randomized,
+  exactly balanced bank over relative starts `0`--`15` in the 20-step delay.
+  Each start occurred 64 times.
+- Paired target angles, distractor angles, and distractor starts across
+  baseline and perturbation settings.
+- Reused the unchanged completed 10-seed N-back signature table.
+- Left common-window distractor drift/recovery fields undefined for the
+  mixed-onset cell instead of applying an incorrect midpoint window.
+
+Result:
+
+- State persistence `0.95` remained the only profile meeting the complete
+  descriptive majority pattern.
+- Across the 10 circular checkpoints, mean clean delay-20 proportional error
+  change was `-0.003 +/- 0.114`, restricted settling change was
+  `+0.032 +/- 0.062` steps, long-minus-short delay selectivity was
+  `+0.137 +/- 0.143`, and randomized-timing distractor selectivity was
+  `+0.035 +/- 0.063`.
+- Slowing with the clean-preservation rule held in `6/10`, delay selectivity
+  was positive in `9/10`, and distractor selectivity was positive in `8/10`.
+  The unchanged N-back load contrast was positive in `10/10`.
+- Student-t 95% intervals excluded zero only for circular delay selectivity
+  (`[0.035, 0.240]`); settling (`[-0.013, 0.076]`) and distractor selectivity
+  (`[-0.010, 0.080]`) remained uncertain.
+- Native randomized-timing distractor error averaged `4.382` degrees and all
+  baseline distractor cells passed fixation and settling validity.
+- Fifteen of 1,890 circular rows were latency-invalid, all in
+  heterogeneous-drive settings. Every persistence `0.95` clean delay-20 cell
+  was valid.
+- Circular runtime was 1,129 seconds (18 minutes 49 seconds) on CUDA.
+
+Interpretation:
+
+- The persistence `0.95` candidate pattern survives a larger independent
+  circular family and a distractor outcome distributed across the delay.
+- This is stronger descriptive replication than the historical five-seed
+  midpoint result, but the settling and distractor intervals still include
+  zero and the N-back component is reused rather than newly blinded.
+- Because both the checkpoint family and distractor outcome changed, numerical
+  differences from the historical rerun cannot be assigned to either change
+  alone.
+- This remains a computational sufficiency candidate, not a unique or
+  biological psilocybin mechanism. Matched-cost Gaussian specificity remains
+  outstanding.
+
+Recorded outputs:
+
+- `outputs/full_candidate_perturbation_variable_timing_1024/circular_variable_timing/metrics/circular_variable_timing_grid.csv`
+- `outputs/full_candidate_perturbation_variable_timing_1024/circular_variable_timing/metrics/circular_variable_timing_metadata.json`
+- `outputs/full_candidate_perturbation_variable_timing_1024/summary/cross_task_signature_summary.csv`
+- `docs/reports/full_candidate_perturbation_variable_timing_1024_results.md`
+
+</details>
+
+<details>
 <summary>2026-07-28 - Freeze 10-seed circular perturbation rerun</summary>
 
 Action:
