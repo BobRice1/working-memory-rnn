@@ -219,6 +219,19 @@ def assert_midpoint_reproduction(
     )
 
 
+def relative_distractor_start(
+    condition: str,
+    phase_index: dict[str, slice],
+) -> int | str:
+    """Return the delay-relative onset, or blank when no distractor exists."""
+    if condition == "clean":
+        return ""
+    return (
+        phase_index["distractor"].start
+        - phase_index["delay"].start
+    )
+
+
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> Path:
     """Write non-empty records using their insertion-ordered columns."""
     if not rows:
@@ -313,8 +326,6 @@ def run_evaluation(
             )[0]
             collected_by_condition[label] = collected
             metrics_by_condition[label] = metric
-            distractor_phase = collected["phase_index"].get("distractor")
-            delay_phase = collected["phase_index"]["delay"]
             metric_rows.append(
                 {
                     "checkpoint_seed": checkpoint.seed,
@@ -322,10 +333,9 @@ def run_evaluation(
                     "onset_fraction": (
                         "" if label == "clean" else TIMING_CONDITIONS[label]
                     ),
-                    "delay_relative_start": (
-                        ""
-                        if distractor_phase is None
-                        else distractor_phase.start - delay_phase.start
+                    "delay_relative_start": relative_distractor_start(
+                        label,
+                        collected["phase_index"],
                     ),
                     **metric,
                 }

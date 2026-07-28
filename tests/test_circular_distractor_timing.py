@@ -11,6 +11,7 @@ from wm_rnn.circular_distractor_timing import (
     load_design,
     load_midpoint_references,
     main,
+    relative_distractor_start,
     resolve_timing_task,
     summarize_comparisons,
 )
@@ -150,3 +151,13 @@ def test_midpoint_reproduction_allows_only_sub_microdegree_roundoff():
     assert_midpoint_reproduction(4.4365174, 4.4365170)
     with pytest.raises(AssertionError):
         assert_midpoint_reproduction(4.4366170, 4.4365170)
+
+
+def test_relative_distractor_start_is_blank_for_clean_trials():
+    phases = {
+        "delay": slice(45, 65),
+        "distractor": slice(55, 55),
+    }
+    assert relative_distractor_start("clean", phases) == ""
+    phases["distractor"] = slice(53, 58)
+    assert relative_distractor_start("midpoint", phases) == 8

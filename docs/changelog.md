@@ -3,6 +3,55 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-28 - Evaluate circular distractor-timing generalisation</summary>
+
+Action:
+
+- Added `configs/circular_distractor_timing_generalisation.yaml`,
+  `src/wm_rnn/circular_distractor_timing.py`, and focused tests.
+- Evaluated the five retained distractor-trained circular checkpoints with
+  frozen weights at delay-relative distractor starts `0`, `4`, `8`, `11`, and
+  `15`, plus a clean condition.
+- Used 1,024 paired trials per checkpoint and condition. Target banks were
+  exactly equal across all conditions and distractor-angle banks were exactly
+  equal across all five timing conditions.
+- Added an explicit end-of-delay boundary rule: peak drift and end attraction
+  remain defined, but recovery is `NaN` when no post-distractor delay window
+  exists.
+- Recorded the analysis in
+  `docs/reports/circular_distractor_timing_generalisation.md`.
+
+Result:
+
+- The trained midpoint had the lowest distractor cost in every checkpoint.
+- Mean midpoint cost was `0.768` degrees. Timing-minus-midpoint costs were
+  `+0.206` degrees at the start, `+0.043` at quarter, `+0.042` at
+  three-quarter, and `+0.693` at the end.
+- Each displacement was positive in `5/5` checkpoints. Student-t 95%
+  intervals excluded zero for start, three-quarter, and end; the quarter
+  interval was `[-0.00007, 0.086]`.
+- All 30 cells passed fixation and latency validity, and every cell had a
+  settled fraction of `1.00`.
+- Archived midpoint response errors reproduced within `4.91e-7` degrees.
+
+Interpretation:
+
+- The checkpoints show timing-specific filtering with a pronounced
+  late-delay asymmetry, not fully timing-invariant filtering.
+- The result cannot distinguish an absolute timing strategy from
+  state-dependent susceptibility or reduced recovery time before response.
+- This is a post-result descriptive robustness analysis, not confirmatory
+  evidence or a biological psilocybin mechanism.
+
+Recorded outputs:
+
+- `outputs/circular_distractor_timing_generalisation/metrics/timing_metrics.csv`
+- `outputs/circular_distractor_timing_generalisation/metrics/timing_comparisons.csv`
+- `outputs/circular_distractor_timing_generalisation/metrics/timing_summary.json`
+
+</details>
+
+<details>
 <summary>2026-07-28 - Evaluate post-hoc persistence 0.80 distractor selectivity</summary>
 
 Action:

@@ -22,6 +22,7 @@ currently recommended.
 | `nback_additive_perturbation.yaml` | Historical completed pipeline | Frozen additive N-back perturbation record. Its one-off runner was retired from the active package and remains available in Git commit `d64b2cf`. |
 | `exploratory_psilocybin_signature_pilot.yaml` | Superseded pilot | Three-seed, 256-trial exploratory screen superseded by the 1,024-trial evaluation. |
 | `state_persistence_080_distractor_selectivity.yaml` | Post-hoc completed extension | Separate 1,024-trial evaluation of state persistence `0.80` on the five retained distractor-trained circular checkpoints. |
+| `circular_distractor_timing_generalisation.yaml` | Post-result completed robustness analysis | Paired 1,024-trial evaluation of the five retained circular checkpoints with the same distractor at five delay positions. |
 
 ## Historical Baseline Development
 
