@@ -3,6 +3,29 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-28 - Add old-versus-new perturbation figure comparison</summary>
+
+Action:
+
+- Preserved the historical five-seed midpoint-distractor figures alongside the
+  refreshed ten-seed variable-timing figures.
+- Added a Markdown comparison page displaying the old and new heatmaps and
+  seed-level persistence plots side by side.
+
+Recorded outputs:
+
+- `docs/reports/figures/full_candidate_perturbation/comparison/README.md`
+- `docs/reports/figures/full_candidate_perturbation/comparison/`
+
+Interpretation:
+
+- The comparison makes the change in circular replication unit, distractor
+  timing regime, seed-level trajectories, and persistence `0.95` summary values
+  explicit without altering the current report.
+
+</details>
+
+<details>
 <summary>2026-07-28 - Refresh perturbation report with randomized-timing 10-seed results</summary>
 
 Action:
