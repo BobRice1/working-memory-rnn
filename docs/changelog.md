@@ -3,6 +3,731 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-28 - Evaluate post-hoc persistence 0.80 distractor selectivity</summary>
+
+Action:
+
+- Added `configs/state_persistence_080_distractor_selectivity.yaml` without
+  modifying the completed candidate-screen grid.
+- Evaluated state persistence `0.80` on the five retained distractor-trained
+  circular checkpoints using 1,024 trials per condition and the existing
+  frozen evaluation banks.
+- Recorded the result in
+  `docs/reports/state_persistence_080_distractor_selectivity.md`.
+
+Result:
+
+- Mean clean proportional impairment was `+1.629`; all five checkpoints failed
+  the original 20% clean-preservation ceiling.
+- Mean distractor proportional impairment was `+1.252`.
+- Distractor-minus-clean selectivity was `-0.377 ± 0.426`, with a student-t 95%
+  interval of `[-0.906, 0.151]` and a positive direction in `1/5` checkpoints.
+- Persistence `0.80` therefore produced broad circular-memory degradation, not
+  increased distractor selectivity.
+
+Interpretation:
+
+- This is a post-hoc descriptive extension, not part of the original fixed
+  strength grid and not confirmatory evidence.
+
+Recorded outputs:
+
+- `outputs/state_persistence_080_distractor_selectivity/metrics/state_persistence_080_grid.csv`
+- `outputs/state_persistence_080_distractor_selectivity/metrics/state_persistence_080_metadata.json`
+
+</details>
+
+<details>
+<summary>2026-07-28 - Add task coverage to perturbation meeting notes</summary>
+
+Action:
+
+- Added explicit task-application bullets for every perturbation in
+  `docs/reports/meeting.md`.
+- Distinguished operators evaluated across both circular and N-back families
+  from the circular-only distractor-window manipulation and the not-yet-run
+  Gaussian comparator.
+
+Interpretation:
+
+- The meeting notes now make clear which task and condition received each
+  intervention without implying that the planned Gaussian control was part of
+  the completed candidate screen.
+
+</details>
+
+<details>
+<summary>2026-07-28 - Convert supervisor-meeting script to implementation-explicit speaking notes</summary>
+
+Action:
+
+- Reworked `docs/reports/meeting.md` into sectioned bullet-point speaking notes.
+- Added the exact model-level implementation, evaluated strength grid,
+  literature motivation, and interpretation boundary for P1--P7, including the
+  task-specific channel boundaries for sensory and distractor-window gain.
+- Clarified that state persistence was recovered by correctly relabelling the
+  earlier whole-update operator after an implementation audit; its relevance to
+  psilocybin-associated behaviour comes from the effects it reproduced, not
+  from a prior biological mapping.
+
+Interpretation:
+
+- The meeting notes now distinguish literature-motivated translations,
+  operational competing hypotheses, and mechanistic or generic-disruption
+  controls.
+
+Recorded output:
+
+- `docs/reports/meeting.md`
+
+</details>
+
+<details>
+<summary>2026-07-28 - Add supervisor-meeting script for perturbation results</summary>
+
+Action:
+
+- Expanded `docs/reports/meeting.md` from a prompt list into a spoken meeting
+  script covering the circular distractor task, context-cued N-back
+  implementation, baseline competence, task-family relationship, candidate
+  perturbations, literature motivation, results, limitations, and next steps.
+- Added a short fallback summary and three explicit questions for supervisor
+  feedback.
+
+Interpretation:
+
+- The script preserves the report's claim boundary: persistence `0.95` is a
+  descriptive computational candidate, not a biological model of psilocybin,
+  and matched-cost Gaussian specificity remains outstanding.
+
+Recorded output:
+
+- `docs/reports/meeting.md`
+
+</details>
+
+<details>
+<summary>2026-07-28 - Replace dose language with perturbation-strength terminology</summary>
+
+Action:
+
+- Replaced “dose-like”, “dose selection”, and “dose differences” in the
+  supervisor report and Q&A with perturbation-strength, parameter-level, or
+  scaling terminology.
+- Updated and regenerated the persistence-strength figure so its visible title
+  reads “Response across carried-state persistence scales”.
+- Rebuilt `docs/reports/Perturbations.pdf`.
+
+Interpretation:
+
+- Persistence values such as `0.95` remain abstract RNN scaling parameters and
+  are not presented as pharmacological doses or dose analogues.
+
+</details>
+
+<details>
+<summary>2026-07-28 - Soften candidate-report title for supervisor handoff</summary>
+
+Action:
+
+- Retitled the supervisor report as “Exploring Candidate RNN Perturbations for
+  Psilocybin-Related Working-Memory Effects”.
+- Rebuilt `docs/reports/Perturbations.pdf` without changing its scientific
+  content or interpretation.
+
+</details>
+
+<details>
+<summary>2026-07-28 - Package perturbation report for supervisor handoff</summary>
+
+Action:
+
+- Renamed the compiled candidate-report deliverable to
+  `docs/reports/Perturbations.pdf`.
+- Added `docs/reports/Perturbations_QA.md` with anticipated supervisor
+  questions and evidence-calibrated answers.
+- Removed generated LaTeX build intermediates from `docs/reports/` while
+  retaining `.tex` sources, bibliography sources, and final PDF deliverables.
+
+Interpretation:
+
+- The handoff now separates the concise scientific report from supporting
+  discussion preparation while preserving the source needed to rebuild it.
+
+Recorded outputs:
+
+- `docs/reports/Perturbations.pdf`
+- `docs/reports/Perturbations_QA.md`
+- `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+
+</details>
+
+<details>
+<summary>2026-07-28 - Tighten scientific provenance in candidate supervisor write-up</summary>
+
+Action:
+
+- Revised `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+  after a scientific review.
+- Disclosed that persistence `0.95` was nominated in the earlier three-seed
+  pilot and that three of the ten N-back checkpoints overlap with that
+  nomination analysis.
+- Added direct citations for the slowing, load-selectivity, and filtering
+  analogues; separated trained-RNN slow-manifold evidence from biological
+  persistent-firing evidence.
+- Replaced “strongest computational account” with descriptive-rule wording and
+  added the omitted circular-training noise and gradient-clipping settings.
+
+Interpretation:
+
+- The numerical results are unchanged. The revised wording makes clear that
+  this is a circular-family retest with partially overlapping N-back evidence,
+  not a fresh blind screen or a matched-cost specificity result.
+
+Recorded outputs:
+
+- `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+- `docs/reports/full_candidate_perturbation_scientific_writeup.pdf`
+
+Verification:
+
+- `latexmk -pdf -interaction=nonstopmode
+  full_candidate_perturbation_scientific_writeup.tex` completed with resolved
+  citations and references.
+- The rebuilt eight-page PDF was visually inspected.
+
+</details>
+
+<details>
+<summary>2026-07-28 - Add supervisor-facing limitations and next-steps section</summary>
+
+Action:
+
+- Added a dedicated `Limitations and next steps for supervisor discussion`
+  section to
+  `docs/reports/full_candidate_perturbation_scientific_writeup.tex`.
+- Split the new content into two explicit blocks:
+  - key limitations of the current candidate-versus-native evidence,
+  - concrete immediate next experiments and analysis decisions to discuss.
+
+Recorded outputs:
+
+- `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+- `docs/reports/full_candidate_perturbation_scientific_writeup.pdf`
+
+Verification:
+
+- `latexmk -pdf full_candidate_perturbation_scientific_writeup.tex` completed.
+
+</details>
+
+<details>
+<summary>2026-07-28 - Remove task schematic figure from candidate report</summary>
+
+Action:
+
+- Removed Figure 1 (task schematic) from
+  `docs/reports/full_candidate_perturbation_scientific_writeup.tex`.
+- Updated Methods wording to avoid dangling references to `fig:tasks`.
+
+Recorded outputs:
+
+- `docs/reports/full_candidate_perturbation_scientific_writeup.pdf` (7 pages)
+
+Verification:
+
+- `pdflatex` completed successfully.
+
+</details>
+
+<details>
+<summary>2026-07-28 - Clarify perturbation equation symbols</summary>
+
+Action:
+
+- Added explicit symbol definitions to the perturbation section in:
+  - `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+  - `docs/dissertation/chapters/04_methods.tex`
+- Defined shared meanings for `x_t`, `h_t`, `z_t`, `W_*`, `b_*`, `\alpha`,
+  `g`, `\mathbf{g}`, `\sigma`, `\varepsilon_t`, `p`, and `s` so equations are
+  interpretable without external code context.
+
+Recorded outputs:
+
+- `docs/reports/full_candidate_perturbation_scientific_writeup.pdf`
+- `docs/dissertation/main.pdf`
+
+Verification:
+
+- `pdflatex` completed for both report and dissertation.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Add distractor+N-back schematic notebook cell</summary>
+
+Action:
+
+- Added notebook cells in `notebooks/02_working_memory_task_schematic.ipynb`
+  that regenerate a four-panel schematic in the original visual style:
+  circular trial with mid-delay distractor (A–B) and 2-back N-back example
+  (C–D).
+
+Recorded outputs:
+
+- `outputs/figures/schematics/working_memory_tasks_schematic.png`
+- `outputs/figures/schematics/working_memory_tasks_schematic.pdf`
+
+</details>
+
+<details>
+<summary>2026-07-27 - Add competence-gate rationales to candidate write-up</summary>
+
+Action:
+
+- Stated N-back competence thresholds and operational rationales for circular
+  retention, fixation, settling, preservation, and N-back gates in
+  `docs/reports/full_candidate_perturbation_scientific_writeup.tex`.
+- Mirrored the same gate text in dissertation Methods and removed the residual
+  N-back pilot-reuse sentence there.
+
+Recorded outputs:
+
+- `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+- `docs/reports/full_candidate_perturbation_scientific_writeup.pdf`
+- `docs/dissertation/chapters/04_methods.tex`
+
+Verification:
+
+- Write-up `pdflatex` completed successfully.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Remove prior-iteration phrasing from candidate write-up</summary>
+
+Action:
+
+- Rewrote Methods/Results/Discussion/Conclusion in
+  `docs/reports/full_candidate_perturbation_scientific_writeup.tex` so the
+  report stands alone without references to earlier report versions, pilots,
+  or “now established” validity language.
+- Removed the remaining three-seed / earlier exploratory-screen disclosure
+  from Methods.
+
+Recorded outputs:
+
+- `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+- `docs/reports/full_candidate_perturbation_scientific_writeup.pdf`
+
+Verification:
+
+- Write-up `pdflatex` completed successfully.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Tighten candidate-screen write-up for supervisor send</summary>
+
+Action:
+
+- Removed the Introduction from
+  `docs/reports/full_candidate_perturbation_scientific_writeup.tex`.
+- Softened the title to mark a native-baseline persistence screen.
+- Clarified that non-P3b operators apply every timestep on the frozen forward
+  pass; mirrored that sentence in dissertation Methods.
+- Renamed the first Results heading to “descriptive profile”.
+
+Recorded outputs:
+
+- `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+- `docs/reports/full_candidate_perturbation_scientific_writeup.pdf` (7 pages)
+- `docs/dissertation/chapters/04_methods.tex`
+
+Verification:
+
+- Write-up `pdflatex`/`bibtex`/`pdflatex`/`pdflatex` completed.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Generate distractor-circular and N-back baseline figures</summary>
+
+Action:
+
+- Added `src/wm_rnn/baseline_competence_figures.py` to regenerate parallel
+  competence and hidden-state figure suites for the current distractor-trained
+  circular family and the screened N-back family.
+- Generated pool competence, delay/load, PCA, stability, and
+  decoded-angle / match-probability panels.
+- Inserted dissertation Results section
+  `docs/dissertation/chapters/05_results_baseline.tex` and renumbered later
+  result/discussion chapter files.
+
+Recorded result:
+
+- Circular representative seed `20260735`: clean delay errors
+  `1.71/1.86/2.10/2.61°` at delays 10/20/40/80; distractor delay-20
+  `2.92°`; delay-period hidden decode error `0.41°`.
+- N-back representative seed `20260916`: 0-back accuracy/discriminability
+  `1.000`; 2-back `0.986/0.971`.
+
+Recorded outputs:
+
+- `outputs/baseline_competence_figures/circular_trained_distractor/`
+- `outputs/baseline_competence_figures/nback_screened_final/`
+- `docs/reports/figures/baseline_competence/*.png`
+- `docs/dissertation/chapters/05_results_baseline.tex`
+- `docs/dissertation/main.pdf`
+
+Verification:
+
+- `pytest tests/test_baseline_competence_figures.py` passed.
+- `python -m wm_rnn.baseline_competence_figures --family all` completed.
+- Dissertation `pdflatex` recompiled after chapter insert.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Define RNN architecture explicitly in Methods</summary>
+
+Action:
+
+- Split Methods into a dedicated Network architecture subsection plus Training
+  and checkpoint replication.
+- Defined drive, leaky native update, linear readout, dimensions, zero
+  initialisation, and nonlinearity-after-mixing caveat.
+
+Recorded outputs:
+
+- `docs/dissertation/chapters/04_methods.tex`
+- `docs/dissertation/main.pdf`
+
+Verification:
+
+- `pdflatex` completed successfully.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Polish dissertation Intro, Aims, Methods, Discussion</summary>
+
+Action:
+
+- Trimmed Introduction so literature detail lives in the lit-review section.
+- Added a provisional claim-map table to Aims.
+- Clarified checkpoint definition and prior structured-noise background in
+  Methods.
+- Expanded Discussion around the strong N-back / weak circular split, human
+  signature comparison, claim boundary, and next specificity step.
+- Tightened Conclusion to match present evidence weight.
+
+Recorded outputs:
+
+- `docs/dissertation/chapters/01_introduction.tex`
+- `docs/dissertation/chapters/03_aims.tex`
+- `docs/dissertation/chapters/04_methods.tex`
+- `docs/dissertation/chapters/08_discussion.tex`
+- `docs/dissertation/chapters/09_conclusion.tex`
+- `docs/dissertation/main.pdf` (13 pages)
+
+Verification:
+
+- `pdflatex`/`bibtex`/`pdflatex`/`pdflatex` completed with no citation errors.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Draft dissertation literature-review section</summary>
+
+Action:
+
+- Replaced the literature-review scaffold in
+  `docs/dissertation/chapters/02_literature.tex` with a quality-weighted
+  synthesis drafted from the vault core set.
+- Expanded `docs/dissertation/references.bib` with the newly cited core
+  sources.
+
+Recorded result:
+
+- Literature section now covers recurrent WM dynamics, acute behavioural
+  signatures, psychedelic dynamics theories/models, serotonergic gain
+  mechanisms, and the modelling gap.
+- Direct evidence, modelling analogies, and speculative translations are
+  separated; Cano-Colino distractor constraint and Stoliker/Bredenberg
+  structured-variability points are included.
+
+Recorded outputs:
+
+- `docs/dissertation/chapters/02_literature.tex`
+- `docs/dissertation/references.bib`
+- `docs/dissertation/main.pdf`
+
+Verification:
+
+- `pdflatex`/`bibtex`/`pdflatex`/`pdflatex` completed with resolved citations.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Switch dissertation scaffold to two-column REVTeX</summary>
+
+Action:
+
+- Converted `docs/dissertation/main.tex` from single-column `report` class to
+  two-column `revtex4-2` (APS/PRL reprint style).
+- Demoted chapter/section hierarchy to section/subsection/subsubsection and
+  widened floats for two-column layout.
+
+Recorded outputs:
+
+- `docs/dissertation/main.tex`
+- `docs/dissertation/chapters/*.tex`
+- `docs/dissertation/main.pdf`
+
+Verification:
+
+- PDF recompiled in two-column REVTeX form.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Create full-dissertation LaTeX scaffold from candidate report</summary>
+
+Action:
+
+- Created `docs/dissertation/` as the growing full-dissertation draft.
+- Migrated the candidate-screen report into chapters for introduction,
+  methods, results I, discussion, and conclusion.
+- Added scaffold chapters for literature review, aims/claim boundary,
+  specificity results, and dynamical explanation.
+- Left the short report in `docs/reports/` as a paper-style snapshot with a
+  pointer to the scaffold.
+- Added vault note `wiki/writing/dissertation-scaffold.md`.
+
+Recorded outputs:
+
+- `docs/dissertation/main.tex`
+- `docs/dissertation/chapters/*.tex`
+- `docs/dissertation/main.pdf` (29 pages)
+- `docs/dissertation/README.md`
+- `wiki/writing/dissertation-scaffold.md`
+
+Interpretation:
+
+- The dissertation spine now matches the end-goal story: lit review, aims,
+  methods, candidate screen, specificity, dynamics, discussion.
+- Chapters 6 and 7 remain empty until those experiments are run.
+
+Verification:
+
+- `pdflatex`/`bibtex`/`pdflatex`/`pdflatex` completed; `main.pdf` is 29 pages.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Remove abstract pending end-of-project rewrite</summary>
+
+Action:
+
+- Removed the abstract from
+  `docs/reports/full_candidate_perturbation_scientific_writeup.tex` so the
+  abstract can be written after the remaining experiments are complete.
+
+Recorded outputs:
+
+- `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+- `docs/reports/full_candidate_perturbation_scientific_writeup.pdf`
+
+</details>
+
+<details>
+<summary>2026-07-27 - Expand candidate-perturbation Methods with lit-to-operator maps</summary>
+
+Action:
+
+- Rewrote the Candidate perturbations Methods section into P1-P7
+  subsubsections, each with the implemented equation, literature motivation,
+  and an explicit translation boundary.
+- Defined checkpoint as one independently trained frozen network.
+- Added catalogue-only P5 to the perturbation table for continuity.
+- Clarified the P6 versus P7 retention wording in Results.
+
+Recorded outputs:
+
+- `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+- `docs/reports/full_candidate_perturbation_scientific_writeup.pdf`
+
+Interpretation:
+
+- Methods now make clear that P1/P2 are the closest Herzog/REBUS gain
+  analogues, P3 is a task-level afferent translation, P4/P7 are mechanistic
+  controls, P5 is the deferred generic comparator, and P6 is an operational
+  nominee rather than a biological mapping.
+
+Verification:
+
+- PDF recompiled (8 pages after Methods expansion).
+
+</details>
+
+<details>
+<summary>2026-07-27 - Revise full-candidate write-up for claim honesty</summary>
+
+Action:
+
+- Revised
+  `docs/reports/full_candidate_perturbation_scientific_writeup.tex` after an
+  internal review, without changing the underlying numerical artefacts.
+- Updated the companion results note to match the revised claim boundary.
+
+Recorded result:
+
+- Reframed the study as exploratory nomination then independent circular
+  retest, with partial N-back reuse disclosed.
+- Reported seed-level student-$t$ 95% intervals; circular settling/delay/
+  distractor intervals include zero, while N-back load selectivity excludes
+  zero.
+- Replaced "pre-specified majority" wording with an accurate description of the
+  majority-direction rule implemented in the summary code.
+- Added near-miss settling magnitudes, the persistence-versus-conserved
+  time-constant asymmetry argument, seed-denominator disclosure, P5 catalogue
+  footnote, 23 non-neutral shared profiles, latency-invalid count, and a
+  labelled secondary Gaussian pilot hint.
+- Set the next experiment priority to matched-cost specificity against
+  Gaussian disruption.
+
+Recorded outputs:
+
+- `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+- `docs/reports/full_candidate_perturbation_scientific_writeup.pdf`
+- `docs/reports/full_candidate_perturbation_1024_results.md`
+
+Interpretation:
+
+- The scientific claim is unchanged in substance but narrower and more honest:
+  descriptive native-baseline sufficiency for persistence `0.95`, not robust
+  circular intervals, uniqueness against generic damage, or biology.
+
+Verification:
+
+- Exact intervals recomputed from the frozen CSVs.
+- Near-miss clean delay-20 settling cells confirmed latency-valid.
+- PDF recompiled after the prose revision (7 pages; float/layout warnings
+  cleared).
+
+</details>
+
+<details>
+<summary>2026-07-27 - Rerun all candidates on the trained-distractor circular family</summary>
+
+Action:
+
+- Added a frozen 1,024-trial evaluation configuration using the five retained
+  distractor-trained circular checkpoints.
+- Reran all seven circular perturbation families and their full strength grids
+  on CUDA.
+- Reused the completed N-back signature table because its checkpoints, task,
+  perturbations, and evaluation settings were unchanged.
+- Regenerated the cross-task summaries and figures, then revised and compiled
+  the scientific report.
+
+Recorded result:
+
+- State persistence `0.95` remained the only operator-strength profile meeting
+  the complete descriptive majority rule.
+- Slowing with relative preservation, long-delay selectivity, and distractor
+  selectivity had the predicted sign in 4/5 circular checkpoints; N-back load
+  selectivity had the predicted sign in 10/10 checkpoints.
+- Mean circular effects were small: proportional clean impairment `+0.049`,
+  settling change `+0.104` steps, delay selectivity `+0.089`, and distractor
+  selectivity `+0.015`.
+- Native circular distractor competence was retained: all baseline
+  distractor-condition errors were between 3.46 and 4.83 degrees and all
+  trials met the settling criterion.
+- The rerun took 590.7 seconds (9 minutes 51 seconds).
+
+Recorded outputs:
+
+- `configs/full_candidate_perturbation_trained_distractor_1024.yaml`
+- `outputs/full_candidate_perturbation_trained_distractor_1024/`
+- `docs/reports/full_candidate_perturbation_1024_results.md`
+- `docs/reports/full_candidate_perturbation_scientific_writeup.tex`
+- `docs/reports/full_candidate_perturbation_scientific_writeup.pdf`
+- `docs/reports/figures/full_candidate_perturbation/`
+
+Interpretation:
+
+- Training the circular checkpoints with distractors resolves the former
+  out-of-distribution validity problem.
+- The selected pattern is descriptive and not universal across circular
+  checkpoints. It establishes computational sufficiency for further mechanism
+  analysis, not a unique perturbation, a population-level human result, or a
+  biological model of psilocybin.
+
+Verification:
+
+- Focused runner and evaluator suite: `11 passed`.
+- Complete repository suite: `216 passed`.
+- The seven-page PDF compiled with resolved citations and references and was
+  visually inspected page by page.
+
+</details>
+
+<details>
+<summary>2026-07-27 - Train the single-item circular distractor family</summary>
+
+Action:
+
+- Added a balanced two-batch training sampler for the original one-item
+  fixation-gated circular task: one clean batch and one distractor-present
+  batch are used exactly once per shuffled block.
+- Kept the 33-input, 64-hidden-unit `tanh` CTRNN architecture unchanged.
+- Used a random five-step tuned distractor centred in the delay, with cue,
+  delay, and pre-cue timing sampled from the original training choices.
+- Trained six candidate seeds for 4,000 updates on the NVIDIA GeForce RTX 3060
+  Laptop GPU and evaluated each on 1,024 paired clean and 1,024 paired
+  distractor trials at delay 20.
+
+Recorded result:
+
+- Five checkpoints met the development competence criteria: seeds `20260731`,
+  `20260732`, `20260733`, `20260735`, and `20260736`.
+- Across retained checkpoints, mean angular error averaged 2.70 degrees for
+  clean trials and 3.54 degrees for distractor trials; the mean distractor cost
+  was 0.85 degrees.
+- Seed `20260734` was preserved but not retained: clean error was 15.75 degrees
+  and distractor error was 17.46 degrees, exceeding the configured 10/15-degree
+  competence limits despite valid fixation performance.
+- All retained checkpoints exceeded 0.97 fixation accuracy in both conditions.
+- Total wall time for the initial five candidates and replacement pass was
+  approximately 46 minutes 52 seconds.
+
+Recorded outputs:
+
+- `configs/fixation_circular_distractor_working_memory.yaml`
+- `outputs/fixation_circular_distractor_working_memory/metrics/fixation_circular_distractor_working_memory_pool_summary.json`
+- `outputs/fixation_circular_distractor_working_memory/metrics/fixation_circular_distractor_working_memory_pool.csv`
+- `outputs/fixation_circular_distractor_working_memory/seed_sweep/`
+
+Interpretation:
+
+- The project now has a competent circular family in which distractor
+  filtering is trained rather than imposed only at evaluation. This supports a
+  meaningful clean-versus-distractor perturbation contrast.
+- These are baseline competence results, not evidence that any perturbation
+  reproduces a human psilocybin signature. The distractor cost is a model
+  contrast and is not fitted to a human effect size.
+
+Verification:
+
+- Focused distractor/training suite: `26 passed`.
+- Complete repository suite: `213 passed`.
+- Python compilation, CLI help, and `git diff --check` passed.
+
+</details>
+
+<details>
 <summary>2026-07-27 - Pending - Clarify active repository structure and archive historical guidance</summary>
 
 Purpose:
