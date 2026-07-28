@@ -1,0 +1,115 @@
+\section{Results: Baseline Competence and Hidden-State Geometry}
+\label{ch:results-baseline}
+
+Before comparing perturbations, the retained circular and N-back checkpoints
+must be competent on their native tasks and must exhibit interpretable
+hidden-state organisation. This section reports those baselines. Pool
+competence uses the frozen held-out banks already recorded at screening;
+delay-sweep and dynamics panels use representative retained seeds
+(circular seed 20260735; N-back seed 20260916).
+
+\subsection{Distractor-trained circular baselines}
+
+Across the five retained distractor-trained circular checkpoints, held-out
+mean angular error averaged $2.70^\circ$ on clean delay-20 trials and
+$3.54^\circ$ with a mid-delay distractor (Fig.~\ref{fig:baseline-circular-competence}).
+All retained seeds passed the preconfigured competence gates (clean
+$\le10^\circ$, distractor $\le15^\circ$, fixation accuracy $\ge0.90$). Seed
+20260734 failed those gates and was excluded before the perturbation screen;
+it is shaded in the pool figure for transparency.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.92\textwidth]{circular_trained_distractor_pool_competence.png}
+  \caption{Clean versus distractor mean angular error for every trained
+  circular seed. Retained checkpoints lie well below the competence gates;
+  the failed seed is shaded.}
+  \label{fig:baseline-circular-competence}
+\end{figure*}
+
+On the representative retained seed, clean mean error rose only gradually
+with delay ($1.71^\circ$, $1.86^\circ$, $2.10^\circ$, and $2.61^\circ$ at delays
+10, 20, 40, and 80), while the distractor delay-20 cell remained low at
+$2.92^\circ$ (Fig.~\ref{fig:baseline-circular-delay}). Hidden-state PCA
+showed angle-ordered trajectories occupying a ring-like plane
+(Fig.~\ref{fig:baseline-circular-dynamics}A; PC1+PC2 $=70.4\%$ variance).
+Step-to-step hidden-state speed slowed during the silent delay
+(Fig.~\ref{fig:baseline-circular-dynamics}B), and a ridge decoder fit on
+delay-period hidden states recovered cue angle with mean delay error
+$0.41^\circ$ (Fig.~\ref{fig:baseline-circular-dynamics}C). Because the
+fixation-gated population readout is trained to remain silent until the go
+cue, that decoder is a hidden-state diagnostic rather than the behavioural
+output itself.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.55\textwidth]{circular_trained_distractor_delay_sweep.png}
+  \caption{Clean delay generalization for representative circular seed
+  20260735, with the distractor delay-20 cell marked separately.}
+  \label{fig:baseline-circular-delay}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.32\textwidth]{circular_trained_distractor_pca_trajectories.png}\hfill
+  \includegraphics[width=0.32\textwidth]{circular_trained_distractor_stability.png}\hfill
+  \includegraphics[width=0.32\textwidth]{circular_trained_distractor_decoded_angle_over_time.png}
+  \caption{Circular hidden-state organisation on seed 20260735.
+  \textbf{A}, PCA trajectories coloured by cue angle.
+  \textbf{B}, Hidden-state norm and step speed across trial phases.
+  \textbf{C}, Hidden-state decoded angle over time on clean trials.}
+  \label{fig:baseline-circular-dynamics}
+\end{figure*}
+
+\subsection{Competence-screened N-back baselines}
+
+All ten screened N-back checkpoints passed untouched competence gates
+(Fig.~\ref{fig:baseline-nback-competence}). 0-back accuracy was at ceiling
+in every seed; 2-back accuracy ranged from $0.958$ to $0.986$, with
+discriminability (hit rate minus false-alarm rate) from $0.917$ to $0.971$
+and 2-back lure accuracy from $0.964$ to $0.996$. On representative seed
+20260916, the frozen evaluation bank gave 0-back accuracy/discriminability
+of $1.000$ and 2-back values of $0.986$/$0.971$
+(Fig.~\ref{fig:baseline-nback-load}).
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.92\textwidth]{nback_screened_pool_competence.png}
+  \caption{0-back versus 2-back accuracy, discriminability, and 2-back lure
+  accuracy across the ten retained N-back checkpoints.}
+  \label{fig:baseline-nback-competence}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.48\textwidth]{nback_screened_load_comparison.png}
+  \caption{Representative N-back load comparison on seed 20260916 under the
+  frozen evaluation bank.}
+  \label{fig:baseline-nback-load}
+\end{figure*}
+
+Hidden-state geometry differed by rule (Fig.~\ref{fig:baseline-nback-dynamics}A).
+At stimulus samples, 0-back activity formed tight clusters by current
+stimulus identity, whereas 2-back geometry was more overlapping, consistent
+with an updating demand that cannot be solved from the current item alone.
+Hidden-state speed under 2-back remained phasic across the sequence
+(Fig.~\ref{fig:baseline-nback-dynamics}B). Match probability for scored
+2-back items separated match from non-match events within each item window
+(Fig.~\ref{fig:baseline-nback-dynamics}C).
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.32\textwidth]{nback_screened_pca_trajectories.png}\hfill
+  \includegraphics[width=0.32\textwidth]{nback_screened_stability.png}\hfill
+  \includegraphics[width=0.32\textwidth]{nback_screened_match_probability.png}
+  \caption{N-back hidden-state organisation on seed 20260916.
+  \textbf{A}, PCA at stimulus samples coloured by stimulus identity under
+  0-back and 2-back rules.
+  \textbf{B}, Hidden-state norm and step speed during 2-back sequences.
+  \textbf{C}, Mean match probability for match versus non-match scored items.}
+  \label{fig:baseline-nback-dynamics}
+\end{figure*}
+
+These baselines establish that both families solve their native tasks with
+interpretable internal structure before any literature-motivated
+perturbation is applied.

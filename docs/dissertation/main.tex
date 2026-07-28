@@ -1,0 +1,60 @@
+% Paper-style two-column REVTeX dissertation scaffold.
+% Prefer new dissertation writing here.
+
+\documentclass[11pt,reprint,aps,prl,floatfix,secnumarabic,nofootinbib]{revtex4-2}
+
+\usepackage[T1]{fontenc}
+\usepackage[british]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{framed}
+\microtypesetup{expansion=false}
+
+\graphicspath{{../reports/figures/full_candidate_perturbation/}{../reports/figures/baseline_competence/}}
+\raggedbottom
+
+% Placeholder blocks for unwritten dissertation material.
+\newenvironment{scaffold}[1][]{%
+  \begin{framed}
+  \noindent\textbf{Scaffold / to write#1.}\\[\smallskipamount]
+}{%
+  \end{framed}
+}
+
+\begin{document}
+
+\title{Computational Sufficiency of Recurrent Perturbations for
+Selected Acute Psilocybin Working-Memory Signatures}
+
+\author{Bob Rice}
+\affiliation{University of Nottingham}
+
+\begin{abstract}
+Abstract deferred until the end of the project. Draft only after the
+specificity and dynamics sections have evidence.
+\end{abstract}
+
+\maketitle
+
+\tableofcontents
+
+\input{chapters/01_introduction}
+\input{chapters/02_literature}
+\input{chapters/03_aims}
+\input{chapters/04_methods}
+\input{chapters/05_results_baseline}
+\input{chapters/06_results_candidate_screen}
+\input{chapters/07_results_specificity}
+\input{chapters/08_results_dynamics}
+\input{chapters/09_discussion}
+\input{chapters/10_conclusion}
+
+\bibliographystyle{apsrev4-2}
+\bibliography{references}
+
+\end{document}

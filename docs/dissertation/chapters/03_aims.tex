@@ -1,0 +1,93 @@
+\section{Aims, Research Questions, and Claim Boundary}
+\label{ch:aims}
+
+\subsection{Adopted end goal}
+
+The end goal of this dissertation is to determine whether a
+literature-motivated change in network dynamics can reproduce a selective
+pattern of acute psilocybin-related working-memory effects more convincingly
+than generic neural disruption, and to explain how that pattern emerges from
+the RNN's internal dynamics. The project is not intended as a literal
+pharmacological simulation of psilocybin. A task-trained RNN is used as a
+controlled computational testbed for comparing candidate mechanisms.
+
+\subsection{Required contributions}
+
+\begin{enumerate}[leftmargin=*]
+  \item Establish a credible working-memory baseline across independently
+        trained checkpoints.
+  \item Define a nonspecific perturbation control (independent Gaussian noise),
+        retaining structured-noise work as background robustness evidence
+        rather than as a direct psilocybin model.
+  \item Compare literature-grounded candidate perturbations against selective
+        behavioural signatures: distractor vulnerability, high-load updating
+        cost, response slowing or longer settling, relative preservation under
+        weaker perturbation, and stronger impairment at greater strengths.
+  \item Provide a dynamical explanation in terms of delay-period decoding,
+        distractor displacement and recovery, representational drift,
+        memory-subspace geometry, and related hidden-state diagnostics.
+\end{enumerate}
+
+\subsection{Working research questions}
+
+\begin{enumerate}[leftmargin=*]
+  \item Which single-operator RNN perturbations, if any, reproduce the selected
+        cross-task behavioural pattern against the native baseline?
+  \item Does the leading candidate exceed matched-cost Gaussian disruption?
+  \item What changes in recurrent population dynamics explain any selective
+        behavioural match?
+\end{enumerate}
+
+\subsection{Provisional claim map}
+
+Table~\ref{tab:claim-map} records the present evidential status. Claims that
+depend on unfinished experiments remain open.
+
+\begin{table*}[t]
+\caption{Provisional claim map. Status distinguishes what the present
+candidate screen supports from what still requires Sections~\ref{ch:results-specificity}
+and~\ref{ch:results-dynamics}.}
+\label{tab:claim-map}
+\begin{tabular}{p{0.42\textwidth}p{0.22\textwidth}p{0.28\textwidth}}
+\toprule
+Claim & Present status & Main support / blocker \\
+\midrule
+Competent circular and N-back baselines exist
+& Supported
+& Section~\ref{ch:results-baseline}; retained checkpoints \\
+Persistence $0.95$ meets the descriptive majority pattern vs native baseline
+& Supported, provisional
+& Section~\ref{ch:results-screen}; weak circular intervals \\
+N-back load selectivity under persistence $0.95$ is robust
+& Supported
+& 10/10 seeds; interval excludes zero \\
+Circular settling/delay/distractor effects are robust
+& Not supported yet
+& Seed-level intervals include zero \\
+Circular and N-back hidden-state geometry is interpretable at baseline
+& Supported, descriptive
+& Section~\ref{ch:results-baseline}; representative seeds \\
+Persistence exceeds matched-cost Gaussian disruption
+& Open
+& Section~\ref{ch:results-specificity} not run \\
+Selective behaviour is explained by recurrent dynamics
+& Open
+& Section~\ref{ch:results-dynamics} not run \\
+Biological identification of psilocybin mechanism
+& Out of scope
+& Claim boundary below \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Inferential boundaries}
+
+The dissertation should not claim that:
+\begin{itemize}[leftmargin=*]
+  \item the RNN is a biological simulation of psilocybin;
+  \item one perturbation strength corresponds to a human dose;
+  \item behavioural similarity identifies the true neural mechanism;
+  \item increased entropy alone makes a model psychedelic-like;
+  \item a null specificity result is experimental failure rather than a
+        scientifically informative constraint.
+\end{itemize}

@@ -1,0 +1,365 @@
+\section{Computational Methods}
+\label{ch:methods}
+
+\subsection{Fixation-gated circular delayed-response task}
+
+Each circular-task trial comprised pre-cue fixation, a circular cue, a silent
+memory delay, and a response period (Fig.~\ref{fig:tasks}A). Stimulus angle
+$\theta\in[0,2\pi)$ was encoded over 32 evenly spaced preferred angles
+$\mu_j$ as
+\begin{equation}
+ c_j(\theta)=\exp\{\kappa[\cos(\theta-\mu_j)-1]\},\qquad \kappa=8.
+\end{equation}
+The fixation input and output remained high until the response cue. Circular
+outputs were deliberately silent before response and then reported the
+remembered angle. Pre-cue and cue durations varied during training; evaluation
+used clean delays of 10, 20, 40, and 80 model steps. A separate delay-20
+condition inserted a five-step irrelevant circular cue midway through the
+delay. Training sampled one clean and one distractor-present homogeneous batch
+exactly once per shuffled two-batch block. Distractor filtering was therefore a
+learned property of the evaluated networks rather than an out-of-distribution
+challenge.
+
+\subsection{Context-cued N-back task}
+
+The N-back task presented 20 sequential items drawn from six stimulus
+identities (Fig.~\ref{fig:tasks}B). Two context channels instructed either
+0-back or 2-back behaviour. In 0-back, the network classified whether the
+current item matched a fixed target identity. In 2-back, it classified whether
+the current item matched the item presented two positions previously.
+Sequences contained six matches; the 2-back generator additionally controlled
+one-back lures. The first two items were excluded from scored outcomes. The
+output consisted of match and non-match logits.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{task_schematic.png}
+  \caption{Complementary working-memory tasks.
+  \textbf{A}, The fixation-gated circular task required a continuous cue angle
+  to be maintained across variable delays and reported after the go cue;
+  balanced clean/distractor training made resistance to an irrelevant
+  delay-period cue a learned behaviour.
+  \textbf{B}, Context inputs switched the same N-back network between a
+  fixed-target 0-back rule and a 2-back updating rule. The tasks supplied
+  settling, delay, distractor, and updating-load contrasts rather than a single
+  performance level.}
+  \label{fig:tasks}
+\end{figure*}
+
+\subsection{Network architecture}
+
+Both task families used the same rate-style continuous-time recurrent network
+(CTRNN) family: a leaky recurrent hidden layer with a linear readout. The
+model is not spiking, not Dale-constrained, and not intended as a
+biophysically detailed cortical circuit. It is a controlled dynamical testbed
+with an explicit time constant so that maintenance stability can be varied
+computationally.
+
+Let $x_t\in\mathbb{R}^{N_{\mathrm{in}}}$ be the input at discrete time $t$,
+$h_t\in\mathbb{R}^{N_h}$ the hidden state, and $y_t\in\mathbb{R}^{N_{\mathrm{out}}}$
+the readout. The native recurrence mixes afferent and recurrent drive,
+\begin{equation}
+ z_t = W_{\mathrm{in}}x_t+b_{\mathrm{in}}
+      +W_{\mathrm{rec}}h_{t-1}+b_{\mathrm{rec}},
+ \label{eq:drive}
+\end{equation}
+then applies a leaky update with nonlinearity after mixing,
+\begin{equation}
+ h_t = \tanh\!\left[(1-\alpha)h_{t-1}+\alpha z_t\right],
+ \qquad \alpha=\frac{dt}{\tau}.
+ \label{eq:native}
+\end{equation}
+Here $dt=20$ and $\tau=100$, so $\alpha=0.2$. The factor $(1-\alpha)$ is the
+carried-state weight and $\alpha$ the drive weight. Because $\tanh$ acts after
+leak mixing rather than only on $z_t$, later gain and persistence operators are
+translations of this implemented update, not exact maps of a Song-style
+$\tau\dot h=-h+f(z)$ form. Hidden states were initialised at zero at the start
+of each trial. Outputs were a linear readout of the hidden state,
+\begin{equation}
+ y_t = W_{\mathrm{out}}h_t+b_{\mathrm{out}}.
+ \label{eq:readout}
+\end{equation}
+
+Unless otherwise stated, $N_h=64$ and the hidden nonlinearity was $\tanh$.
+The circular model used $N_{\mathrm{in}}=N_{\mathrm{out}}=33$ (32 tuned
+channels plus fixation). The N-back model used eight inputs (six stimulus
+identities and two rule-context channels) and two outputs (non-match and match
+logits). Learned weights were frozen before all perturbation analyses.
+
+\subsection{Training and checkpoint replication}
+
+Throughout, a \emph{checkpoint} means one independently trained network with
+frozen weights, identified by its random seed. Checkpoint, not trial or
+technical replicate, is the replication unit: summary statistics are formed
+across trained seeds, and within-seed trial averages are treated as
+measurement precision rather than independent scientific replicates.
+
+Circular networks were trained for 4,000 Adam updates (learning rate
+$10^{-3}$, batch size 64) with Yang-style weighted fixation and response loss
+on a balanced clean/distractor mixture; recurrent training noise standard
+deviation was $0.05$. Six circular seeds were trained; five met preconfigured
+competence limits (clean mean error $\le10^\circ$, distractor mean error
+$\le15^\circ$, fixation accuracy $\ge0.90$) and were retained (seeds 20260731,
+20260732, 20260733, 20260735, and 20260736). Seed 20260734 exceeded those
+limits (clean $15.75^\circ$, distractor $17.46^\circ$) and was excluded before
+the perturbation screen. The ten N-back checkpoints
+(seeds 20260912--20260921) were drawn from a competence-screened pool trained
+with staged 0-back then 2-back curriculum under Adam (learning rate $10^{-3}$,
+no recurrent training noise). Final N-back retention required accuracy
+$\ge0.95$, discriminability $\ge0.90$, and 2-back lure accuracy $\ge0.90$;
+stage-1 0-back acquisition used stricter gates (accuracy $\ge0.98$,
+discriminability $\ge0.95$).
+
+These gates are operational competence thresholds, not fitted human effect
+sizes. Chance circular error is of order $90^\circ$, so clean $\le10^\circ$
+requires unambiguous angle memory while remaining softer than the few-degree
+errors typical of retained seeds; distractor $\le15^\circ$ allows a modest
+filtering cost without accepting near-failure. Fixation $\ge0.90$ keeps the
+network in a reliable go regime so latency contrasts are not confounded by
+fixation collapse. N-back gates demand near-ceiling fixed-target performance,
+clearly above-chance updating, and lure resistance, so load contrasts reflect
+selective updating cost rather than a weak baseline.
+
+\subsection{Prior baseline and structured-noise background}
+
+Earlier project stages established that continuous circular delayed response is
+learnable in the same CTRNN family and that noise structure matters for
+representational robustness. A categorical tanh delay baseline reached perfect
+held-out accuracy across tested delays, while a tuned circular baseline
+supported stable angle decoding with delay-period slowing of hidden-state
+speed. Those reports remain methodological background rather than the
+psilocybin-signature screen.
+
+A five-seed structured-noise study on Yang-style fixation-gated circular
+checkpoints compared matched-RMS independent Gaussian, temporal AR(1), and
+topology-correlated AR(1) hidden-state noise. At equal energy, impairment
+followed independent $<$ temporal $<$ topology-correlated structure, grew with
+delay, accumulated during maintenance, and coincided with collapse of the
+circular memory geometry. That hierarchy is retained as a robustness result
+and as motivation for treating unstructured Gaussian noise as the generic
+control in Section~\ref{ch:results-specificity}. Temporally persistent and
+topology-aligned noise are not used as primary psychedelic candidates in the
+present signature screen: they destroy representations efficiently, but they
+are not the literature-preferred mechanism class for selective behavioural
+dissociations.
+
+\subsection{Candidate perturbations}
+
+We evaluated seven single-operator families against each checkpoint's native
+baseline (Table~\ref{tab:perturbations}). Operators are competing computational
+interventions motivated by, but not equated with, psychedelic or working-memory
+mechanisms. Because the native update applies $\tanh$ after mixing drive with
+carried state, no operator is an exact biological response-gain map; each is an
+explicit RNN translation. Unless noted, every non-neutral operator was applied
+at every timestep of the full frozen forward pass for the entire trial or
+sequence; learned weights were never updated. The only timed exception is P3b,
+which is confined to the irrelevant circular-cue window. Write
+$z_t^{\mathrm{w}}=W_{\mathrm{in}}x_t+W_{\mathrm{rec}}h_{t-1}$ for the
+weight-derived drive. Symbols are shared across perturbations:
+$x_t$ is input, $h_t$ hidden state, and $z_t$ pre-activation drive at time
+$t$; $W_{\mathrm{in}}$ and $W_{\mathrm{rec}}$ are input and recurrent weights;
+$b_{\mathrm{in}}$ and $b_{\mathrm{rec}}$ are biases; and $\alpha=dt/\tau$ is
+the native leak factor. In P3a/P3b, $x_t^{\mathrm{stim}}$ and
+$x_t^{\mathrm{ctrl}}$ denote stimulus versus fixation/rule-control channels,
+with matching input submatrices $W_{\mathrm{in}}^{\mathrm{stim}}$ and
+$W_{\mathrm{in}}^{\mathrm{ctrl}}$. Scalar $g$ denotes uniform gain, vector
+$\mathbf{g}$ fixed unit-wise gain (P2), $\varepsilon_t\sim\mathcal{N}(0,I)$
+Gaussian noise scaled by $\sigma$ (P5), $p$ persistence scale (P6), and $s$
+timescale factor with derived $\alpha'$ (P7). Unless noted, learned biases
+stay outside multiplicative gains.
+
+\subsubsection{P1 Synaptic-drive gain}
+Herzog et al.\ operationalised 5-HT2A effects as response gain on synaptic
+current inside a nonlinearity \cite{herzog2023}; REBUS likewise links altered
+precision to postsynaptic gain \cite{carhartharris2019}. In this CTRNN the
+closest available analogue multiplies weight-derived drive while leaving
+biases unscaled:
+\begin{equation}
+ h_t=\tanh\!\left[
+ (1-\alpha)h_{t-1}+\alpha\bigl(g z_t^{\mathrm{w}}+b_{\mathrm{in}}+b_{\mathrm{rec}}\bigr)
+ \right].
+ \label{eq:p1}
+\end{equation}
+This is synaptic-drive gain, not an exact $F$--$I$ slope change and not a pure
+carried-state manipulation.
+
+\subsubsection{P2 Heterogeneous drive gain}
+Receptor-density dependence in Herzog et al.\ implies spatially nonuniform gain
+rather than one global scalar \cite{herzog2023}. We therefore replaced $g$ by a
+fixed positive unit-wise vector $\mathbf{g}$ drawn from a log-normal
+distribution and normalised to population mean one:
+\begin{equation}
+ h_t=\tanh\!\left[
+ (1-\alpha)h_{t-1}+\alpha\bigl(\mathbf{g}\odot z_t^{\mathrm{w}}+b_{\mathrm{in}}+b_{\mathrm{rec}}\bigr)
+ \right].
+ \label{eq:p2}
+\end{equation}
+Three fixed vectors were treated as technical replicates and averaged within
+checkpoint; they are not independent trained seeds.
+
+\subsubsection{P3a Sensory-input gain}
+REBUS predicts increased influence of afferent or bottom-up signals when
+high-level precision is relaxed \cite{carhartharris2019}. As a task-level
+translation, only stimulus-channel input weights were scaled, leaving fixation
+or rule-context channels unchanged:
+\begin{equation}
+\begin{aligned}
+ z_t^{\mathrm{in}} &=
+ g\,W_{\mathrm{in}}^{\mathrm{stim}}x_t^{\mathrm{stim}}
+ +W_{\mathrm{in}}^{\mathrm{ctrl}}x_t^{\mathrm{ctrl}}
+ +b_{\mathrm{in}},\\
+ h_t &= \tanh\bigl[(1-\alpha)h_{t-1}
+ +\alpha(z_t^{\mathrm{in}}+W_{\mathrm{rec}}h_{t-1}+b_{\mathrm{rec}})\bigr].
+\end{aligned}
+ \label{eq:p3a}
+\end{equation}
+This tests sensory sensitivity, not receptor-mapped response gain.
+
+\subsubsection{P3b Distractor-window gain}
+Human psilocybin work shows particular vulnerability when competing information
+must be ignored \cite{carter2005}. P3b applies Eq.~\eqref{eq:p3a} only during
+the irrelevant circular cue and is therefore a circular-task manipulation
+check rather than a complete cross-task mechanism candidate.
+
+\subsubsection{P4 Recurrent gain}
+Recurrent excitation is a canonical substrate of delay-period maintenance
+\cite{wang2013nmda}. To separate recurrent weighting from sensory drive we
+scaled only the recurrent weight contribution:
+\begin{equation}
+\begin{aligned}
+ z_t^{(4)} &=
+ W_{\mathrm{in}}x_t+b_{\mathrm{in}}
+ +g W_{\mathrm{rec}}h_{t-1}+b_{\mathrm{rec}},\\
+ h_t &= \tanh\bigl[(1-\alpha)h_{t-1}+\alpha z_t^{(4)}\bigr].
+\end{aligned}
+ \label{eq:p4}
+\end{equation}
+Recurrent bias remained outside the gain. P4 is a mechanistic contrast within
+the trained RNN, not a direct REBUS or 5-HT2A claim.
+
+\subsubsection{P5 Gaussian state noise}
+Independent Gaussian noise is retained in the project catalogue as a generic
+disruption control against which selective signatures must later be shown to
+exceed nonspecific damage. Noise was added to the pre-activation,
+\begin{equation}
+ h_t=\tanh\!\left[
+ (1-\alpha)h_{t-1}+\alpha z_t+\sigma\varepsilon_t
+ \right],
+ \quad \varepsilon_t\sim\mathcal{N}(0,I),
+ \label{eq:p5}
+\end{equation}
+in the exploratory pilot, but P5 was outside the candidate-only screen reported
+in Section~\ref{ch:results-screen}. Section~\ref{ch:results-specificity} is
+reserved for the matched-cost comparison.
+
+\subsubsection{P6 State persistence}
+Trained working-memory RNNs can store information in slow or persistent latent
+dynamics \cite{ghazizadeh2021,wang2013nmda}. P6 asks whether weakening
+retention of the carried state, without rescaling incoming drive, can produce
+selective behavioural costs. The update is asymmetric:
+\begin{equation}
+ h_t=\tanh\!\left[p(1-\alpha)h_{t-1}+\alpha z_t\right],
+ \label{eq:persistence}
+\end{equation}
+where $p$ is the persistence scale. This is an operational RNN intervention,
+not a pre-specified biological mapping from psilocybin to reduced persistence;
+$p=0.95$ entered the present screen as the exploratory pilot nominee.
+
+\subsubsection{P7 Conserved effective time constant}
+To test whether P6 effects are merely those of any timescale change, P7
+rescales the leaky-integrator coefficients while preserving their sum. With
+timescale factor $s$,
+\begin{equation}
+ \alpha'=\min(\alpha/s,1),\qquad
+ h_t=\tanh\!\left[(1-\alpha')h_{t-1}+\alpha'z_t\right].
+ \label{eq:p7}
+\end{equation}
+Thus $s>1$ slows the effective timescale and $s<1$ speeds it. Within the
+evaluated grid, $\alpha/s<1$, so the minimum was inactive. P7 is a
+mechanistic control for conserved timescale change, not a psychedelic
+parameter claim.
+
+\begin{table*}[t]
+\caption{Candidate perturbations and fixed evaluation grids.
+Neutral settings reproduce the native forward pass. Distractor-window gain was
+defined only for the circular distractor condition; all other operators except
+P5 were evaluated in both task families. P5 is listed for catalogue continuity
+but was not part of the candidate-only screen.}
+\label{tab:perturbations}
+\centering
+\begin{tabular}{lll}
+\toprule
+ID & Computational intervention & Strengths \\
+\midrule
+P1 & Scalar gain on input and recurrent weight drive
+& 0.90--1.10 \\
+P2 & Fixed mean-one unit-wise log-normal gain
+& log-SD 0.00--0.30 \\
+P3a & Gain on stimulus-channel input contribution
+& 0.80--1.20 \\
+P3b & P3a restricted to irrelevant cue window
+& 1.00--1.50 \\
+P4 & Scalar gain on recurrent weight contribution
+& 0.90--1.10 \\
+P5 & Additive pre-activation noise (catalogue)
+& specificity chapter \\
+P6 & Scale $p$ on carried-state coefficient
+& 0.90--1.10 \\
+P7 & Conserved update with $\alpha'=\min(\alpha/s,1)$
+& 0.80--1.25 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Evaluation and behavioural signature}
+
+Each circular checkpoint, operator, strength, condition, and delay used 1,024
+trials. Each N-back checkpoint, operator, strength, and load used 1,024
+20-item sequences. Native and perturbed evaluations reused identical generated
+task samples within checkpoint and cell.
+
+Circular response accuracy was mean absolute angular error. Post-cue settling
+was the first response step at which angular error was below $15^\circ$ and
+population-vector amplitude exceeded 50\% of the native reference amplitude.
+Trials that did not settle were capped at the 25-step response duration,
+yielding restricted mean settling time. Settling was interpreted only when
+fixation accuracy was at least 0.90 and at least 80\% of trials settled.
+The $15^\circ$ settling threshold is a coarse latency criterion distinct from
+continuous accuracy; half-native amplitude excludes collapsed bumps; and the
+80\% settled floor marks latency invalid when most trials never settle.
+``Slowing with preservation'' required a positive settling change at clean
+delay 20 while proportional angular-error impairment remained at or below
+0.20, encoding selective slowing without large accuracy loss.
+
+For circular condition $c$, proportional impairment was
+\begin{equation}
+ I_c=\frac{E_{\mathrm{perturbed},c}-E_{\mathrm{native},c}}
+ {E_{\mathrm{native},c}},
+\end{equation}
+where $E$ is mean angular error. Delay selectivity was
+$I_{\mathrm{delay\,80}}-I_{\mathrm{delay\,10}}$; distractor selectivity was
+$I_{\mathrm{distractor\,20}}-I_{\mathrm{clean\,20}}$.
+
+N-back discriminability was $D=H-F$, where $H$ and $F$ are hit and false-alarm
+rates. Condition-normalised impairment was
+\begin{equation}
+ J_c=\frac{D_{\mathrm{native},c}-D_{\mathrm{perturbed},c}}
+ {D_{\mathrm{native},c}},
+\end{equation}
+and load selectivity was $J_{\mathrm{2back}}-J_{\mathrm{0back}}$. Positive
+values indicate disproportionate high-load impairment.
+
+The candidate-screen analysis was descriptive. For each operator-strength
+setting we reported the checkpoint mean, SD, and a student $t$ 95\% interval
+across seeds, together with the fraction of seeds in the predicted direction.
+A setting met the complete descriptive pattern when the mean
+slowing-with-preservation, distractor, and N-back load contrasts were positive
+and at least a simple majority of checkpoints agreed on each (three of five
+circular; six of ten N-back); delay selectivity was supporting evidence only.
+That majority rule generalises the exploratory pilot's $\ge$2-of-3 criterion
+and is implemented in the summary code; it was not restated as a numeric
+threshold in the 1,024-trial preregistration text. Cross-operator comparisons
+are uncontrolled for overall perturbation magnitude, so a near-miss may fail
+because of dose as well as mechanism. No participant-level inference,
+confirmatory $p$ values, or multiple-comparison claims were made for the
+screen.

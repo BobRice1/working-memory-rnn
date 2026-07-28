@@ -20,6 +20,9 @@ docs/build-log.md
 *.log
 *.aux
 *.out
+*.bbl
+*.blg
+*.toc
 *Notes.bib
 *.tmp
 .DS_Store

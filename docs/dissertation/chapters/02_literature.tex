@@ -1,0 +1,137 @@
+\section{Literature Review}
+\label{ch:literature}
+
+This section synthesises the core literature that motivates the present
+computational study. The review is organised around project logic rather than
+paper-by-paper summary: working memory as recurrent dynamics; trained RNNs as
+testbeds; acute psilocybin behavioural signatures; psychedelic neural-dynamics
+theories; and serotonergic gain mechanisms. Direct evidence, modelling
+analogies, and speculative translations are kept distinct.
+
+\subsection{Working memory as recurrent dynamics}
+
+Working memory can be supported by recurrent excitation that sustains
+task-relevant activity after sensory drive has disappeared. In prefrontal
+cortex, NMDA-dependent recurrent mechanisms contribute to delay-period
+persistent firing \cite{wang2013nmda}. At the population level, however,
+stable coding need not require every neuron to fire tonically: Murray and
+colleagues showed that heterogeneous single-unit trajectories can coexist with
+a low-dimensional subspace in which stimulus representations remain decodable
+across cue and delay epochs \cite{murray2017stable}. Theoretical work likewise
+emphasises that recurrent heterogeneity and attractor structure shape drift,
+noise robustness, and memory stability \cite{kilpatrick2013}.
+
+Trained recurrent networks provide a complementary modelling route. Song,
+Yang, and Wang showed that excitatory--inhibitory RNNs can be trained on
+cognitive tasks, including parametric working memory, while remaining useful
+as mechanistic hypothesis generators provided that dynamics and connectivity
+are analysed rather than behaviour alone \cite{song2016ei}. Ghazizadeh and
+Ching further showed that trained working-memory networks can encode
+information along slow manifolds, with multiple dynamical solutions capable of
+supporting delay-period performance and different robustness/forgetting
+tradeoffs \cite{ghazizadeh2021}. Frontoparietal circuit models also motivate
+testing maintenance under distraction and distributed recurrent roles
+\cite{murray2017frontoparietal}. Together, these sources justify a
+task-trained RNN baseline judged by both behavioural competence and
+population-level delay dynamics.
+
+\subsection{Acute psilocybin effects on attention and working memory}
+
+Human psilocybin cognition does not reduce to a single global impairment.
+Across attention and executive tasks, a multilevel meta-analysis found a large
+acute slowing of reaction time (Hedges' $g=1.13$, 95\% CI $[0.57,1.70]$) with
+a weaker and less robust accuracy effect \cite{yousefi2025}. Dose dependence
+and task sensitivity were important: broader or more demanding measures tended
+to show clearer slowing. This is the strongest behavioural rationale for
+including timing-sensitive outcomes, such as response settling, alongside final
+accuracy.
+
+Original studies refine the selective pattern. In a letter N-back task,
+psilocybin impaired updating more clearly at 2-back than at 0-back, with
+reduced discriminability and prolonged responding \cite{barrett2018}. In a
+small within-subject study, multiple-object tracking was impaired while spatial
+span was comparatively spared \cite{carter2005}. Interval reproduction and
+spatial span showed stronger impairment at higher dose and longer intervals
+\cite{wittmann2007}. On a memory-guided delayed-response task, reaction time
+increased without a clear reduction in correct responses
+\cite{vollenweider1998}. Broader reviews likewise report mixed working-memory
+findings and more consistent acute attentional vulnerability, while cautioning
+against equating acute healthy-volunteer effects with post-acute clinical
+outcomes \cite{meshkat2024,sayalibarrett2023}. Sayali and Barrett additionally
+frame psychedelic cognition as a stability--flexibility tradeoff rather than
+uniform deficit \cite{sayalibarrett2023}.
+
+For modelling, these findings support a selective target: greater cost under
+updating load and distraction, response slowing with relative preservation of
+simple accuracy, and stronger impairment at greater perturbation strength.
+They do not specify an RNN equation.
+
+\subsection{Psychedelic neural-dynamics theories and models}
+
+Theoretical accounts motivate altered precision, gain, and constraint. The
+entropic-brain framework emphasised increased signal diversity and reduced
+ordered constraint under psychedelics \cite{carhartharris2014}. REBUS relates
+relaxed high-level prior precision to altered postsynaptic gain and greater
+influence of afferent prediction-error signals \cite{carhartharris2019}. These
+are interpretive frameworks, not working-memory implementations.
+
+Computational and empirical models sharpen the translation space. Herzog and
+colleagues operationalised 5-HT2A effects in a whole-brain dynamic mean-field
+model as receptor-density-dependent modulation of the neural response function,
+producing heterogeneous entropy increases shaped by recurrent topology
+\cite{herzog2023}. Empirical MEG work similarly reports increased spontaneous
+signal diversity under psychedelic doses of several compounds, including
+psilocybin \cite{schartner2017}. Stoliker et al.\ analysed psilocybin fMRI/EEG
+across rest, meditation, music, and movie contexts and argued that variability
+can remain structured and context-sensitive rather than randomly
+disorganised; stronger subjective effects accompanied more cohesive
+context-specific trajectories \cite{stoliker2026}. Bredenberg et al.\ modelled
+a shift toward top-down generative influence and showed that structured
+internal weighting can produce variability and distortions distinct from
+additive noise controls \cite{bredenberg2026}.
+
+None of these sources is a working-memory RNN. Their joint implication is
+nonetheless clear: candidate perturbations should include gain-like and
+weighting manipulations, and generic noise should be retained as a control
+rather than treated as the default psychedelic mechanism.
+
+\subsection{Serotonergic and gain mechanisms relevant to working memory}
+
+Cellular and circuit evidence makes response gain a particularly tractable
+bridge. In rat prefrontal pyramidal neurons, serotonin increased the slope of
+the firing-rate/current relationship through postsynaptic 5-HT2 mechanisms
+\cite{zhang2005gain}. In monkeys performing oculomotor delayed response, local
+5-HT2A stimulation and blockade altered delay-period spatial tuning in a
+dose-dependent and non-monotonic manner involving both putative excitatory and
+inhibitory cells \cite{williams2002ht2a}. Cano-Colino and colleagues used a
+receptor-informed spatial working-memory attractor model to show that
+serotonergic manipulations can produce distinct failure modes---delay decay,
+spurious bumps, distractibility, or perseveration---and that isolated 5-HT2A
+agonism increased distractor resistance in their model rather than simple
+distractor capture \cite{canocolino2013}. That result is an important
+constraint: behavioural distractor vulnerability under psilocybin should not be
+equated a priori with a receptor claim that 5-HT2A agonism increases distractor
+gain.
+
+Direct psilocin work strengthens heterogeneity. Schmitz et al.\ found that
+psilocin excited identified medial-prefrontal 5-HT2A neurons while producing
+mixed increases, decreases, and null effects across the broader pyramidal
+population \cite{schmitz2025}. Human cortical-propagation analyses further
+suggest that psilocybin effects depend on the heterogeneous 5-HT2A receptor
+landscape \cite{makimarttunen2026}. These findings motivate testing both global
+and unit-wise heterogeneous drive-gain analogues, while treating sensory,
+distractor, and recurrent weightings as separate competing translations.
+
+\subsection{Evidence gaps and modelling implications}
+
+Across this core set, no reviewed source both trains a working-memory RNN and
+tests which literature-motivated dynamical perturbation recovers selective
+acute psilocybin behavioural signatures more convincingly than generic
+disruption. To our knowledge, that combined question remains open. The
+literature therefore justifies the present programme as computational
+sufficiency and comparative mechanism, not as biological identification:
+build competent delay-period networks; define selective behavioural contrasts
+from human task evidence; compare gain, afferent, recurrent, persistence, and
+timescale interventions against a native baseline and, later, against matched
+Gaussian disruption; and explain any selective match through population
+dynamics rather than accuracy alone.
