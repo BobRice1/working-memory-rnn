@@ -3154,6 +3154,23 @@ model variants.
 ## Git Commit History
 
 <details>
+<summary>2026-07-29 - da89bd2 - Add persistence neighbourhood analysis</summary>
+
+Recorded the dense state-persistence neighbourhood and the onset-aligned
+hidden-state follow-up, with repository-local figures and results notes.
+
+File changes:
+
+- `configs/`, `src/wm_rnn/state_persistence_dense_run.py`, `tests/`: Added the
+  frozen 10-seed persistence-grid runner and its outcome-free checks.
+- `notebooks/persistence_hidden_state_analysis.ipynb`, `docs/reports/`: Added
+  the hidden-state decoding/PCA analysis and concise result records.
+- `docs/reports/figures/full_candidate_perturbation/comparison/`: Added the
+  dense response figure and its documented comparison.
+
+</details>
+
+<details>
 <summary>2026-07-13 - bb43031 - Support circular models in seed sweeps</summary>
 
 Generalized independent-seed training, evaluation, decoder analysis, delay
