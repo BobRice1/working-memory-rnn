@@ -1,0 +1,49 @@
+Title
+School Name
+Name
+
+
+Abstract
+leave till the end
+
+Introduction
+- brief talk about research on psilocybin effecting neural dynamics (references)
+- link to working memory 
+- lit review on psilocybin and working memory studies (references)
+- hypothesis "can we reproduce psilocybins behavioural signatures in working memory using a rnn"
+- what are the signatures (the four categories we have tried to reproduce in the perturbation experiment) (references)
+- how did we choose these signatures, what studies do they come from (references)
+
+Methods
+- define model
+    - reference to yang architecture
+- define tasks (fig task schematic)
+    - explain how the model recieves the task
+    - model time steps
+    - variation in training routine
+    - reference to N-Back task paper
+    - reference to yang circular model
+- Training
+- explain how the circular model supports purturbations on things the n-back doesn't and in this way they are complementory for covering more ground
+- define perturbations
+    - list each one explaining the equations and each variable
+        - what the purpose of the perturbation is
+        - how the perturbation alters the network
+        - what literature supports testing this perturbation (references)
+- Matched gaussian cost (not yet done)
+- Evaluation
+    - explain the four signatures
+        - explain the gates and their rates
+        - how did we define the equations
+        - why did we choose the values we did
+
+Discussion
+- Results
+    - baseline model results (figs including performance, hidden state pca space)
+    - Perturbation results
+    - Matched Gaussian Cost results (not done yet)
+    - Hidden State Analysis
+
+- Evaluation
+- Limitations
+- Next Steps
