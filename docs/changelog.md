@@ -3,6 +3,94 @@
 This changelog tracks two related histories:
 
 <details>
+<summary>2026-07-29 - Persistence hidden-state analysis notebook</summary>
+
+Action:
+
+- Planned (Fable-low subagent) and built (Grok 4.5 subagent) a new notebook
+  `notebooks/persistence_hidden_state_analysis.ipynb` for the supervisor-
+  requested hidden-state follow-up on the persistence candidate.
+- Approach B (core quantitative metrics + PCA). Evaluated the 10 variable-timing
+  circular seeds at persistence `1.00`, `0.95`, `0.90` with 1,024 paired trials
+  per condition, reusing frozen banks so angles, distractor angles, and
+  per-trial randomized distractor onsets are identical across gains.
+- Distractor analysis is onset-aligned via a notebook-local helper (the stock
+  fixed-window metric is skipped under randomized timing); no `src/` change.
+- Fit a per-seed PCA basis once on baseline (`1.00`) clean delay hidden states
+  and projected `0.95`/`0.90` mean trajectories into that frozen basis.
+- Executed the notebook end-to-end on CUDA (all 15 cells, no errors) with
+  sanity checks: pairing, `1.00` no-op vs native, shapes, tanh range, onset
+  coverage, frozen PCA.
+
+Recorded result (pooled means across 10 seeds):
+
+- Clean delay decode error rose as persistence fell: `0.975` (`1.00`),
+  `1.250` (`0.95`), `1.951` (`0.90`) degrees; mean delay step speed fell
+  (`0.0855` -> `0.0787` -> `0.0752`).
+- Onset-aligned distractor peak attraction increased (`0.0845` -> `0.0944`
+  -> `0.1058`) and recovery fraction decreased (`0.307` -> `0.292` -> `0.274`).
+- Frozen-PCA mean delay trajectory shifts progressively off the baseline path
+  as persistence decreases.
+
+Recorded outputs:
+
+- `notebooks/persistence_hidden_state_analysis.ipynb`
+- `outputs/persistence_hidden_state_analysis/metrics/persistence_hidden_state_metrics.csv` (30 rows)
+- `outputs/persistence_hidden_state_analysis/metrics/persistence_hidden_state_summary.json`
+- `outputs/persistence_hidden_state_analysis/figures/persistence_pca_delay_trajectories.png`
+- `outputs/persistence_hidden_state_analysis/figures/persistence_drift_recovery_summary.png`
+- `docs/reports/persistence_hidden_state_analysis_results.md`
+- `docs/superpowers/specs/2026-07-29-persistence-hidden-state-notebook-plan.md`
+
+Interpretation:
+
+- Reduced carried-state persistence produces slower, higher-drift delay
+  dynamics and weaker distractor recovery, consistent with a less stable
+  memory manifold. This is descriptive mechanism evidence only; it is not
+  matched-cost specificity versus Gaussian disruption.
+
+</details>
+
+<details>
+<summary>2026-07-29 - Dense state-persistence neighbourhood on 10+10 seeds</summary>
+
+Action:
+
+- Froze a persistence-only neighbourhood grid
+  (`0.80`, `0.85`, then `0.88`--`1.00` by `0.01`) before outcome inspection.
+- Evaluated the grid on all 10 variable-timing circular checkpoints and all 10
+  screened N-back checkpoints with 1,024 trials or sequences per cell.
+- Generated a Fig-2-style dose-response figure and added it to the comparison
+  README.
+
+Recorded result:
+
+- Persistence `0.95` reproduced the earlier descriptive cell
+  (settling `+0.032`, slowing-with-preservation `6/10`, delay `9/10`,
+  distractor `8/10`, N-back load `+0.251` in `10/10`).
+- Nearby `0.96` improved slowing-with-preservation to `7/10` while retaining
+  the other majority directions.
+- Persistence `0.80` increased settling strongly (`+2.143`) but failed
+  preservation (`1/10`) and inverted N-back load selectivity (`-0.601`).
+
+Recorded outputs:
+
+- `configs/state_persistence_dense_variable_timing_1024.yaml`
+- `docs/preregistration/state_persistence_dense_variable_timing_1024.md`
+- `docs/reports/state_persistence_dense_variable_timing_1024_results.md`
+- `outputs/state_persistence_dense_variable_timing_1024/`
+- `docs/reports/figures/full_candidate_perturbation/comparison/persistence_response_dense_10seed_variable_timing.png`
+- `docs/reports/figures/full_candidate_perturbation/comparison/README.md`
+
+Interpretation:
+
+- The mild-persistence candidate is neighbourhood-stable rather than a single
+  grid-point accident, while deep persistence cuts remain a general-damage
+  regime. Matched-cost Gaussian specificity is still outstanding.
+
+</details>
+
+<details>
 <summary>2026-07-28 - Add old-versus-new perturbation figure comparison</summary>
 
 Action:

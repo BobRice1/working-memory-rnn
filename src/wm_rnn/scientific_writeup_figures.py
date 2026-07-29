@@ -227,6 +227,18 @@ def persistence_dose_response(
     crows = [row for row in circular if row["operator"] == "state_persistence"]
     nrows = [row for row in nback if row["operator"] == "state_persistence"]
     strengths = sorted({float(row["strength"]) for row in crows})
+    # Equal-spaced steps so uneven grids (e.g. 0.80, 0.85, 0.88...1.00)
+    # still place one tick per evaluated perturbation strength.
+    x_positions = np.arange(len(strengths), dtype=float)
+    tick_labels = [f"{strength:g}" for strength in strengths]
+    reference_index = next(
+        (
+            index
+            for index, strength in enumerate(strengths)
+            if abs(strength - 0.95) < 1e-12
+        ),
+        None,
+    )
     cseeds = sorted({int(row["checkpoint_seed"]) for row in crows})
     nseeds = sorted({int(row["checkpoint_seed"]) for row in nrows})
     metrics = [
@@ -240,7 +252,7 @@ def persistence_dose_response(
         ),
         ("load_selectivity", "2-back-0-back selectivity", nrows, nseeds),
     ]
-    fig, axes = plt.subplots(2, 2, figsize=(9.2, 6.5), sharex=True)
+    fig, axes = plt.subplots(2, 2, figsize=(10.4, 6.5), sharex=True)
     for axis, (field, title, rows, seeds) in zip(axes.flat, metrics):
         lookup = {
             (int(row["checkpoint_seed"]), float(row["strength"])): float(
@@ -253,14 +265,14 @@ def persistence_dose_response(
         )
         for trajectory in trajectories:
             axis.plot(
-                strengths,
+                x_positions,
                 trajectory,
                 color=COLOURS["grey"],
                 linewidth=0.8,
                 alpha=0.45,
             )
             axis.scatter(
-                strengths,
+                x_positions,
                 trajectory,
                 color=COLOURS["grey"],
                 s=9,
@@ -269,7 +281,7 @@ def persistence_dose_response(
         means = trajectories.mean(axis=0)
         standard_deviation = trajectories.std(axis=0, ddof=1)
         axis.errorbar(
-            strengths,
+            x_positions,
             means,
             yerr=standard_deviation,
             color=COLOURS["blue"],
@@ -279,9 +291,17 @@ def persistence_dose_response(
             label="mean ± SD",
         )
         axis.axhline(0, color="#111827", linewidth=0.8)
-        axis.axvline(0.95, color=COLOURS["red"], linestyle="--", linewidth=1)
+        if reference_index is not None:
+            axis.axvline(
+                reference_index,
+                color=COLOURS["red"],
+                linestyle="--",
+                linewidth=1,
+            )
         axis.set_title(title)
         axis.set_xlabel("State-persistence scale")
+        axis.set_xticks(x_positions)
+        axis.set_xticklabels(tick_labels, rotation=45, ha="right")
     axes[0, 0].legend(frameon=False, loc="best")
     fig.suptitle(
         "Response across carried-state persistence scales",
