@@ -3154,6 +3154,18 @@ model variants.
 ## Git Commit History
 
 <details>
+<summary>2026-07-29 - d4116d1 - Add dissertation layout outline</summary>
+
+Preserved the dissertation writing outline as a tracked repository document.
+
+File changes:
+
+- `docs/dissertation/Layout`: Added the user-authored dissertation section
+  outline.
+
+</details>
+
+<details>
 <summary>2026-07-29 - da89bd2 - Add persistence neighbourhood analysis</summary>
 
 Recorded the dense state-persistence neighbourhood and the onset-aligned
